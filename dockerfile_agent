@@ -13,5 +13,6 @@ WORKDIR /dp-agent
 COPY . /dp-agent/.
 
 ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
+ENTRYPOINT python3 -m core.run -ch web_interface
 
 EXPOSE 8888
