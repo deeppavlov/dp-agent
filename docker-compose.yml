@@ -10,8 +10,10 @@ services:
     - sentiment
     - obscenity
     - chitchat_odqa
+    - mongo
     ports:
     - 8888:8888
+    - 8080:8080
     tty: true
     volumes:
     - .:/dp-agent
@@ -45,6 +47,13 @@ services:
     - .:/dp-agent
     - ${EXTERNAL_FOLDER}dp_logs:/logs
     - ${EXTERNAL_FOLDER}.deeppavlov:/root/.deeppavlov
+  mongo:
+    command: mongod
+    image: mongo:3.2.0
+    ports:
+    - 27017:27017
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
   ner:
     build:
       args:

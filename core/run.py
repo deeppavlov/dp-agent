@@ -6,13 +6,18 @@ from multiprocessing.connection import Connection
 from typing import Callable, Optional, Collection, Hashable, List, Tuple
 from os import getenv
 import argparse
+import aiohttp
+import jinja2
+import aiohttp_jinja2
+from aiohttp import web
+from faker import Faker
 
 import telebot
 from telebot.types import Message, Location, User
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ch", "--channel", help="run agent in telegram or cmd_client", type=str,
-                    choices=['telegram', 'cmd_client'], default='cmd_client')
+                    choices=['telegram', 'cmd_client', 'web_client'], default='cmd_client')
 args = parser.parse_args()
 CHANNEL = args.channel
 
@@ -148,10 +153,69 @@ def run():
         return infer_cmd
 
 
+async def init_app():
+
+    app = web.Application()
+
+    app['websockets'] = {}
+
+    app.on_shutdown.append(shutdown)
+
+    aiohttp_jinja2.setup(
+        app, loader=jinja2.PackageLoader('core', 'templates'))
+
+    app.router.add_get('/', index)
+
+    return app
+
+
+async def shutdown(app):
+    for ws in app['websockets'].values():
+        await ws.close()
+    app['websockets'].clear()
+
+
+def get_random_name():
+    fake = Faker()
+    return fake.name()
+
+
+async def index(request):
+    ws_current = web.WebSocketResponse()
+    ws_ready = ws_current.can_prepare(request)
+    if not ws_ready.ok:
+        return aiohttp_jinja2.render_template('index.html', request, {})
+
+    await ws_current.prepare(request)
+
+    name = get_random_name().replace(' ', '_')
+    user = {'id': name}
+
+    await ws_current.send_json({'action': 'connect', 'name': name})
+
+    for ws in request.app['websockets'].values():
+        await ws.send_json({'action': 'join', 'name': name})
+    request.app['websockets'][name] = ws_current
+
+    message_processor = run()
+
+    while True:
+        msg = await ws_current.receive()
+        if msg.type == aiohttp.WSMsgType.text:
+            message = {'data': msg.data, 'from_user': user}
+            await ws_current.send_json({'action': 'sent', 'name': 'bot', 'text': message_processor([message], [1])[0]})
+        else:
+            break
+
+    del request.app['websockets'][name]
+
+    return ws_current
+
+
 def main():
     if CHANNEL == 'telegram':
         experimental_bot(run, token=getenv('TELEGRAM_TOKEN'), proxy=getenv('TELEGRAM_PROXY'))
-    else:
+    elif CHANNEL == 'cmd_client':
         message_processor = run()
         user_id = input('Provide user id: ')
         user = {'id': user_id}
@@ -160,6 +224,10 @@ def main():
             message = {'data': msg, 'from_user': user}
             responses = message_processor([message], [1])
             print('Bot: ', responses[0])
+    else:
+        message_processor = run()
+        app = init_app()
+        web.run_app(app)
 
 
 if __name__ == '__main__':
