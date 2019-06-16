@@ -1,13 +1,19 @@
+import re
 import yaml
 import argparse
+from pathlib import Path
 from copy import deepcopy
 from itertools import chain
 
 from core.config import SKILLS, ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS, HOST, PORT
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--filename', type=str, default='docker-compose.yml')
+parser.add_argument('-k', '--kuber', action='store_true')
+parser.add_argument('-n', '--deploy-name', type=str, default='dpagent')
+parser.add_argument('-r', '--repo-url', type=str, default='127.0.0.1:5000')
+parser.add_argument('-c', '--cluster-ip', type=str, default='127.0.0.1')
+parser.add_argument('-d', '--dns-ip', type=str, default='8.8.8.8')
 
 AGENT_BASIC = {
     'agent': {'build': {'context': './', 'dockerfile': 'dockerfile_agent'},
@@ -82,6 +88,10 @@ class SkillConfig(Config):
         self.template['build']['args']['skillconfig'] = skill_config['path']
         self.template['ports'].append("{}:{}".format(skill_config['port'], skill_config['port']))
 
+        # Ad-hoc workaraund for Kubernetes deployment
+        if 'image' in skill_config.keys():
+            self.template['image'] = skill_config['image']
+
     @property
     def config(self):
         return {self.container_name: self.template}
@@ -128,6 +138,120 @@ class DockerComposeConfig:
 
         return dict(config_dict)
 
+    @property
+    def skills_config(self):
+        config_dict = {'version': '2.0', 'services': {}}
+        for container in self.skills:
+            config_dict['services'].update(container.config)
+
+        return dict(config_dict)
+
+    @property
+    def skills_list(self):
+        return self.skills
+
+
+class KuberDeployment:
+    def __init__(self, deployment_name, container_name, repo_url, container_port, cluster_port,
+                 cluster_ip, dns_ip='8.8.8.8'):
+
+        deployment_name = re.sub('[^-0-9a-zA-Z]+', '-', deployment_name)
+        container_name = re.sub('[^-0-9a-zA-Z]+', '-', container_name)
+
+        self.dp_template = {
+            'apiVersion': 'apps/v1beta1',
+            'kind': 'Deployment',
+            'metadata': {'name': f'{deployment_name}-{container_name}-dp'},
+            'spec': {
+                'replicas': 1,
+                'template': {
+                    'metadata': {'labels': {'app': f'{deployment_name}-{container_name}-dp'}},
+                    'spec': {
+                        'containers': [
+                            {'name': 'agent-skill',
+                             'image': f'{repo_url}/{container_name}',
+                             'ports': [
+                                 {'name': 'cs-port',
+                                  'protocol': 'TCP',
+                                  'containerPort': container_port}
+                             ]}
+                        ],
+                        'dnsPolicy': 'None',
+                        'dnsConfig': {'nameservers': [dns_ip]}
+                    }
+                }
+            }
+        }
+        self.dp_file_name = f'{deployment_name}_{container_name}_dp.yaml'
+
+        self.lb_template = {
+            'apiVersion': 'v1',
+            'kind': 'Service',
+            'metadata': {'name': f'{deployment_name}-{container_name}-lb'},
+            'spec': {
+                'selector': {'app': f'{deployment_name}-{container_name}-dp'},
+                'type': 'LoadBalancer',
+                'externalIPs': str(cluster_ip),
+                'ports': [
+                    {'name': 'cluster-skill-port',
+                     'protocol': 'TCP',
+                     'port': cluster_port,
+                     'targetPort': 'cs-port'}
+                ]
+            }
+        }
+        self.lb_file_name = f'{deployment_name}_{container_name}_lb.yaml'
+
+    @property
+    def dp_config(self):
+        return self.dp_template
+
+    @property
+    def dp_filename(self):
+        return self.dp_file_name
+
+    @property
+    def lb_config(self):
+        return self.lb_template
+
+    @property
+    def lb_filename(self):
+        return self.lb_file_name
+
+
+class KuberMongoDeployment(KuberDeployment):
+    def __init__(self, deployment_name, container_name, cluster_port, cluster_ip, dns_ip='8.8.8.8'):
+        container_port = 27017
+        repo_url = ''
+        super().__init__(deployment_name, container_name, repo_url, container_port, cluster_port, cluster_ip, dns_ip)
+        self.dp_template['spec']['template']['spec']['containers'][0]['image'] = 'mongo:3.2.0'
+
+
+class KuberConfig:
+    def __init__(self, dc_config: DockerComposeConfig, deployment_name, repo_url, cluster_ip, dns_ip='8.8.8.8'):
+        self.deployments = []
+
+        for skill in dc_config.skills_list:
+            skill_config = list(skill.config.values())[0]
+
+            self.deployments.append(KuberDeployment(deployment_name,
+                                                    skill.container_name,
+                                                    repo_url,
+                                                    skill_config['build']['args']['skillport'],
+                                                    skill_config['build']['args']['skillport'],
+                                                    cluster_ip,
+                                                    dns_ip))
+
+        self.deployments.append(KuberMongoDeployment(deployment_name,
+                                                     'mongo',
+                                                     PORT,
+                                                     cluster_ip,
+                                                     dns_ip))
+
+    @property
+    def deployments_list(self):
+        return self.deployments
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -135,9 +259,32 @@ if __name__ == '__main__':
     dcc = DockerComposeConfig(AgentConfig())
 
     for conf in chain(SKILLS, ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
+        # Ad-hoc workaraund for Kubernetes deployment
+        if args.kuber:
+            conf['image'] = f'{args.repo_url}/{conf["name"]}'
+
         dcc.add_skill(SkillConfig(conf))
 
     dcc.add_db(DatabaseConfig(HOST, PORT))
 
-    with open(args.filename, 'w') as f:
-        yaml.dump(dcc.config, f)
+    if args.kuber:
+        kubec = KuberConfig(dcc, args.deploy_name, args.repo_url, args.cluster_ip, args.dns_ip)
+        configs_dir = Path('.').resolve() / 'kuber_cofigs'
+        configs_dir.mkdir(exist_ok=True)
+
+        for deployment in kubec.deployments_list:
+            dp_config_path = configs_dir / deployment.dp_filename
+            lb_config_path = configs_dir / deployment.lb_filename
+
+            with dp_config_path.open('w') as f_dp:
+                yaml.dump(deployment.dp_config, f_dp)
+
+            with lb_config_path.open('w') as f_lb:
+                yaml.dump(deployment.lb_config, f_lb)
+
+        with open(args.filename, 'w') as f:
+            yaml.dump(dcc.skills_config, f)
+    else:
+        with open(args.filename, 'w') as f:
+            yaml.dump(dcc.config, f)
+
