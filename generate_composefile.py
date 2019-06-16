@@ -191,7 +191,7 @@ class KuberDeployment:
             'spec': {
                 'selector': {'app': f'{deployment_name}-{container_name}-dp'},
                 'type': 'LoadBalancer',
-                'externalIPs': str(cluster_ip),
+                'externalIPs': [str(cluster_ip)],
                 'ports': [
                     {'name': 'cluster-skill-port',
                      'protocol': 'TCP',
