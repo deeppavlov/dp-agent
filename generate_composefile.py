@@ -131,7 +131,7 @@ class DockerComposeConfig:
             self.database.append(db)
 
     def add_dependencies_to_agent(self):
-        if not self.no_agent:
+        if self.agent is not None:
             for container in chain(self.skills, self.database):
                 self.agent.add_dependence(container.container_name)
 
