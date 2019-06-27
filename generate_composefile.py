@@ -110,6 +110,12 @@ class DockerComposeConfig:
     def __init__(self, agent=None, no_agent=False, no_db=False):
         self.no_agent = no_agent
         self.no_db = no_db
+        if self.no_agent:
+            self.agent = None
+        else:
+            self.agent = agent
+        self.no_agent = no_agent
+        self.no_db = no_db
         if not self.no_agent:
             self.agent = agent
         self.skills = []
