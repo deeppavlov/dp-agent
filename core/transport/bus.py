@@ -1,4 +1,4 @@
-from core.transport.gateway import *
+from core.transport.base import AbstractTransportGateway, AbstractTransportConnector
 
 _map = {
     'rabbitmq': {
@@ -14,3 +14,18 @@ def get_transport_gateway(transport_solution: str) -> AbstractTransportGateway:
 
 def get_transport_connector(transport_solution: str) -> AbstractTransportConnector:
     return _map[transport_solution]['connector']
+
+
+class HealthChecker:
+    pass
+
+
+class LoadBalancer:
+    pass
+
+
+class TransportBus:
+    gateway: AbstractTransportGateway
+    health_checker: HealthChecker
+    load_balancer: LoadBalancer
+    pass
