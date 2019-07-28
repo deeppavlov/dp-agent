@@ -11,7 +11,7 @@ from pika.spec import Basic
 from pika.spec import BasicProperties
 
 from pika.adapters.select_connection import SelectConnection
-from core.transport.base import AbstractTransportGateway
+from core.transport.base import AbstractTransportGateway, AbstractTransportConnector
 from core.transport.z_dev_config import AGENT_NAME, TRANSPORT_TIMEOUT_SECS, RABBIT_MQ, ANNOTATORS, SKILL_SELECTORS
 from core.transport.z_dev_config import SKILLS, RESPONSE_SELECTORS, POSTPROCESSORS
 
@@ -64,10 +64,11 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
         for service_name in self._service_names:
             channel.queue_declare(SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
 
-        # declare consumer exchange anf in queue
+        # declare consumer exchange and in queue
         channel.exchange_declare(exchange=AGENT_IN_EXCHANGE_NAME, exchange_type='topic')
         channel.queue_declare(AGENT_IN_QUEUE_NAME, durable=True)
         channel.queue_bind(exchange=AGENT_IN_EXCHANGE_NAME, queue=AGENT_IN_QUEUE_NAME, routing_key='#')
+        # TODO: think if message acknowledge really needed here
         channel.basic_qos(prefetch_count=1)
         channel.basic_consume(queue=AGENT_IN_QUEUE_NAME, on_message_callback=self._on_message_callback)
 
@@ -82,6 +83,7 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
             self._service_responses[message_uuid] = dialog_state
             message_event.set()
 
+        # TODO: think if message acknowledge really needed here
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
