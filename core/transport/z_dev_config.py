@@ -1,5 +1,7 @@
 AGENT_NAME = 'dp-agent'
 
+
+# services
 ANNOTATORS = [
     {
         'name': 'ner',
@@ -37,6 +39,9 @@ RESPONSE_SELECTORS = []
 
 POSTPROCESSORS = []
 
+
+# transport
+TRANSPORT_TYPE = 'rabbitmq'
 TRANSPORT_TIMEOUT_SECS = 30
 
 RABBIT_MQ = {
@@ -44,6 +49,11 @@ RABBIT_MQ = {
     'port': 5672
 }
 
-SKILL_CONFIG = {
-    'name': 'skill_name'
+
+# service instance config
+SERVICE_CONFIG = {
+    'name': 'skill_name',
+    'instance_id': 'skill_instance_id',
+    'batch_size': 1,
+    'remote_url': 'protocol://host:port/endpoint'
 }

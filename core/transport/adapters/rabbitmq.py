@@ -11,7 +11,7 @@ from pika.spec import Basic
 from pika.spec import BasicProperties
 
 from pika.adapters.select_connection import SelectConnection
-from core.transport.base import AbstractTransportGateway, AbstractTransportConnector
+from core.transport.base import TransportGatewayBase, TransportConnectorBase
 from core.transport.z_dev_config import AGENT_NAME, TRANSPORT_TIMEOUT_SECS, RABBIT_MQ, ANNOTATORS, SKILL_SELECTORS
 from core.transport.z_dev_config import SKILLS, RESPONSE_SELECTORS, POSTPROCESSORS
 
@@ -28,7 +28,7 @@ SERVICE_IN_ROUTER_KEY_INSTANCE = '{}.instance.{}'
 
 
 # TODO: add load balancing for stateful skills
-class RabbitMQTransportGatewey(AbstractTransportGateway):
+class RabbitMQTransportGateway(TransportGatewayBase):
     _service_names: List[str]
     _connection_parameters: ConnectionParameters
 
@@ -38,8 +38,7 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict) -> None:
-        super().__init__(config)
+    def __init__(self) -> None:
         self._service_names = [service['name'] for service in itertools.chain[ANNOTATORS, SKILL_SELECTORS, SKILLS,
                                                                               RESPONSE_SELECTORS, POSTPROCESSORS]]
 
@@ -109,3 +108,7 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
             self._service_responded_events.pop(message_uuid, None)
 
         return updated_dialog_state
+
+
+class RabbitMQTransportConnector(TransportConnectorBase):
+    pass

@@ -1,21 +1,24 @@
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional
 
 
-class AbstractTransportGateway(metaclass=ABCMeta):
-    _config: dict  # for now it is dummy, using z_dev_transport_config.py
-
-    def __init__(self, config: dict) -> None:
-        self._config = config
-
+class TransportGatewayBase(metaclass=ABCMeta):
     @abstractmethod
     async def process(self, service: str, dialog_state: dict) -> dict:
         pass
 
 
-class AbstractTransportConnector(metaclass=ABCMeta):
-    pass
+class ServiceCallerBase(metaclass=ABCMeta):
+    @abstractmethod
+    def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
+        pass
 
 
-class AbstractComponentConnector(metaclass=ABCMeta):
-    _transport_connector: AbstractTransportConnector
-    pass
+class TransportConnectorBase(metaclass=ABCMeta):
+    _service_caller: ServiceCallerBase
+
+    def __init__(self, service_caller: ServiceCallerBase) -> None:
+        self._service_caller = service_caller
+
+    def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
+        return self._service_caller.infer(dialog_states_batch)
