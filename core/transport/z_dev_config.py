@@ -53,7 +53,8 @@ RABBIT_MQ = {
 # service instance config
 SERVICE_CONFIG = {
     'name': 'skill_name',
-    'instance_id': 'skill_instance_id',
+    'instance_id': None,
+    'remote_url': 'protocol://host:port/endpoint',
     'batch_size': 1,
-    'remote_url': 'protocol://host:port/endpoint'
+    'batch_polling_interval_secs': 0.01
 }
