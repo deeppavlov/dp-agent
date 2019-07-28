@@ -27,5 +27,5 @@ class TransportBus:
 
 class Service:
     _caller: ServiceCallerBase
-    _connector: ServiceCallerBase
+    _connector: TransportConnectorBase
     pass

@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional
+from typing import List
 
 
 class TransportGatewayBase(metaclass=ABCMeta):
