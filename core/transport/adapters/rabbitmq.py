@@ -32,10 +32,8 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
     _service_names: List[str]
     _connection_parameters: ConnectionParameters
 
-    _producer_connection: SelectConnection
-    _producer_channel: Channel
-    _consumer_connection: SelectConnection
-    _consumer_channel: Channel
+    _connection: SelectConnection
+    _channel: Channel
 
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
@@ -50,27 +48,20 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
         self._service_responded_events = {}
         self._service_responses = {}
 
-    def _connect_producer(self) -> None:
-        self._producer_connection = SelectConnection(parameters=self._connection_parameters,
-                                                     on_open_callback=self._on_connect_producer)
+    def _connect(self) -> None:
+        self._connection = SelectConnection(parameters=self._connection_parameters, on_open_callback=self._on_connect)
 
-    def _on_connect_producer(self, connection: SelectConnection) -> None:
-        self._producer_channel = connection.channel(on_open_callback=self._on_open_producer_channel)
+    def _on_connect(self, connection: SelectConnection) -> None:
+        self._channel = connection.channel(on_open_callback=self._on_open_channel)
 
-    def _on_open_producer_channel(self, channel: Channel) -> None:
+    def _on_open_channel(self, channel: Channel) -> None:
+        # declare producer exchange and out queues
         channel.exchange_declare(exchange=AGENT_OUT_EXCHANGE_NAME, exchange_type='topic')
 
         for service_name in self._service_names:
             channel.queue_declare(SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
 
-    def _connect_consumer(self) -> None:
-        self._consumer_connection = SelectConnection(parameters=self._connection_parameters,
-                                                     on_open_callback=self._on_connect_consumer)
-
-    def _on_connect_consumer(self, connection: SelectConnection) -> None:
-        self._consumer_channel = connection.channel(on_open_callback=self._on_open_consumer_channel)
-
-    def _on_open_consumer_channel(self, channel: Channel) -> None:
+        # declare consumer exchange anf in queue
         channel.exchange_declare(exchange=AGENT_IN_EXCHANGE_NAME, exchange_type='topic')
         channel.queue_declare(AGENT_IN_QUEUE_NAME, durable=True)
         channel.queue_bind(exchange=AGENT_IN_EXCHANGE_NAME, queue=AGENT_IN_QUEUE_NAME, routing_key='#')
@@ -99,10 +90,10 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
         }
 
         self._service_responded_events[message_uuid] = asyncio.Event()
-        self._producer_channel.basic_publish(exchange=AGENT_OUT_EXCHANGE_NAME,
-                                             routing_key=SERVICE_IN_ROUTER_KEY_ANY.format(service),
-                                             body=json.dumps(message),
-                                             properties=pika.BasicProperties(delivery_mode=2))
+        self._channel.basic_publish(exchange=AGENT_OUT_EXCHANGE_NAME,
+                                    routing_key=SERVICE_IN_ROUTER_KEY_ANY.format(service),
+                                    body=json.dumps(message),
+                                    properties=pika.BasicProperties(delivery_mode=2))
 
         try:
             await asyncio.wait_for(self._service_responded_events[message_uuid].wait(), TRANSPORT_TIMEOUT_SECS)
