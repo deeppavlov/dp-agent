@@ -48,6 +48,9 @@ class RabbitMQTransportGatewey(AbstractTransportGateway):
         self._service_responded_events = {}
         self._service_responses = {}
 
+        self._connect()
+        self._connection.ioloop.start()
+
     def _connect(self) -> None:
         self._connection = SelectConnection(parameters=self._connection_parameters, on_open_callback=self._on_connect)
 
