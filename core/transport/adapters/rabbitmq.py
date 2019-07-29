@@ -25,6 +25,8 @@ SERVICE_IN_ROUTING_KEY_INSTANCE = '{}.instance.{}'
 
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
+# TODO: implement sent message timeout control
+# TODO: think about agent incoming messages acknowledge removal
 class RabbitMQTransportGateway(TransportGatewayBase):
     _loop: asyncio.AbstractEventLoop
     _service_names: List[str]
@@ -112,9 +114,10 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _in_exchange: Exchange
     _batch_size: int
     _batch_collection_interval_secs: float
-    _processing_dialog_states: List[dict]
-    _processing_message_uuids: List[str]
-    _infer_event: asyncio.Event
+    _dialog_states_batch: List[dict]
+    _task_uuids_batch: List[str]
+    _add_to_batch_condition: asyncio.Condition
+    _process_tasks_lock: asyncio.Lock
 
     def __init__(self, loop: asyncio.AbstractEventLoop, service_caller: ServiceCallerBase) -> None:
         super().__init__(service_caller=service_caller)
@@ -125,11 +128,11 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         self._batch_size = SERVICE_CONFIG['batch_size']
         self._batch_collection_interval_secs = SERVICE_CONFIG['batch_collection_interval_secs']
 
-        self._processing_dialog_states = []
-        self._processing_message_uuids = []
+        self._dialog_states_batch = []
+        self._task_uuids_batch = []
 
-        self._may_infer_event = asyncio.Event()
-        self._may_infer_event.set()
+        self._add_to_batch_condition = asyncio.Condition()
+        self._process_tasks_lock = asyncio.Lock()
 
         self._loop.create_task(self._connect())
 
@@ -158,14 +161,22 @@ class RabbitMQTransportConnector(TransportConnectorBase):
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         task = json.loads(message.body, encoding='utf=8')
-        task_uuid = task['task_uuid']
         dialog_state = task['dialog_state']
+        task_uuid = task['task_uuid']
 
-        await self._may_infer_event.wait()
+        await self._add_to_batch_condition.acquire()
 
+        self._dialog_states_batch.append(dialog_state)
+        self._task_uuids_batch.append(task_uuid)
 
-    async def _infer_1(self):
-        pass
+        if len(self._dialog_states_batch) >= self._batch_size:
+            await self._process_tasks()
+            await self._add_to_batch_condition.wait()
+
+    async def _process_tasks(self) -> None:
+        if not self._process_tasks_lock.locked():
+            await self._process_tasks_lock.acquire()
+
 
 
 """
