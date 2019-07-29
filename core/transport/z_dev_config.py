@@ -56,5 +56,5 @@ SERVICE_CONFIG = {
     'instance_id': None,
     'remote_url': 'protocol://host:port/endpoint',
     'batch_size': 1,
-    'batch_polling_interval_secs': 0.01
+    'batch_collection_interval_secs': 0.01
 }

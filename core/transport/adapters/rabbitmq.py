@@ -66,9 +66,9 @@ class RabbitMQTransportGateway(TransportGatewayBase):
         await queue.consume(callback=self._on_message_callback)
 
     async def _on_message_callback(self, message: IncomingMessage):
-        processed_message: dict = json.loads(message.body, encoding='utf-8')
-        message_uuid = processed_message['message_uuid']
-        dialog_state = processed_message['dialog_state']
+        result: dict = json.loads(message.body, encoding='utf-8')
+        message_uuid = result['message_uuid']
+        dialog_state = result['dialog_state']
         message_event = self._service_responded_events.pop(message_uuid, None)
 
         if message_event and not message_event.is_set():
@@ -78,23 +78,23 @@ class RabbitMQTransportGateway(TransportGatewayBase):
         await message.ack()
 
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
-        message_uuid = str(uuid4())
-        message_body = {
-            'message_uuid': message_uuid,
+        task_uuid = str(uuid4())
+        task = {
+            'task_uuid': task_uuid,
             'dialog_state': dialog_state
         }
 
-        self._service_responded_events[message_uuid] = asyncio.Event()
-        message = Message(body=json.dumps(message_body), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+        self._service_responded_events[task_uuid] = asyncio.Event()
+        message = Message(body=json.dumps(task), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
         await self._out_exchange.publish(message=message, routing_key=SERVICE_IN_ROUTING_KEY_ANY.format(service))
 
         try:
-            await asyncio.wait_for(self._service_responded_events[message_uuid].wait(), TRANSPORT_TIMEOUT_SECS)
-            updated_dialog_state = self._service_responses.pop(message_uuid, None)
+            await asyncio.wait_for(self._service_responded_events[task_uuid].wait(), TRANSPORT_TIMEOUT_SECS)
+            updated_dialog_state = self._service_responses.pop(task_uuid, None)
         except asyncio.TimeoutError:
             updated_dialog_state = None
         finally:
-            self._service_responded_events.pop(message_uuid, None)
+            self._service_responded_events.pop(task_uuid, None)
 
         return updated_dialog_state
 
@@ -110,18 +110,34 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _channel: Channel
     _out_exchange: Exchange
     _in_exchange: Exchange
+    _batch_size: int
+    _batch_collection_interval_secs: float
+    _processing_dialog_states: List[dict]
+    _processing_message_uuids: List[str]
+    _infer_event: asyncio.Event
 
     def __init__(self, loop: asyncio.AbstractEventLoop, service_caller: ServiceCallerBase) -> None:
         super().__init__(service_caller=service_caller)
         self._loop = loop
+
         self._service_name = SERVICE_CONFIG['name']
         self._instance_id = SERVICE_CONFIG['instance_id'] or f'{self._service_name}{str(uuid4())}'
+        self._batch_size = SERVICE_CONFIG['batch_size']
+        self._batch_collection_interval_secs = SERVICE_CONFIG['batch_collection_interval_secs']
+
+        self._processing_dialog_states = []
+        self._processing_message_uuids = []
+
+        self._may_infer_event = asyncio.Event()
+        self._may_infer_event.set()
+
         self._loop.create_task(self._connect())
 
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
         self._channel = await self._connection.channel()
+        await self._channel.set_qos(prefetch_count=self._batch_size)
 
         # declare producer exchange and out queues
         self._out_exchange = await self._channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
@@ -139,6 +155,18 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         any_instance_router_key = SERVICE_IN_ROUTING_KEY_ANY.format(self._service_name)
         await queue.bind(exchange=self._in_exchange, routing_key=any_instance_router_key)
         await queue.consume(callback=self._on_message_callback)
+
+    async def _on_message_callback(self, message: IncomingMessage) -> None:
+        task = json.loads(message.body, encoding='utf=8')
+        task_uuid = task['task_uuid']
+        dialog_state = task['dialog_state']
+
+        await self._may_infer_event.wait()
+
+
+    async def _infer_1(self):
+        pass
+
 
 """
 
