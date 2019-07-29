@@ -42,7 +42,6 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
         self._service_responded_events = {}
         self._service_responses = {}
-
         self._loop.create_task(self._connect())
 
     # TODO: add proper RabbitMQ authentication
@@ -55,7 +54,7 @@ class RabbitMQTransportGateway(TransportGatewayBase):
                                                                   type=aio_pika.ExchangeType.TOPIC)
 
         for service_name in self._service_names:
-            queue = await self._channel.declare_queue(name=service_name, durable=True)
+            queue = await self._channel.declare_queue(name=SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
             await queue.bind(exchange=self._out_exchange, routing_key=SERVICE_IN_ROUTING_KEY_ANY.format(service_name))
 
         # declare consumer exchange and in queue
@@ -100,44 +99,48 @@ class RabbitMQTransportGateway(TransportGatewayBase):
         return updated_dialog_state
 
 
+# TODO: add graceful connection close
+# TODO: add load balancing for stateful skills
 class RabbitMQTransportConnector(TransportConnectorBase):
     _loop: asyncio.AbstractEventLoop
     _service_name: str
     _instance_id: str
     _service_caller: ServiceCallerBase
-    _connection: Channel
+    _connection: Connection
     _channel: Channel
     _out_exchange: Exchange
     _in_exchange: Exchange
 
-    def __init__(self, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, loop: asyncio.AbstractEventLoop, service_caller: ServiceCallerBase) -> None:
         super().__init__(service_caller=service_caller)
+        self._loop = loop
+        self._service_name = SERVICE_CONFIG['name']
+        self._instance_id = SERVICE_CONFIG['instance_id'] or f'{self._service_name}{str(uuid4())}'
+        self._loop.create_task(self._connect())
 
-        self._loop = asyncio.get_event_loop()
-        self._connection_parameters = ConnectionParameters(host=RABBIT_MQ['host'], port=RABBIT_MQ['PORT'])
+    # TODO: add proper RabbitMQ authentication
+    async def _connect(self) -> None:
+        self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
+        self._channel = await self._connection.channel()
 
-    def _connect(self) -> None:
-        self._connection = SelectConnection(parameters=self._connection_parameters, on_open_callback=self._on_connect)
+        # declare producer exchange and out queues
+        self._out_exchange = await self._channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
+                                                                  type=aio_pika.ExchangeType.TOPIC)
 
-    def _on_connect(self, connection: SelectConnection) -> None:
-        self._channel = connection.channel(on_open_callback=self._on_open_channel)
-
-    def _on_open_channel(self, channel: Channel) -> None:
-        # declare producer exchange and out queue
-        channel.exchange_declare(exchange=AGENT_IN_EXCHANGE_NAME, exchange_type='topic')
-        channel.queue_declare(AGENT_IN_QUEUE_NAME, durable=True)
+        await self._channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
 
         # declare consumer exchange and in queue
-        channel.exchange_declare(exchange=AGENT_OUT_EXCHANGE_NAME, exchange_type='topic')
+        self._in_exchange = await self._channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
+                                                                 type=aio_pika.ExchangeType.TOPIC)
 
-        queue_name = SERVICE_IN_QUEUE_NAME.format()
-        channel.queue_declare(queue_name, durable=True)
+        queue_name = SERVICE_IN_QUEUE_NAME.format(self._service_name)
+        queue = await self._channel.declare_queue(name=queue_name, durable=True)
 
         any_instance_router_key = SERVICE_IN_ROUTING_KEY_ANY.format(self._service_name)
-        channel.queue_bind(exchange=AGENT_OUT_EXCHANGE_NAME, queue=queue_name, routing_key=any_instance_router_key)
+        await queue.bind(exchange=self._in_exchange, routing_key=any_instance_router_key)
+        await queue.consume(callback=self._on_message_callback)
 
-        channel.basic_qos(prefetch_count=SERVICE_CONFIG['batch_size'])
-        channel.basic_consume(queue=AGENT_IN_QUEUE_NAME, on_message_callback=self._on_message_callback)
+"""
 
     # TODO: implement _on_message_callback
 
@@ -178,3 +181,4 @@ class RabbitMQTransportConnector(TransportConnectorBase):
             self._service_responded_events.pop(message_uuid, None)
 
         return updated_dialog_state
+"""
