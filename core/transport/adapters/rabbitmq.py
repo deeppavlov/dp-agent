@@ -43,6 +43,8 @@ class RabbitMQTransportGateway(TransportGatewayBase):
         self._service_responded_events = {}
         self._service_responses = {}
 
+        self._loop.create_task(self._connect())
+
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
@@ -103,8 +105,10 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _service_name: str
     _instance_id: str
     _service_caller: ServiceCallerBase
-    _connection: SelectConnection
+    _connection: Channel
     _channel: Channel
+    _out_exchange: Exchange
+    _in_exchange: Exchange
 
     def __init__(self, service_caller: ServiceCallerBase) -> None:
         super().__init__(service_caller=service_caller)
