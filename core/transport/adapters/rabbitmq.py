@@ -37,8 +37,8 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
     def __init__(self) -> None:
         self._loop = asyncio.get_event_loop()
-        self._service_names = [service['name'] for service in itertools.chain[ANNOTATORS, SKILL_SELECTORS, SKILLS,
-                                                                              RESPONSE_SELECTORS, POSTPROCESSORS]]
+        self._service_names = [service['name'] for service in itertools.chain(ANNOTATORS, SKILL_SELECTORS, SKILLS,
+                                                                              RESPONSE_SELECTORS, POSTPROCESSORS)]
 
         self._service_responded_events = {}
         self._service_responses = {}
