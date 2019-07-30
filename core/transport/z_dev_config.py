@@ -42,7 +42,7 @@ POSTPROCESSORS = []
 
 # transport
 TRANSPORT_TYPE = 'rabbitmq'
-TRANSPORT_TIMEOUT_SECS = 30
+TRANSPORT_TIMEOUT_SECS = 30.0
 
 RABBIT_MQ = {
     'host': '127.0.0.1',
@@ -55,6 +55,5 @@ SERVICE_CONFIG = {
     'name': 'service_name',
     'instance_id': None,
     'remote_url': 'protocol://host:port/endpoint',
-    'batch_size': 1,
-    'batch_collection_interval_secs': 0.01
+    'batch_size': 1
 }

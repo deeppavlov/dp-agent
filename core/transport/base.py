@@ -20,5 +20,5 @@ class TransportConnectorBase(metaclass=ABCMeta):
     def __init__(self, service_caller: ServiceCallerBase) -> None:
         self._service_caller = service_caller
 
-    #def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
-    #    return self._service_caller.infer(dialog_states_batch)
+    def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
+        return self._service_caller.infer(dialog_states_batch)
