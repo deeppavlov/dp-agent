@@ -15,10 +15,7 @@ from core.transport.z_dev_config import SKILLS, RESPONSE_SELECTORS, POSTPROCESSO
 
 AGENT_IN_EXCHANGE_NAME = f'e_{AGENT_NAME}_in'
 AGENT_IN_QUEUE_NAME = f'q_agent_{AGENT_NAME}_in'
-AGENT_IN_ROUTING_KEY = '{}.{}'
-
 AGENT_OUT_EXCHANGE_NAME = f'e_{AGENT_NAME}_out'
-
 SERVICE_IN_QUEUE_NAME = 'q_service_{}_in'
 SERVICE_IN_ROUTING_KEY_ANY = '{}.anyinstance'
 SERVICE_IN_ROUTING_KEY_INSTANCE = '{}.instance.{}'
@@ -111,6 +108,8 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _service_caller: ServiceCallerBase
     _service_name: str
     _instance_id: str
+    _service_router_key_any: str
+    _service_router_key_instance: str
     _batch_size: int
     _infer_timeout: float
     _connection: Connection
@@ -127,6 +126,8 @@ class RabbitMQTransportConnector(TransportConnectorBase):
 
         self._service_name = SERVICE_CONFIG['name']
         self._instance_id = SERVICE_CONFIG['instance_id'] or f'{self._service_name}{str(uuid4())}'
+        self._service_router_key_any.format(self._service_name)
+        self._service_router_key_instance.format(self._service_name, self._instance_id)
         self._batch_size = SERVICE_CONFIG['batch_size']
         self._infer_timeout = TRANSPORT_TIMEOUT_SECS
 
@@ -156,8 +157,7 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         queue_name = SERVICE_IN_QUEUE_NAME.format(self._service_name)
         queue = await self._channel.declare_queue(name=queue_name, durable=True)
 
-        any_instance_router_key = SERVICE_IN_ROUTING_KEY_ANY.format(self._service_name)
-        await queue.bind(exchange=self._in_exchange, routing_key=any_instance_router_key)
+        await queue.bind(exchange=self._in_exchange, routing_key=self._service_router_key_any)
         await queue.consume(callback=self._on_message_callback)
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
@@ -191,7 +191,8 @@ class RabbitMQTransportConnector(TransportConnectorBase):
             responses_batch = None
 
         if responses_batch:
-            pass
+            for i, dialog_state in enumerate(responses_batch):
+                await self._loop.create_task(self._send_results(task_uuids_batch[i], dialog_state))
 
     async def _send_results(self, task_uuid: str, dialog_state: dict) -> None:
         pass
