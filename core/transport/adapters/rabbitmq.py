@@ -23,9 +23,8 @@ SERVICE_IN_ROUTING_KEY_INSTANCE = '{}.instance.{}'
 
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
-# TODO: implement sent message timeout control
+# TODO: implement sent message timeout (lifetime) control
 # TODO: think about agent incoming messages acknowledge removal
-# TODO: decide, if loop __init__ argument needed
 class RabbitMQTransportGateway(TransportGatewayBase):
     _loop: asyncio.AbstractEventLoop
     _service_names: List[str]
@@ -36,8 +35,8 @@ class RabbitMQTransportGateway(TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
-        self._loop = loop
+    def __init__(self) -> None:
+        self._loop = asyncio.get_event_loop()
         self._service_names = [service['name'] for service in itertools.chain[ANNOTATORS, SKILL_SELECTORS, SKILLS,
                                                                               RESPONSE_SELECTORS, POSTPROCESSORS]]
 
@@ -102,7 +101,6 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
-# TODO: decide, if loop __init__ argument needed
 class RabbitMQTransportConnector(TransportConnectorBase):
     _loop: asyncio.AbstractEventLoop
     _service_caller: ServiceCallerBase
@@ -120,9 +118,9 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _add_to_buffer_lock: asyncio.Lock
     _infer_lock: asyncio.Lock
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, service_caller: ServiceCallerBase) -> None:
         super().__init__(service_caller=service_caller)
-        self._loop = loop
+        self._loop = asyncio.get_event_loop()
 
         self._service_name = SERVICE_CONFIG['name']
         self._instance_id = SERVICE_CONFIG['instance_id'] or f'{self._service_name}{str(uuid4())}'
