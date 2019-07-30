@@ -23,8 +23,7 @@ SERVICE_IN_ROUTING_KEY_INSTANCE = '{}.instance.{}'
 
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
-# TODO: implement sent message timeout (lifetime) control
-# TODO: think about agent incoming messages acknowledge removal
+# TODO: implement sent message timeout (lifetime) control on exchange protocol level
 class RabbitMQTransportGateway(TransportGatewayBase):
     _loop: asyncio.AbstractEventLoop
     _service_names: List[str]
@@ -101,6 +100,7 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
+# TODO: implement sent message timeout (lifetime) control on exchange protocol level
 class RabbitMQTransportConnector(TransportConnectorBase):
     _loop: asyncio.AbstractEventLoop
     _service_caller: ServiceCallerBase
