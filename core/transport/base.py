@@ -8,6 +8,7 @@ class TransportGatewayBase(metaclass=ABCMeta):
         pass
 
 
+# TODO: think, if we need to isolate ServiceCaller to separate process
 class ServiceCallerBase(metaclass=ABCMeta):
     @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
