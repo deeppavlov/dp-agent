@@ -164,20 +164,20 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         await self._add_to_buffer_lock.acquire()
         self._incoming_messages_buffer.append(message)
 
-        if not self._infer_lock.locked() or len(self._incoming_messages_buffer) >= self._batch_size:
-            messages_batch = self._incoming_messages_buffer
-            self._incoming_messages_buffer = []
-            tasks_batch = [json.loads(message.body, encoding='utf-8') for message in messages_batch]
+        if len(self._incoming_messages_buffer) < self._batch_size:
             self._add_to_buffer_lock.release()
 
-            async with self._infer_lock:
+        with self._infer_lock:
+            messages_batch = self._incoming_messages_buffer
+
+            if messages_batch:
+                self._incoming_messages_buffer = []
+                tasks_batch = [json.loads(message.body, encoding='utf-8') for message in messages_batch]
+
                 for message in messages_batch:
                     await message.ack()
 
                 await self._process_tasks(tasks_batch)
-
-        else:
-            self._add_to_buffer_lock.release()
 
     async def _process_tasks(self, tasks_batch: List[dict]) -> None:
         task_uuids_batch, dialog_states_batch = \
