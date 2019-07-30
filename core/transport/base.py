@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Optional
 
 
 class TransportGatewayBase(metaclass=ABCMeta):
     @abstractmethod
-    async def process(self, service: str, dialog_state: dict) -> dict:
+    async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
         pass
 
 
