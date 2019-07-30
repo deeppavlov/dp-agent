@@ -193,8 +193,15 @@ class RabbitMQTransportConnector(TransportConnectorBase):
             responses_batch = None
 
         if responses_batch:
-            for i, dialog_state in enumerate(responses_batch):
-                await self._loop.create_task(self._send_results(task_uuids_batch[i], dialog_state))
+            await asyncio.wait([self._send_results(task_uuids_batch[i], dialog_state)
+                                for i, dialog_state in enumerate(responses_batch)])
 
     async def _send_results(self, task_uuid: str, dialog_state: dict) -> None:
-        pass
+        result = {
+            'task_uuid': task_uuid,
+            'dialog_state': dialog_state
+        }
+
+        message = Message(body=json.dumps(result), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+        routing_key = SERVICE_IN_ROUTING_KEY_INSTANCE.format(self._service_name, self._instance_id)
+        await self._out_exchange.publish(message=message, routing_key=routing_key)
