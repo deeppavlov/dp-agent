@@ -28,7 +28,8 @@ class RabbitMQTransportGateway(TransportGatewayBase):
     _loop: asyncio.AbstractEventLoop
     _service_names: List[str]
     _connection: Connection
-    _channel: Channel
+    _out_channel: Channel
+    _in_channel: Channel
     _out_exchange: Exchange
     _in_exchange: Exchange
     _service_responded_events: Dict[str, asyncio.Event]
@@ -46,21 +47,22 @@ class RabbitMQTransportGateway(TransportGatewayBase):
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
-        self._channel = await self._connection.channel()
 
-        # declare producer exchange and out queues
-        self._out_exchange = await self._channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
-                                                                  type=aio_pika.ExchangeType.TOPIC)
+        # declare producer channel, exchange and out queues
+        self._out_channel = await self._connection.channel()
+        self._out_exchange = await self._out_channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
+                                                                      type=aio_pika.ExchangeType.TOPIC)
 
         for service_name in self._service_names:
-            queue = await self._channel.declare_queue(name=SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
+            queue = await self._out_channel.declare_queue(name=SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
             await queue.bind(exchange=self._out_exchange, routing_key=SERVICE_IN_ROUTING_KEY_ANY.format(service_name))
 
-        # declare consumer exchange and in queue
-        self._in_exchange = await self._channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
-                                                                 type=aio_pika.ExchangeType.TOPIC)
+        # declare consumer channel, exchange and out queues
+        self._in_channel = await self._connection.channel()
+        self._in_exchange = await self._in_channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
+                                                                    type=aio_pika.ExchangeType.TOPIC)
 
-        queue = await self._channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
+        queue = await self._in_channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
         await queue.bind(exchange=self._in_exchange, routing_key='#')
         await queue.consume(callback=self._on_message_callback)
 
@@ -111,7 +113,8 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _batch_size: int
     _infer_timeout: float
     _connection: Connection
-    _channel: Channel
+    _out_channel: Channel
+    _in_channel: Channel
     _out_exchange: Exchange
     _in_exchange: Exchange
     _incoming_messages_buffer: List[IncomingMessage]
@@ -139,21 +142,22 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
         self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
-        self._channel = await self._connection.channel()
-        await self._channel.set_qos(prefetch_count=self._batch_size)
 
-        # declare producer exchange and out queues
-        self._out_exchange = await self._channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
-                                                                  type=aio_pika.ExchangeType.TOPIC)
+        # declare producer channel, exchange and out queues
+        self._out_channel = await self._connection.channel()
+        self._out_exchange = await self._out_channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
+                                                                      type=aio_pika.ExchangeType.TOPIC)
 
-        await self._channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
+        await self._out_channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
 
-        # declare consumer exchange and in queue
-        self._in_exchange = await self._channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
-                                                                 type=aio_pika.ExchangeType.TOPIC)
+        # declare consumer channel, exchange and in queue
+        self._in_channel = await self._connection.channel()
+        await self._in_channel.set_qos(prefetch_count=self._batch_size)
+        self._in_exchange = await self._in_channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
+                                                                    type=aio_pika.ExchangeType.TOPIC)
 
         queue_name = SERVICE_IN_QUEUE_NAME.format(self._service_name)
-        queue = await self._channel.declare_queue(name=queue_name, durable=True)
+        queue = await self._in_channel.declare_queue(name=queue_name, durable=True)
 
         await queue.bind(exchange=self._in_exchange, routing_key=self._service_router_key_any)
         await queue.consume(callback=self._on_message_callback)
