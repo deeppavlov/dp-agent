@@ -45,4 +45,3 @@ class Service:
         transport_type = config['transport']['type']
         connector_cls = ADAPTERS_MAP[transport_type]['connector']
         self._connector = connector_cls(self._caller)
-
