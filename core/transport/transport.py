@@ -2,7 +2,6 @@ from typing import Optional
 
 from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
 from core.transport.adapters.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
-from core.transport.z_dev_config import TRANSPORT_TYPE
 
 
 ADAPTERS_MAP = {
@@ -28,9 +27,10 @@ class TransportBus:
     _health_checker: HealthChecker
     _load_balancer: LoadBalancer
 
-    def __init__(self) -> None:
-        gateway_cls = ADAPTERS_MAP[TRANSPORT_TYPE]['gateway']
-        self._gateway = gateway_cls()
+    def __init__(self, config: dict) -> None:
+        transport_type = config['transport']['type']
+        gateway_cls = ADAPTERS_MAP[transport_type]['gateway']
+        self._gateway = gateway_cls(config)
 
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
         return await self._gateway.process(service, dialog_state)
@@ -40,8 +40,9 @@ class Service:
     _caller: ServiceCallerBase
     _connector: TransportConnectorBase
 
-    def __init__(self, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
         self._caller = service_caller
-
-        connector_cls = ADAPTERS_MAP[TRANSPORT_TYPE]['connector']
+        transport_type = config['transport']['type']
+        connector_cls = ADAPTERS_MAP[transport_type]['connector']
         self._connector = connector_cls(self._caller)
+
