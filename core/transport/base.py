@@ -13,9 +13,6 @@ class TransportGatewayBase(metaclass=ABCMeta):
 
 # TODO: think, if we need to isolate ServiceCaller to separate process
 class ServiceCallerBase(metaclass=ABCMeta):
-    def __init__(self, *args, **kwargs):
-        super(ServiceCallerBase, self).__init__(*args, **kwargs)
-
     @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
         pass
