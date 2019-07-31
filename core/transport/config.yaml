@@ -1,14 +1,12 @@
 agent:
-  agent_name: 'dp-agent'
+  name: 'dp-agent'
 
   services:
     annotators:
     - name: 'ner'
       stateful: false
-
     - name: 'sentiment'
       stateful: false
-
     - name: 'obscenity'
       stateful: false
 
@@ -19,7 +17,6 @@ agent:
     skills:
     - name: 'odqa'
       stateful: false
-
     - name: 'chitchat'
       stateful: false
 
@@ -27,13 +24,13 @@ agent:
 
     postprocessors: []
 
-  transport:
-    type: 'rabbitmq'
-    timeout_sec: 30.0
+transport:
+  type: 'rabbitmq'
+  timeout_sec: 30.0
 
-    rabbitmq:
-      host: 'localhost'
-      port: 5672
+  rabbitmq:
+    host: 'localhost'
+    port: 5672
 
 service:
   name: 'service_name'

@@ -3,6 +3,11 @@ from typing import List, Optional
 
 
 class TransportGatewayBase(metaclass=ABCMeta):
+    _config: dict
+
+    def __init__(self, config: dict) -> None:
+        self._config = config
+
     @abstractmethod
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
         pass
@@ -16,9 +21,11 @@ class ServiceCallerBase(metaclass=ABCMeta):
 
 
 class TransportConnectorBase(metaclass=ABCMeta):
+    _config: dict
     _service_caller: ServiceCallerBase
 
-    def __init__(self, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
+        self._config = config
         self._service_caller = service_caller
 
     def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:

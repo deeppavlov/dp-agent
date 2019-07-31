@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import json
 import functools
+from abc import ABCMeta, abstractmethod
 from uuid import uuid4
 from typing import Dict, List, Optional
 
@@ -9,24 +10,22 @@ import aio_pika
 from aio_pika import Connection, Channel, Exchange, IncomingMessage, Message
 
 from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
-from core.transport.z_dev_config import AGENT_NAME, TRANSPORT_TIMEOUT_SECS, RABBIT_MQ, ANNOTATORS, SKILL_SELECTORS
-from core.transport.z_dev_config import SKILLS, RESPONSE_SELECTORS, POSTPROCESSORS, SERVICE_CONFIG
 
 
-AGENT_IN_EXCHANGE_NAME = f'e_{AGENT_NAME}_in'
-AGENT_IN_QUEUE_NAME = f'q_agent_{AGENT_NAME}_in'
-AGENT_OUT_EXCHANGE_NAME = f'e_{AGENT_NAME}_out'
+AGENT_IN_EXCHANGE_NAME = 'e_{}_in'
+AGENT_IN_QUEUE_NAME = 'q_agent_{}_in'
+AGENT_OUT_EXCHANGE_NAME = 'e_{}_out'
 SERVICE_IN_QUEUE_NAME = 'q_service_{}_in'
 SERVICE_IN_ROUTING_KEY_ANY = '{}.anyinstance'
 SERVICE_IN_ROUTING_KEY_INSTANCE = '{}.instance.{}'
 
 
+# TODO: think about sharing skills between different agents
 # TODO: add graceful connection close
 # TODO: add load balancing for stateful skills
 # TODO: implement sent message timeout (lifetime) control on exchange protocol level
 class RabbitMQTransportGateway(TransportGatewayBase):
     _loop: asyncio.AbstractEventLoop
-    _service_names: List[str]
     _connection: Connection
     _out_channel: Channel
     _in_channel: Channel
@@ -35,10 +34,10 @@ class RabbitMQTransportGateway(TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self) -> None:
+    def __init__(self, config: dict) -> None:
+        super().__init__(config)
+
         self._loop = asyncio.get_event_loop()
-        self._service_names = [service['name'] for service in itertools.chain(ANNOTATORS, SKILL_SELECTORS, SKILLS,
-                                                                              RESPONSE_SELECTORS, POSTPROCESSORS)]
 
         self._service_responded_events = {}
         self._service_responses = {}
@@ -46,23 +45,37 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
-        self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
+        agent_name = self._config['agent']['name']
+
+        host = self._config['transport']['rabbitmq']['host']
+        port = self._config['transport']['rabbitmq']['port']
+        self._connection = await aio_pika.connect(loop=self._loop, host=host, port=port)
 
         # declare producer channel, exchange and out queues
         self._out_channel = await self._connection.channel()
-        self._out_exchange = await self._out_channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
+
+        agent_out_exchange_name = AGENT_OUT_EXCHANGE_NAME.format(agent_name)
+        self._out_exchange = await self._out_channel.declare_exchange(name=agent_out_exchange_name,
                                                                       type=aio_pika.ExchangeType.TOPIC)
 
-        for service_name in self._service_names:
-            queue = await self._out_channel.declare_queue(name=SERVICE_IN_QUEUE_NAME.format(service_name), durable=True)
-            await queue.bind(exchange=self._out_exchange, routing_key=SERVICE_IN_ROUTING_KEY_ANY.format(service_name))
+        service_configs: dict = self._config['agent']['services']
+        service_names = [service_config['name'] for service_config in itertools.chain(service_configs.values())]
+
+        for service_name in service_names:
+            service_in_queue_name = SERVICE_IN_QUEUE_NAME.format(service_name)
+            service_in_routing_key_any = SERVICE_IN_ROUTING_KEY_ANY.format(service_name)
+            queue = await self._out_channel.declare_queue(name=service_in_queue_name, durable=True)
+            await queue.bind(exchange=self._out_exchange, routing_key=service_in_routing_key_any)
 
         # declare consumer channel, exchange and out queues
         self._in_channel = await self._connection.channel()
-        self._in_exchange = await self._in_channel.declare_exchange(name=AGENT_IN_EXCHANGE_NAME,
+
+        agent_in_exchange_name = AGENT_IN_EXCHANGE_NAME.format(agent_name)
+        self._in_exchange = await self._in_channel.declare_exchange(name=agent_in_exchange_name,
                                                                     type=aio_pika.ExchangeType.TOPIC)
 
-        queue = await self._in_channel.declare_queue(name=AGENT_IN_QUEUE_NAME, durable=True)
+        agent_in_queue_name = AGENT_IN_QUEUE_NAME.format(agent_name)
+        queue = await self._in_channel.declare_queue(name=agent_in_queue_name, durable=True)
         await queue.bind(exchange=self._in_exchange, routing_key='#')
         await queue.consume(callback=self._on_message_callback)
 
@@ -80,6 +93,7 @@ class RabbitMQTransportGateway(TransportGatewayBase):
 
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
         task_uuid = str(uuid4())
+
         task = {
             'task_uuid': task_uuid,
             'dialog_state': dialog_state
@@ -90,7 +104,9 @@ class RabbitMQTransportGateway(TransportGatewayBase):
         await self._out_exchange.publish(message=message, routing_key=SERVICE_IN_ROUTING_KEY_ANY.format(service))
 
         try:
-            await asyncio.wait_for(self._service_responded_events[task_uuid].wait(), TRANSPORT_TIMEOUT_SECS)
+            await asyncio.wait_for(self._service_responded_events[task_uuid].wait(),
+                                   self._config['transport']['timeout_sec'])
+
             updated_dialog_state = self._service_responses.pop(task_uuid, None)
         except asyncio.TimeoutError:
             updated_dialog_state = None
@@ -108,8 +124,8 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _service_caller: ServiceCallerBase
     _service_name: str
     _instance_id: str
-    _service_router_key_any: str
-    _service_router_key_instance: str
+    _in_router_key_any: str
+    _in_router_key_instance: str
     _batch_size: int
     _infer_timeout: float
     _connection: Connection
@@ -121,16 +137,16 @@ class RabbitMQTransportConnector(TransportConnectorBase):
     _add_to_buffer_lock: asyncio.Lock
     _infer_lock: asyncio.Lock
 
-    def __init__(self, service_caller: ServiceCallerBase) -> None:
-        super().__init__(service_caller=service_caller)
+    def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
+        super().__init__(config=config, service_caller=service_caller)
         self._loop = asyncio.get_event_loop()
 
-        self._service_name = SERVICE_CONFIG['name']
-        self._instance_id = SERVICE_CONFIG['instance_id'] or f'{self._service_name}{str(uuid4())}'
-        self._service_router_key_any.format(self._service_name)
-        self._service_router_key_instance.format(self._service_name, self._instance_id)
-        self._batch_size = SERVICE_CONFIG['batch_size']
-        self._infer_timeout = TRANSPORT_TIMEOUT_SECS
+        self._service_name = self._config['service']['service_name']
+        self._instance_id = self._config['service']['instance_id'] or f'{self._service_name}{str(uuid4())}'
+        self._in_router_key_any = SERVICE_IN_ROUTING_KEY_ANY.format(self._service_name)
+        self._in_router_key_instance = SERVICE_IN_ROUTING_KEY_INSTANCE.format(self._service_name, self._instance_id)
+        self._batch_size = self._config['service']['batch_size']
+        self._infer_timeout = self._config['transport']['timeout_sec']
 
         self._incoming_messages_buffer = []
 
@@ -141,7 +157,11 @@ class RabbitMQTransportConnector(TransportConnectorBase):
 
     # TODO: add proper RabbitMQ authentication
     async def _connect(self) -> None:
-        self._connection = await aio_pika.connect(loop=self._loop, host=RABBIT_MQ['host'], port=RABBIT_MQ['port'])
+        agent_name = self._config['agent']['agent_name']
+
+        host = self._config['transport']['rabbitmq']['host']
+        port = self._config['transport']['rabbitmq']['port']
+        self._connection = await aio_pika.connect(loop=self._loop, host=host, port=port)
 
         # declare producer channel, exchange and out queues
         self._out_channel = await self._connection.channel()
@@ -153,13 +173,15 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         # declare consumer channel, exchange and in queue
         self._in_channel = await self._connection.channel()
         await self._in_channel.set_qos(prefetch_count=self._batch_size)
-        self._in_exchange = await self._in_channel.declare_exchange(name=AGENT_OUT_EXCHANGE_NAME,
+
+        agent_in_exchange_name = AGENT_IN_EXCHANGE_NAME.format(agent_name)
+        self._in_exchange = await self._in_channel.declare_exchange(name=agent_in_exchange_name,
                                                                     type=aio_pika.ExchangeType.TOPIC)
 
         queue_name = SERVICE_IN_QUEUE_NAME.format(self._service_name)
         queue = await self._in_channel.declare_queue(name=queue_name, durable=True)
 
-        await queue.bind(exchange=self._in_exchange, routing_key=self._service_router_key_any)
+        await queue.bind(exchange=self._in_exchange, routing_key=self._in_router_key_any)
         await queue.consume(callback=self._on_message_callback)
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
@@ -203,5 +225,5 @@ class RabbitMQTransportConnector(TransportConnectorBase):
         }
 
         message = Message(body=json.dumps(result), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
-        routing_key = SERVICE_IN_ROUTING_KEY_INSTANCE.format(self._service_name, self._instance_id)
+        routing_key = self._in_router_key_instance
         await self._out_exchange.publish(message=message, routing_key=routing_key)
