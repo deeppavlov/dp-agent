@@ -42,6 +42,7 @@ class MockServiceCaller(ServiceCallerBase):
         batch_id = str(uuid4())
 
         for dialog_state in dialog_states_batch:
+            dialog_state['response'] = {}
             dialog_state['response']['agent_name'] = dialog_state['task']['agent_name']
             dialog_state['response']['service'] = self._service_name
             dialog_state['response']['service_instance_id'] = self._instance_id
@@ -95,3 +96,4 @@ service_buzz_i1_config['service']['instance_id'] = 'buzz_i1'
 service_buzz_i2_config = deepcopy(transport_config)
 service_buzz_i2_config['service']['name'] = 'buzz'
 service_buzz_i2_config['service']['instance_id'] = 'buzz_i2'
+
