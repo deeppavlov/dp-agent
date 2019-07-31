@@ -58,8 +58,6 @@ class RabbitMQTransportBase(metaclass=ABCMeta):
         self._agent_out_exchange = await self._agent_in_channel.declare_exchange(name=agent_out_exchange_name,
                                                                                  type=aio_pika.ExchangeType.TOPIC)
 
-        await self._setup_queues()
-
     @abstractmethod
     async def _setup_queues(self) -> None:
         pass
@@ -76,10 +74,10 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
 
     def __init__(self, config: dict) -> None:
         super(RabbitMQTransportGateway, self).__init__(config)
-
         self._agent_name = self._config['agent']['name']
         self._service_responded_events = {}
         self._service_responses = {}
+        self._loop.run_until_complete(self._setup_queues())
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']
@@ -148,6 +146,8 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         self._incoming_messages_buffer = []
         self._add_to_buffer_lock = asyncio.Lock()
         self._infer_lock = asyncio.Lock()
+
+        self._loop.run_until_complete(self._setup_queues())
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']
