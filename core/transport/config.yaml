@@ -1,3 +1,5 @@
+agent_namespace: 'deeppavlov-agent'
+
 agent:
   name: 'dp-agent'
 
