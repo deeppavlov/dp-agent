@@ -139,7 +139,7 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
     def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
         super().__init__(config=config, service_caller=service_caller)
 
-        self._service_name = self._config['service']['service_name']
+        self._service_name = self._config['service']['name']
         self._instance_id = self._config['service']['instance_id'] or f'{self._service_name}{str(uuid4())}'
         self._batch_size = self._config['service']['batch_size']
 

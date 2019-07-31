@@ -30,7 +30,7 @@ class TransportBus:
     def __init__(self, config: dict) -> None:
         transport_type = config['transport']['type']
         gateway_cls = ADAPTERS_MAP[transport_type]['gateway']
-        self._gateway = gateway_cls(config)
+        self._gateway = gateway_cls(config=config)
 
     async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
         return await self._gateway.process(service, dialog_state)
@@ -44,4 +44,4 @@ class Service:
         self._caller = service_caller
         transport_type = config['transport']['type']
         connector_cls = ADAPTERS_MAP[transport_type]['connector']
-        self._connector = connector_cls(self._caller)
+        self._connector = connector_cls(config=config, service_caller=self._caller)
