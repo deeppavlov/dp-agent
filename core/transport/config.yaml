@@ -1,7 +1,7 @@
-agent_namespace: 'deeppavlov-agent'
+agent_namespace: 'deeppavlov_agent'
 
 agent:
-  name: 'dp-agent'
+  name: 'dp_agent'
 
   services:
     annotators:
@@ -40,3 +40,31 @@ service:
   batch_size: 1
   remote_url: 'protocol://host:port/endpoint'
 
+logging:
+  version: 1
+  disable_existing_loggers: false
+  loggers:
+    core:
+      level: 'INFO'
+      propagate: true
+      handlers: ['stderr']
+  formatters:
+    default:
+      format: "%(asctime)s.%(msecs)d %(levelname)s in '%(name)s'['%(module)s'] at line %(lineno)d: %(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+  handlers:
+    file:
+      class: 'logging.FileHandler'
+      level: 'DEBUG'
+      formatter: 'default'
+      filename: '~/dp_agent.log'
+    stdout:
+      class: 'logging.StreamHandler'
+      level: 'DEBUG'
+      formatter: 'default'
+      stream: 'ext://sys.stdout'
+    stderr:
+      class: 'logging.StreamHandler'
+      level: 'DEBUG'
+      formatter: 'default'
+      stream: 'ext://sys.stderr'
