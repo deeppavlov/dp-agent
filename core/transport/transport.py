@@ -1,7 +1,10 @@
 from typing import Optional
+from logging import getLogger
 
 from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
 from core.transport.adapters.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
+
+logger = getLogger(__name__)
 
 
 ADAPTERS_MAP = {
@@ -29,6 +32,7 @@ class TransportBus:
 
     def __init__(self, config: dict) -> None:
         transport_type = config['transport']['type']
+        logger.info(f'Initiating transport bus, transport type: {transport_type}')
         gateway_cls = ADAPTERS_MAP[transport_type]['gateway']
         self._gateway = gateway_cls(config=config)
 
