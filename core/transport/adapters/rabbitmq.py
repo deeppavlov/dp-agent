@@ -3,7 +3,7 @@ import json
 import functools
 from abc import ABCMeta, abstractmethod
 from uuid import uuid4
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 from logging import getLogger
 
 import aio_pika
@@ -79,13 +79,11 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict) -> None:
-        super(RabbitMQTransportGateway, self).__init__(config)
+    def __init__(self, config: dict, callback: Callable[[dict], None]) -> None:
+        super(RabbitMQTransportGateway, self).__init__(config=config, callback=callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
 
-        self._service_responded_events = {}
-        self._service_responses = {}
         self._loop.run_until_complete(self._connect())
 
     async def _setup_queues(self) -> None:
@@ -105,19 +103,14 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         task_uuid = result['task_uuid']
         service_name = result['service']
         service_instance_id = result['service_instance_id']
-        dialog_state = result['dialog_state']
+        dialog_state: dict = result['dialog_state']
         logger.debug(f'Received processed task {task_uuid}: service {service_name}, instance: {service_instance_id}, '
                      f'result: {str(dialog_state)}')
 
-        message_event = self._service_responded_events.pop(task_uuid, None)
-
-        if message_event and not message_event.is_set():
-            self._service_responses[task_uuid] = dialog_state
-            message_event.set()
-
         await message.ack()
+        await self._loop.create_task(self._callback(dialog_state))
 
-    async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
+    async def process(self, service: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
 
         task = {
@@ -127,24 +120,10 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         }
 
         logger.debug(f'Created task {task_uuid}: service {service}, task: {str(dialog_state)}')
-        self._service_responded_events[task_uuid] = asyncio.Event()
         message = Message(body=json.dumps(task).encode('utf-8'), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
         routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
         logger.debug(f'Published task {task_uuid} with routing key {routing_key}')
-
-        try:
-            await asyncio.wait_for(self._service_responded_events[task_uuid].wait(),
-                                   self._config['transport']['timeout_sec'])
-
-            updated_dialog_state = self._service_responses.pop(task_uuid, None)
-            logger.debug(f'Acquired task {task_uuid}')
-        except asyncio.TimeoutError:
-            updated_dialog_state = None
-        finally:
-            self._service_responded_events.pop(task_uuid, None)
-
-        return updated_dialog_state
 
 
 class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):

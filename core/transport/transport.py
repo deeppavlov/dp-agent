@@ -1,4 +1,5 @@
-from typing import Optional
+import asyncio
+from typing import Awaitable
 from logging import getLogger
 
 from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
@@ -29,15 +30,19 @@ class TransportBus:
     _gateway: TransportGatewayBase
     _health_checker: HealthChecker
     _load_balancer: LoadBalancer
+    _loop: asyncio.AbstractEventLoop
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict, callback: Awaitable) -> None:
         transport_type = config['transport']['type']
         logger.info(f'Initiating transport bus, transport type: {transport_type}')
-        gateway_cls = ADAPTERS_MAP[transport_type]['gateway']
-        self._gateway = gateway_cls(config=config)
 
-    async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
-        return await self._gateway.process(service, dialog_state)
+        gateway_cls = ADAPTERS_MAP[transport_type]['gateway']
+        self._gateway = gateway_cls(config=config, callback=callback)
+
+        self._loop = asyncio.get_event_loop()
+
+    async def process(self, service: str, dialog_state: dict) -> None:
+        await self._loop.create_task(self._gateway.process(service, dialog_state))
 
 
 class Service:

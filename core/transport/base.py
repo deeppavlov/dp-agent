@@ -1,13 +1,16 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional
+from typing import List, Callable
 
 
 class TransportGatewayBase(metaclass=ABCMeta):
-    def __init__(self, *args, **kwargs):
+    _callback: Callable[[dict], None]
+
+    def __init__(self, callback: Callable[[dict], None], *args, **kwargs):
         super(TransportGatewayBase, self).__init__(*args, **kwargs)
+        self._callback = callback
 
     @abstractmethod
-    async def process(self, service: str, dialog_state: dict) -> Optional[dict]:
+    async def process(self, service: str, dialog_state: dict) -> None:
         pass
 
 
