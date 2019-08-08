@@ -2,11 +2,11 @@ import asyncio
 from typing import Awaitable
 from logging import getLogger
 
-from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
+from core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
 from core.transport.adapters.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
 
-logger = getLogger(__name__)
 
+logger = getLogger(__name__)
 
 ADAPTERS_MAP = {
     'rabbitmq': {
@@ -17,19 +17,9 @@ ADAPTERS_MAP = {
 
 
 # TODO: implement services health checking
-class HealthChecker:
-    pass
-
-
 # TODO: implement stateful services load balancing
-class LoadBalancer:
-    pass
-
-
 class TransportBus:
-    _gateway: TransportGatewayBase
-    _health_checker: HealthChecker
-    _load_balancer: LoadBalancer
+    _gateway: TTransportGateway
     _loop: asyncio.AbstractEventLoop
 
     def __init__(self, config: dict, callback: Awaitable) -> None:
@@ -46,10 +36,10 @@ class TransportBus:
 
 
 class Service:
-    _caller: ServiceCallerBase
-    _connector: TransportConnectorBase
+    _caller: TServiceCaller
+    _connector: TTransportConnector
 
-    def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, config: dict, service_caller: TServiceCaller) -> None:
         self._caller = service_caller
         transport_type = config['transport']['type']
         connector_cls = ADAPTERS_MAP[transport_type]['connector']

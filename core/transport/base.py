@@ -1,8 +1,8 @@
-from abc import ABCMeta, abstractmethod
-from typing import List, Callable
+from abc import abstractmethod
+from typing import List, Callable, TypeVar
 
 
-class TransportGatewayBase(metaclass=ABCMeta):
+class TransportGatewayBase:
     _callback: Callable[[dict], None]
 
     def __init__(self, callback: Callable[[dict], None], *args, **kwargs):
@@ -15,13 +15,13 @@ class TransportGatewayBase(metaclass=ABCMeta):
 
 
 # TODO: think, if we need to isolate ServiceCaller to separate process
-class ServiceCallerBase(metaclass=ABCMeta):
+class ServiceCallerBase:
     @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
         pass
 
 
-class TransportConnectorBase(metaclass=ABCMeta):
+class TransportConnectorBase:
     _service_caller: ServiceCallerBase
 
     def __init__(self, service_caller: ServiceCallerBase, *args, **kwargs) -> None:
@@ -30,3 +30,8 @@ class TransportConnectorBase(metaclass=ABCMeta):
 
     def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
         return self._service_caller.infer(dialog_states_batch)
+
+
+TTransportGateway = TypeVar('TTransportGateway', bound='TransportGatewayBase')
+TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
+TTransportConnector = TypeVar('TTransportConnector', bound='TransportConnectorBase')

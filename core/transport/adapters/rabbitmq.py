@@ -1,7 +1,7 @@
 import asyncio
 import json
 import functools
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from uuid import uuid4
 from typing import Dict, List, Optional, Callable
 from logging import getLogger
@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 # TODO: add graceful connection close
 # TODO: implement sent message timeout (lifetime) control on exchange protocol level
 # TODO: add load balancing for stateful skills
-class RabbitMQTransportBase(metaclass=ABCMeta):
+class RabbitMQTransportBase:
     _config: dict
     _loop: asyncio.AbstractEventLoop
     _agent_in_exchange: Exchange
