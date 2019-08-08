@@ -63,8 +63,6 @@ class RabbitMQTransportBase:
                                                                                  type=aio_pika.ExchangeType.TOPIC)
         logger.info(f'Declared agent out exchange: {agent_out_exchange_name}')
 
-        await self._setup_queues()
-
     @abstractmethod
     async def _setup_queues(self) -> None:
         pass
@@ -85,6 +83,9 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         self._agent_name = self._config['agent']['name']
 
         self._loop.run_until_complete(self._connect())
+        self._loop.run_until_complete(self._setup_queues())
+        self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
+        logger.info('Agent in queue started consuming')
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']
@@ -95,8 +96,6 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name)
         await self._in_queue.bind(exchange=self._agent_in_exchange, routing_key=routing_key)
         logger.info(f'Queue: {in_queue_name} bound to routing key: {routing_key}')
-        await self._in_queue.consume(callback=self._on_message_callback)
-        logger.info(f'Queue {in_queue_name} started consuming')
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         result: dict = json.loads(message.body, encoding='utf-8')
@@ -146,7 +145,11 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         self._add_to_buffer_lock = asyncio.Lock()
         self._infer_lock = asyncio.Lock()
 
-        self._loop.create_task(self._connect())
+        self._loop.run_until_complete(self._connect())
+        self._loop.run_until_complete(self._setup_queues())
+        self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
+        logger.info(f'Service in queue started consuming')
+
         self._loop.run_forever()
 
     async def _setup_queues(self) -> None:
@@ -169,8 +172,6 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         logger.info(f'Queue: {in_queue_name} bound to routing key: {this_instance_routing_key}')
 
         await self._agent_out_channel.set_qos(prefetch_count=self._batch_size)
-        await self._in_queue.consume(callback=self._on_message_callback)
-        logger.info(f'Queue {in_queue_name} started consuming')
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         await self._add_to_buffer_lock.acquire()
