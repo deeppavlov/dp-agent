@@ -2,7 +2,7 @@ import logging
 import logging.config
 from pathlib import Path
 
-from core.transport.config import config
+from agent_orange.config import config
 
 
 def init_logger():

@@ -2,8 +2,8 @@ import asyncio
 from typing import Awaitable
 from logging import getLogger
 
-from core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
-from core.transport.adapters.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
+from agent_orange.core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
+from agent_orange.core.transport.connectors.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
 
 
 logger = getLogger(__name__)

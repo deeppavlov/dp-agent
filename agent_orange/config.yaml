@@ -49,6 +49,10 @@ logging:
       level: 'INFO'
       propagate: true
       handlers: ['stderr']
+    agent_orange:
+      level: 'INFO'
+      propagate: true
+      handlers: ['stderr']
   formatters:
     default:
       format: "%(asctime)s.%(msecs)d %(levelname)s in '%(name)s'['%(module)s'] at line %(lineno)d: %(message)s"

@@ -9,7 +9,7 @@ from logging import getLogger
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
+from agent_orange.core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
 
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'

@@ -4,9 +4,9 @@ from uuid import uuid4
 from typing import List
 from copy import deepcopy
 
-from core.transport.config import config as service_config
-from core.transport.transport import Service
-from core.transport.base import ServiceCallerBase
+from agent_orange.config import config as service_config
+from agent_orange.core.transport.transport import Service
+from agent_orange.core.transport.base import ServiceCallerBase
 
 
 parser = argparse.ArgumentParser()

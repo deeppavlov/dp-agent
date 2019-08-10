@@ -3,8 +3,8 @@ import asyncio
 from datetime import datetime
 from copy import deepcopy
 
-from core.transport.config import config as agent_config
-from core.transport.transport import TransportBus
+from agent_orange.config import config as agent_config
+from agent_orange.core.transport.transport import TransportBus
 
 
 parser = argparse.ArgumentParser()
