@@ -3,7 +3,6 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 30.0
-
   pipeline: ['ner', 'chitchat']
 
   services:
