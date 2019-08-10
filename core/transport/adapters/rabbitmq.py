@@ -209,7 +209,7 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
 
         try:
             inferer = functools.partial(self._infer, dialog_states_batch)
-            infer_timeout = self._config['transport']['timeout_sec']
+            infer_timeout = self._config['service']['infer_timeout_sec']
             responses_batch = await asyncio.wait_for(self._loop.run_in_executor(executor=None, func=inferer),
                                                      infer_timeout)
             logger.debug(f'Processed tasks {str(task_uuids_batch)}')

@@ -2,6 +2,7 @@ agent_namespace: 'deeppavlov_agent'
 
 agent:
   name: 'dp_agent'
+  response_timeout_sec: 30.0
 
   services:
     annotators:
@@ -28,7 +29,6 @@ agent:
 
 transport:
   type: 'rabbitmq'
-  timeout_sec: 30.0
 
   rabbitmq:
     host: 'localhost'
@@ -38,6 +38,7 @@ service:
   name: 'service_name'
   instance_id: ''
   batch_size: 1
+  infer_timeout_sec: 30.0
   remote_url: 'protocol://host:port/endpoint'
 
 logging:
