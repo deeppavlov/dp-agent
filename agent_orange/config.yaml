@@ -3,29 +3,19 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 30.0
-
   services:
-    annotators:
-    - name: 'ner'
-      stateful: false
-    - name: 'sentiment'
-      stateful: false
-    - name: 'obscenity'
-      stateful: false
-
-    skill_selectors:
-    - name: 'chitchat_odqa'
-      stateful: false
-
-    skills:
-    - name: 'odqa'
-      stateful: false
-    - name: 'chitchat'
-      stateful: false
-
-    response_selectors: []
-
-    postprocessors: []
+  - name: 'ner'
+    stateful: false
+  - name: 'sentiment'
+    stateful: false
+  - name: 'obscenity'
+    stateful: false
+  - name: 'chitchat_odqa'
+    stateful: false
+  - name: 'odqa'
+    stateful: false
+  - name: 'chitchat'
+    stateful: false
 
 transport:
   type: 'rabbitmq'
