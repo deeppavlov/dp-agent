@@ -3,16 +3,11 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 30.0
+
+  pipeline: ['ner', 'chitchat']
+
   services:
   - name: 'ner'
-    stateful: false
-  - name: 'sentiment'
-    stateful: false
-  - name: 'obscenity'
-    stateful: false
-  - name: 'chitchat_odqa'
-    stateful: false
-  - name: 'odqa'
     stateful: false
   - name: 'chitchat'
     stateful: false
