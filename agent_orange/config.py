@@ -25,7 +25,7 @@ def verify_pipeline(cfg: dict) -> None:
         elif not isinstance(stage, str):
             raise TypeError(ERR_MSG_TEMPLATE.format(type_error_text))
 
-    if not isinstance(cfg[-1], str):
+    if not isinstance(pipeline[-1], str):
         raise TypeError(ERR_MSG_TEMPLATE.format('Pipeline last element should be only one service'))
 
 
