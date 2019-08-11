@@ -43,7 +43,7 @@ class Agent:
 
         self._pipeline = config['agent']['pipeline']
         self._pipeline_routing_map = self._make_pipeline_routing_map(self._pipeline)
-        self._responding_service = self._pipeline[-1]
+        self._responding_service = self._pipeline[-1][0]
         self._response_timeout = config['agent']['response_timeout_sec']
 
         self._dialogs = {}
@@ -58,18 +58,17 @@ class Agent:
     @staticmethod
     def _make_pipeline_routing_map(pipeline: List[Union[str, List[str]]]) -> Dict[frozenset, List[str]]:
         pipeline_routing_map = {}
-        pipeline_routing_map[frozenset()] = list(pipeline[0])
-
+        pipeline_routing_map[frozenset()] = pipeline[0]
         cumul_skills = []
 
         for i, skills in enumerate(pipeline[1:]):
-            cumul_skills.extend(list(pipeline[i - 1]))
+            cumul_skills.extend(pipeline[i])
             pipeline_routing_map[frozenset(cumul_skills)] = list(skills)
 
         cumul_skills.extend(list(pipeline[-1]))
         pipeline_routing_map[frozenset(cumul_skills)] = [END_OF_PIPELINE_MARKER]
 
-        routing_map_str = '\n'.join([f'{str(key)}: {str(value)}' for key, value in pipeline_routing_map.items()])
+        routing_map_str = '\n'.join([f'\t{str(key)}: {str(value)}' for key, value in pipeline_routing_map.items()])
         logger.debug(f'Initiated pipeline routing map:\n{routing_map_str}')
 
         return pipeline_routing_map

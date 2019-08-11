@@ -3,11 +3,12 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 30.0
-  pipeline: ['ner', 'chitchat']
+  pipeline: [['ner', 'sentiment'],
+             ['chitchat']]
 
   database:
-    host: '10.11.1.251'
-    port: 10001
+    host: 'localhost'
+    port: 27017
 
   services:
   - name: 'ner'
@@ -38,7 +39,7 @@ logging:
       propagate: true
       handlers: ['stderr']
     agent_orange:
-      level: 'INFO'
+      level: 'DEBUG'
       propagate: true
       handlers: ['stderr']
   formatters:
