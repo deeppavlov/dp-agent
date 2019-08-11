@@ -79,8 +79,17 @@ class Agent:
             await self._loop.create_task(self._process_next_utterance(channel_user_key))
             await asyncio.wait_for(response_event.wait(), self._response_timeout)
 
-            last_dialog_utt: HumanUtterance = self._dialogs[channel_user_key].utterances[-1]
+            dialog = self._dialogs[channel_user_key]
+            last_dialog_utt: HumanUtterance = dialog.utterances[-1]
             response = last_dialog_utt.to_dict().get(self._responding_service, None) or TIMEOUT_MESSAGE
+
+            await run_sync_in_executor(self._state_manager.add_bot_utterances,
+                                       dialogs=[dialog],
+                                       orig_texts=[response],
+                                       texts=[response],
+                                       date_times=[datetime.utcnow()],
+                                       active_skills=[self._responding_service],
+                                       confidences=[1])
 
             return response
 
