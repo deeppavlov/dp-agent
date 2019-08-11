@@ -31,6 +31,7 @@ class Agent:
     _utterances_queue: Dict[ChannelUserKey, List[IncomingUtterance]]
     _utterances_locks: Dict[ChannelUserKey, asyncio.Lock]
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
+    _annotations_locks: Dict[ChannelUserKey, asyncio.Lock]
 
     def __init__(self, config: dict) -> None:
         self._config = config
@@ -48,6 +49,7 @@ class Agent:
         self._utterances_queue = defaultdict(list)
         self._utterances_locks = defaultdict(asyncio.Lock)
         self._responses_events = defaultdict(asyncio.Event)
+        self._annotations_locks = defaultdict(asyncio.Lock)
 
     @staticmethod
     def _make_pipeline_routing_map(pipeline: List[Union[str, List[str]]]) -> Dict[frozenset, List[str]]:
@@ -128,5 +130,22 @@ class Agent:
             for service in next_services:
                 await self._loop.create_task(self._transport_bus.process(service, dialog_state))
 
+    async def _update_annotations(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
+        dialog = self._dialogs[channel_user_key]
+        annotated_utterance = partial_dialog_state['utterances'][0]
+        utterance_id: str = annotated_utterance['id']
+        annotations: dict = annotated_utterance['annotations']
+
+        # this is clumsy, but 'reversed' makes it rather effective for prototype
+        for utterance in reversed(dialog.utterances):
+            if str(utterance.id) == utterance_id:
+                utterance.annotations.update(annotations)
+                break
+
     async def on_service_message_callback(self, partial_dialog_state: dict) -> None:
-        pass
+        dialog_id = partial_dialog_state['id']
+        channel_user_key = self._dialog_id_key_map[dialog_id]
+
+        async with self._annotations_locks[channel_user_key]:
+            await self._update_annotations(channel_user_key, partial_dialog_state)
+            await self._route_to_next_service(channel_user_key)
