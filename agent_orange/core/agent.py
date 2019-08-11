@@ -121,14 +121,15 @@ class Agent:
         last_utterance: HumanUtterance = dialog.utterances[-1]
         annotations: dict = last_utterance.to_dict()['annotations']
         responded_services_set = frozenset(annotations.keys())
-        next_services = self._pipeline_routing_map.get(responded_services_set, [])
+        next_services = self._pipeline_routing_map.get(responded_services_set, None)
 
-        if END_OF_PIPELINE_MARKER in next_services:
-            self._responses_events[channel_user_key].set()
-        else:
-            dialog_state = dialog.to_dict()
-            for service in next_services:
-                await self._loop.create_task(self._transport_bus.process(service, dialog_state))
+        if next_services:
+            if END_OF_PIPELINE_MARKER in next_services:
+                self._responses_events[channel_user_key].set()
+            else:
+                dialog_state = dialog.to_dict()
+                for service in next_services:
+                    await self._loop.create_task(self._transport_bus.process(service, dialog_state))
 
     async def _update_annotations(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
         dialog = self._dialogs[channel_user_key]
