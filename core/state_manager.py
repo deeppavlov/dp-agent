@@ -40,6 +40,7 @@ class StateManager:
             else:
                 exist_dialogs = Dialog.objects(user__exact=user)
                 if not exist_dialogs:
+                    # TODO better to keep it: not all channels have dialog reset markers such as /start in Telegram
                     # TODO remove this "if" condition: it should never happen in production, only while testing
                     dialog = cls.create_new_dialog(user=user,
                                                    bot=BOT,
