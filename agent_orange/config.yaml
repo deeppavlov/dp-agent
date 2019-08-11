@@ -6,8 +6,8 @@ agent:
   pipeline: ['ner', 'chitchat']
 
   database:
-  - host: localhost
-  - port: 27017
+    host: '10.11.1.251'
+    port: 10001
 
   services:
   - name: 'ner'
