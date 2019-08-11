@@ -7,8 +7,8 @@ agent:
              ['chitchat']]
 
   database:
-    host: 'localhost'
-    port: 27017
+    host: '10.11.1.251'
+    port: 10001
 
   services:
   - name: 'ner'
@@ -16,19 +16,21 @@ agent:
   - name: 'chitchat'
     stateful: false
 
+service:
+  name: 'service_name'
+  instance_id: ''
+  batch_size: 1
+  infer_timeout_sec: 30.0
+
+  connector_params:
+    param: 'value'
+
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
     host: 'localhost'
     port: 5672
-
-service:
-  name: 'service_name'
-  instance_id: ''
-  batch_size: 1
-  infer_timeout_sec: 30.0
-  remote_url: 'protocol://host:port/endpoint'
 
 logging:
   version: 1
