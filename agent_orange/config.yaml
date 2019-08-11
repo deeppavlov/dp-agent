@@ -3,16 +3,21 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 30.0
-  pipeline: [['ner', 'sentiment'],
-             ['chitchat']]
 
   database:
     host: '10.11.1.251'
     port: 10001
 
+  pipeline: [['ner', 'sentiment'],
+             ['chitchat']]
+
   services:
   - name: 'ner'
     stateful: false
+
+  - name: 'sentiment'
+    stateful: false
+
   - name: 'chitchat'
     stateful: false
 
@@ -23,7 +28,7 @@ service:
   infer_timeout_sec: 30.0
 
   connector_params:
-    param: 'value'
+    url: 'http://localhost:5000/endpoint'
 
 transport:
   type: 'rabbitmq'
