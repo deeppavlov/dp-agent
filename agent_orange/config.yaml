@@ -5,6 +5,10 @@ agent:
   response_timeout_sec: 30.0
   pipeline: ['ner', 'chitchat']
 
+  database:
+  - host: localhost
+  - port: 27017
+
   services:
   - name: 'ner'
     stateful: false
