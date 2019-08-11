@@ -120,8 +120,8 @@ class Agent:
         dialog = self._dialogs[channel_user_key]
         last_utterance: HumanUtterance = dialog.utterances[-1]
         annotations: dict = last_utterance.to_dict()['annotations']
-        responded_services = frozenset(annotations.keys())
-        next_services = self._pipeline_routing_map[responded_services]
+        responded_services_set = frozenset(annotations.keys())
+        next_services = self._pipeline_routing_map.get(responded_services_set, [])
 
         if END_OF_PIPELINE_MARKER in next_services:
             self._responses_events[channel_user_key].set()
