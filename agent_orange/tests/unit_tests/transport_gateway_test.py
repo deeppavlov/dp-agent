@@ -38,10 +38,10 @@ class MockAgent:
         self._loop = asyncio.get_event_loop()
         transport_type = config['transport']['type']
         gateway_cls = transport_map[transport_type]['gateway']
-        self._transport_gateway = gateway_cls(config=config, from_service_callback=self.get_from_service)
+        self._transport_gateway = gateway_cls(config=config, on_service_callback=self.on_service_message)
 
     @staticmethod
-    async def get_from_service(partial_dialog_state: dict) -> None:
+    async def on_service_message(partial_dialog_state: dict) -> None:
         current_time = datetime.now()
         print(f'RECEIVED STATE {str(current_time)} {str(partial_dialog_state)}')
 

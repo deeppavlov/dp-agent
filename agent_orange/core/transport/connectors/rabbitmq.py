@@ -77,8 +77,8 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict, from_service_callback: Awaitable) -> None:
-        super(RabbitMQTransportGateway, self).__init__(config=config, from_service_callback=from_service_callback)
+    def __init__(self, config: dict, on_service_callback: Awaitable) -> None:
+        super(RabbitMQTransportGateway, self).__init__(config=config, on_service_callback=on_service_callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
 
@@ -104,7 +104,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
 
         if message_type == 'service_response':
             partial_dialog_state: dict = result['partial_dialog_state']
-            await self._loop.create_task(self._from_service_callback(partial_dialog_state=partial_dialog_state))
+            await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
             await message.ack()
 
     async def send_to_service(self, service: str, dialog_state: dict) -> None:

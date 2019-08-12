@@ -3,11 +3,11 @@ from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable
 
 
 class TransportGatewayBase:
-    _from_service_callback: Awaitable
+    _on_service_callback: Awaitable
 
-    def __init__(self, from_service_callback: Awaitable, *args, **kwargs):
+    def __init__(self, on_service_callback: Awaitable, *args, **kwargs):
         super(TransportGatewayBase, self).__init__(*args, **kwargs)
-        self._from_service_callback = from_service_callback
+        self._on_service_callback = on_service_callback
 
     @abstractmethod
     async def send_to_service(self, service: str, dialog_state: dict) -> None:
