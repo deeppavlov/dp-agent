@@ -36,8 +36,11 @@ transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '192.168.10.221'
+    host: 'localhost'
     port: 5672
+    login: 'guest'
+    password: 'guest'
+    virtualhost: '/'
 
 logging:
   version: 1

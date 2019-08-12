@@ -1,5 +1,6 @@
 import time
 import argparse
+import asyncio
 from uuid import uuid4
 from typing import List
 from copy import deepcopy
@@ -83,5 +84,8 @@ if __name__ == '__main__':
         transport_type = conf['transport']['type']
         connector_cls = transport_map[transport_type]['connector']
         connector: TTransportConnector = connector_cls(config=conf, service_caller=service_caller)
+
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
     except KeyboardInterrupt:
         pass

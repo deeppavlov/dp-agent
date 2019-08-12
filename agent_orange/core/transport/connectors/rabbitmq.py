@@ -23,7 +23,7 @@ SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE = '{service_name}.instance.{instance_id}'
 logger = getLogger(__name__)
 
 
-# TODO: add proper RabbitMQ authentication
+# TODO: add proper RabbitMQ SSL authentication
 # TODO: add graceful connection close
 # TODO: implement sent message timeout (lifetime) control on exchange protocol level
 # TODO: add load balancing for stateful skills
@@ -47,8 +47,14 @@ class RabbitMQTransportBase:
 
         host = self._config['transport']['rabbitmq']['host']
         port = self._config['transport']['rabbitmq']['port']
+        login = self._config['transport']['rabbitmq']['login']
+        password = self._config['transport']['rabbitmq']['password']
+        virtualhost = self._config['transport']['rabbitmq']['virtualhost']
+
         logger.info('Starting RabbitMQ connection...')
-        self._connection = await aio_pika.connect_robust(loop=self._loop, host=host, port=port)
+        self._connection = await aio_pika.connect_robust(loop=self._loop, host=host, port=port, login=login,
+                                                         password=password, virtualhost=virtualhost)
+
         logger.info('RabbitMQ connected')
 
         self._agent_in_channel = await self._connection.channel()
@@ -148,8 +154,6 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
         logger.info(f'Service in queue started consuming')
-
-        self._loop.run_forever()
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']
