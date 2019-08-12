@@ -72,7 +72,16 @@ class Agent:
 
         return pipeline_routing_map
 
-    async def interact(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> str:
+    async def on_service_message(self, partial_dialog_state: dict) -> None:
+        dialog_id = partial_dialog_state['id']
+        logger.debug(f'Received from service partial state for dialog: [{dialog_id}]')
+        channel_user_key = self._dialog_id_key_map[dialog_id]
+
+        async with self._annotations_locks[channel_user_key]:
+            await self._update_annotations(channel_user_key, partial_dialog_state)
+            await self._route_to_next_service(channel_user_key)
+
+    async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> str:
         channel_user_key = ChannelUserKey(channel_id=channel_id, user_id=user_id)
         incoming_utterance = IncomingUtterance(utterance=utterance, reset_dialog=reset_dialog)
         self._utterances_queue[channel_user_key].append(incoming_utterance)
@@ -177,12 +186,3 @@ class Agent:
                 utterance.annotations.update(annotations)
                 logger.debug(f'Utterance: [{utterance_id}] updated with annotations: [{str(annotations)}]')
                 break
-
-    async def on_service_message_callback(self, partial_dialog_state: dict) -> None:
-        dialog_id = partial_dialog_state['id']
-        logger.debug(f'Received from service partial state for dialog: [{dialog_id}]')
-        channel_user_key = self._dialog_id_key_map[dialog_id]
-
-        async with self._annotations_locks[channel_user_key]:
-            await self._update_annotations(channel_user_key, partial_dialog_state)
-            await self._route_to_next_service(channel_user_key)
