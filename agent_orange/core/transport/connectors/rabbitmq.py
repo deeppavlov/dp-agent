@@ -3,7 +3,7 @@ import json
 import functools
 from abc import abstractmethod
 from uuid import uuid4
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Awaitable
 from logging import getLogger
 
 import aio_pika
@@ -77,8 +77,8 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict, callback: Callable[[dict, str], None]) -> None:
-        super(RabbitMQTransportGateway, self).__init__(config=config, callback=callback)
+    def __init__(self, config: dict, from_service_callback: Awaitable) -> None:
+        super(RabbitMQTransportGateway, self).__init__(config=config, from_service_callback=from_service_callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
 
@@ -106,10 +106,10 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
             service_name = result['service']
             service_instance_id = result['service_instance_id']
             partial_dialog_state: dict = result['partial_dialog_state']
-            logger.debug(f'Received processed task {task_uuid}: service {service_name}, instance: {service_instance_id},'
-                         f' result: {str(partial_dialog_state)}')
+            logger.debug(f'Received processed task {task_uuid}: service {service_name}, '
+                         f'instance: {service_instance_id}, result: {str(partial_dialog_state)}')
 
-            await self._loop.create_task(self._callback(message=partial_dialog_state, message_type=message_type))
+            await self._loop.create_task(self._from_service_callback(partial_dialog_state))
             await message.ack()
 
     async def send_to_service(self, service: str, dialog_state: dict) -> None:
