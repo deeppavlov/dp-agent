@@ -36,8 +36,8 @@ transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: 'localhost'
-    port: 5672
+    host: '192.168.10.221'
+    port: 10000
     login: 'guest'
     password: 'guest'
     virtualhost: '/'
@@ -51,7 +51,7 @@ logging:
       propagate: true
       handlers: ['stderr']
     agent_orange:
-      level: 'INFO'
+      level: 'DEBUG'
       propagate: true
       handlers: ['stderr']
   formatters:

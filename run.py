@@ -41,12 +41,12 @@ def run_service() -> None:
     formatter_name = config['service']['connector_params']['formatter']
     formatter: callable = formatters_map[formatter_name]['formatter']
 
-    caller_name = config['service']['connector_params']['default']
+    caller_name = config['service']['connector_params']['caller']
     caller_name = formatters_map[formatter_name]['default_caller'] if caller_name == 'default' else caller_name
-    caller_cls = callers_map[caller_name]
+    caller_cls = callers_map[caller_name]['caller']
 
     _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
-    _connector: TTransportConnector = connector_cls(config=config, service_caller=caller)
+    _connector: TTransportConnector = connector_cls(config=config, service_caller=_service_caller)
 
     loop = asyncio.get_event_loop()
     loop.run_forever()
