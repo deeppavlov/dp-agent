@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Callable, TypeVar
+from typing import List, Callable, TypeVar, Union, Dict, Any, Optional
 
 
 class TransportGatewayBase:
@@ -14,8 +14,20 @@ class TransportGatewayBase:
         pass
 
 
-# TODO: should we make infer async?
+# TODO: Make service caller async
 class ServiceCallerBase:
+    _config: dict
+    _service_name: str
+    _formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Dict]]]
+
+    def __init__(self,
+                 config: dict,
+                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Dict]]]) -> None:
+
+        self._config = config
+        self._service_name = config['service']['name']
+        self._formatter = formatter
+
     @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
         pass
