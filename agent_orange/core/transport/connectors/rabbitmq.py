@@ -171,11 +171,12 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=this_instance_routing_key)
         logger.info(f'Queue: {in_queue_name} bound to routing key: {this_instance_routing_key}')
 
-        await self._agent_out_channel.set_qos(prefetch_count=self._batch_size)
+        await self._agent_out_channel.set_qos(prefetch_count=self._batch_size * 2)
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         await self._add_to_buffer_lock.acquire()
         self._incoming_messages_buffer.append(message)
+        logger.debug('Incoming message received')
 
         if len(self._incoming_messages_buffer) < self._batch_size:
             self._add_to_buffer_lock.release()
@@ -190,11 +191,11 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
                 if self._add_to_buffer_lock.locked():
                     self._add_to_buffer_lock.release()
 
-                for message in messages_batch:
-                    await message.ack()
-
                 tasks_batch = [json.loads(message.body, encoding='utf-8') for message in messages_batch]
                 await self._process_tasks(tasks_batch)
+
+                for message in messages_batch:
+                    await message.ack()
 
             elif self._add_to_buffer_lock.locked():
                 self._add_to_buffer_lock.release()
