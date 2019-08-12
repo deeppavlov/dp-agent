@@ -165,7 +165,7 @@ class Agent:
                 dialog_state = dialog.to_dict()
 
                 for service in next_services:
-                    await self._loop.create_task(self._to_service_callback(service, dialog_state))
+                    await self._loop.create_task(self._to_service_callback(service=service, dialog_state=dialog_state))
 
                 service_names_str = ' '.join(next_services)
                 logger.debug(f'State of dialog: [{dialog.id}] processed to services: [{service_names_str}]')
