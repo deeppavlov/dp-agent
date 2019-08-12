@@ -15,27 +15,41 @@ parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'
 
 
 def run_agent() -> None:
-    agent: Agent
-    gateway: TTransportGateway
+    _agent: Agent
+    _gateway: TTransportGateway
 
     async def on_serivce_message(partial_dialog_state: dict) -> None:
-        await agent.on_service_message(partial_dialog_state)
+        await _agent.on_service_message(partial_dialog_state)
 
     async def send_to_service(service: str, dialog_state: dict) -> None:
-        await gateway.send_to_service(service, dialog_state)
+        await _gateway.send_to_service(service, dialog_state)
 
-    agent = Agent(config=config, to_service_callback=send_to_service)
+    _agent = Agent(config=config, to_service_callback=send_to_service)
 
     transport_type = config['transport']['type']
     gateway_cls = transport_map[transport_type]['gateway']
-    gateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
+    _gateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
 
     loop = asyncio.get_event_loop()
     loop.run_forever()
 
 
 def run_service() -> None:
-    pass
+    transport_type = config['transport']['type']
+    connector_cls = transport_map[transport_type]['connector']
+
+    formatter_name = config['service']['connector_params']['formatter']
+    formatter: callable = formatters_map[formatter_name]['formatter']
+
+    caller_name = config['service']['connector_params']['default']
+    caller_name = formatters_map[formatter_name]['default_caller'] if caller_name == 'default' else caller_name
+    caller_cls = callers_map[caller_name]
+
+    _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
+    _connector: TTransportConnector = connector_cls(config=config, service_caller=caller)
+
+    loop = asyncio.get_event_loop()
+    loop.run_forever()
 
 
 def main():
@@ -46,6 +60,7 @@ def main():
         run_agent()
     if mode == 'service':
         run_service()
+
 
 if __name__ == '__main__':
     main()
