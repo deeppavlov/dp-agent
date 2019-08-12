@@ -1,11 +1,11 @@
 from abc import abstractmethod
-from typing import List, Callable, TypeVar, Union, Dict, Any
+from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable
 
 
 class TransportGatewayBase:
-    _callback: Callable[[dict, str], None]
+    _callback: Awaitable
 
-    def __init__(self, callback: Callable[[dict, str], None], *args, **kwargs):
+    def __init__(self, callback: Awaitable, *args, **kwargs):
         super(TransportGatewayBase, self).__init__(*args, **kwargs)
         self._callback = callback
 
