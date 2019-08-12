@@ -15,7 +15,7 @@ class SimpleHttpServiceCaller(ServiceCallerBase):
 
     def __init__(self,
                  config: dict,
-                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Dict]]]) -> None:
+                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Any]]]) -> None:
 
         super(SimpleHttpServiceCaller, self).__init__(config, formatter)
         self._session = requests.session()

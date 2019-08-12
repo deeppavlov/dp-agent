@@ -18,11 +18,11 @@ class TransportGatewayBase:
 class ServiceCallerBase:
     _config: dict
     _service_name: str
-    _formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Dict]]]
+    _formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Any]]]
 
     def __init__(self,
                  config: dict,
-                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Dict]]]) -> None:
+                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Any]]]) -> None:
 
         self._config = config
         self._service_name = config['service']['name']
