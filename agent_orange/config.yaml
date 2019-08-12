@@ -22,19 +22,21 @@ agent:
     stateful: false
 
 service:
-  name: 'service_name'
+  name: 'ner'
   instance_id: ''
   batch_size: 1
   infer_timeout_sec: 30.0
 
   connector_params:
-    url: 'http://localhost:5000/endpoint'
+    formatter: 'deeppavlov_ner'
+    caller: 'default'
+    url: 'http://192.168.10.221:5000/answer'
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: 'localhost'
+    host: '192.168.10.221'
     port: 5672
 
 logging:
@@ -46,7 +48,7 @@ logging:
       propagate: true
       handlers: ['stderr']
     agent_orange:
-      level: 'DEBUG'
+      level: 'INFO'
       propagate: true
       handlers: ['stderr']
   formatters:
