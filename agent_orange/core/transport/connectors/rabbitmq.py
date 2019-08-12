@@ -102,12 +102,12 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         task_uuid = result['task_uuid']
         service_name = result['service']
         service_instance_id = result['service_instance_id']
-        dialog_state: dict = result['dialog_state']
+        partial_dialog_state: dict = result['partial_dialog_state']
         logger.debug(f'Received processed task {task_uuid}: service {service_name}, instance: {service_instance_id}, '
-                     f'result: {str(dialog_state)}')
+                     f'result: {str(partial_dialog_state)}')
 
         await message.ack()
-        await self._loop.create_task(self._callback(dialog_state))
+        await self._loop.create_task(self._callback(partial_dialog_state))
 
     async def process(self, service: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
@@ -217,17 +217,16 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         except asyncio.TimeoutError:
             responses_batch = None
 
-        # TODO: make correct empty responses handling
         if responses_batch:
-            await asyncio.wait([self._send_results(task_agent_names_batch[i], task_uuids_batch[i], dialog_state)
-                                for i, dialog_state in enumerate(responses_batch)])
+            await asyncio.wait([self._send_results(task_agent_names_batch[i], task_uuids_batch[i], partial_state)
+                                for i, partial_state in enumerate(responses_batch)])
 
-    async def _send_results(self, agent_name: str, task_uuid: str, dialog_state: dict) -> None:
+    async def _send_results(self, agent_name: str, task_uuid: str, partial_dialog_state: dict) -> None:
         result = {
             'service': self._service_name,
             'service_instance_id': self._instance_id,
             'task_uuid': task_uuid,
-            'dialog_state': dialog_state
+            'partial_dialog_state': partial_dialog_state
         }
 
         message = Message(body=json.dumps(result).encode('utf-8'), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
