@@ -116,6 +116,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         task_uuid = str(uuid4())
 
         task = {
+            'type': 'service_task',
             'agent_name': self._agent_name,
             'task_uuid': task_uuid,
             'dialog_state': dialog_state
