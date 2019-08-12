@@ -77,7 +77,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict, callback: Callable[[dict], None]) -> None:
+    def __init__(self, config: dict, callback: Callable[[dict, str], None]) -> None:
         super(RabbitMQTransportGateway, self).__init__(config=config, callback=callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
@@ -99,15 +99,18 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         result: dict = json.loads(message.body, encoding='utf-8')
-        task_uuid = result['task_uuid']
-        service_name = result['service']
-        service_instance_id = result['service_instance_id']
-        partial_dialog_state: dict = result['partial_dialog_state']
-        logger.debug(f'Received processed task {task_uuid}: service {service_name}, instance: {service_instance_id}, '
-                     f'result: {str(partial_dialog_state)}')
+        message_type = result['type']
 
-        await message.ack()
-        await self._loop.create_task(self._callback(partial_dialog_state))
+        if message_type == 'service_response':
+            task_uuid = result['task_uuid']
+            service_name = result['service']
+            service_instance_id = result['service_instance_id']
+            partial_dialog_state: dict = result['partial_dialog_state']
+            logger.debug(f'Received processed task {task_uuid}: service {service_name}, instance: {service_instance_id},'
+                         f' result: {str(partial_dialog_state)}')
+
+            await self._loop.create_task(self._callback(message=partial_dialog_state, message_type=message_type))
+            await message.ack()
 
     async def process(self, service: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
@@ -223,6 +226,7 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
 
     async def _send_results(self, agent_name: str, task_uuid: str, partial_dialog_state: dict) -> None:
         result = {
+            'type': 'service_response',
             'service': self._service_name,
             'service_instance_id': self._instance_id,
             'task_uuid': task_uuid,

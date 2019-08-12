@@ -5,7 +5,8 @@ from typing import List
 from copy import deepcopy
 
 from agent_orange.config import config as service_config
-from agent_orange.core.transport.transport import Service
+from agent_orange.core.transport import transport_map
+from agent_orange.core.transport.base import TTransportConnector
 from agent_orange.core.transport.base import ServiceCallerBase
 
 
@@ -33,14 +34,17 @@ STATE_EXAMPLE = {
 }
 
 
+def mock_formatter():
+    pass
+
+
 class MockServiceCaller(ServiceCallerBase):
     _config: dict
     _service_name: str
     _instance_id: str
 
     def __init__(self, config) -> None:
-        self._config = config
-        self._service_name = self._config['service']['name']
+        super(MockServiceCaller, self).__init__(config, mock_formatter)
         self._instance_id = self._config['service']['instance_id']
 
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
@@ -75,6 +79,9 @@ if __name__ == '__main__':
     conf['service']['batch_size'] = batch_size
 
     try:
-        service = Service(config=conf, service_caller=MockServiceCaller(conf))
+        service_caller = MockServiceCaller(conf)
+        transport_type = conf['transport']['type']
+        connector_cls = transport_map[transport_type]['connector']
+        connector: TTransportConnector = connector_cls(config=conf, service_caller=service_caller)
     except KeyboardInterrupt:
         pass
