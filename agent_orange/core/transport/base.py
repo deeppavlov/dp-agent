@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Callable, TypeVar, Union, Dict, Any, Optional
+from typing import List, Callable, TypeVar, Union, Dict, Any
 
 
 class TransportGatewayBase:

@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import List, Dict, Callable, Union, Any, Optional
+from typing import List, Dict, Callable, Union, Any
 
 import requests
 
