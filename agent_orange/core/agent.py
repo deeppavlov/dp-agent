@@ -2,10 +2,9 @@ import asyncio
 from logging import getLogger
 from datetime import datetime
 from collections import defaultdict, namedtuple
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Awaitable
 
 from agent_orange.core.utils import run_sync_in_executor
-from agent_orange.core.transport.transport import TransportBus
 from core.state_manager import StateManager
 from core.state_schema import Dialog, HumanUtterance
 
@@ -22,8 +21,8 @@ IncomingUtterance = namedtuple('IncomingUtterance', ['utterance', 'reset_dialog'
 class Agent:
     _config: Dict
     _loop: asyncio.AbstractEventLoop
-    _transport_bus: TransportBus
     _state_manager: StateManager
+    _to_service_callback: Awaitable
     _pipeline: List[Union[str, List[str]]]
     _pipeline_routing_map: Dict[frozenset, List[str]]
     _responding_service: str
@@ -35,11 +34,11 @@ class Agent:
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
     _annotations_locks: Dict[ChannelUserKey, asyncio.Lock]
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict, to_service_callback: Awaitable) -> None:
         self._config = config
         self._loop = asyncio.get_event_loop()
-        self._transport_bus = TransportBus(config=config, callback=self.on_service_message_callback)
         self._state_manager = StateManager()
+        self._to_service_callback = to_service_callback
 
         self._pipeline = config['agent']['pipeline']
         self._pipeline_routing_map = self._make_pipeline_routing_map(self._pipeline)
@@ -157,7 +156,7 @@ class Agent:
                 dialog_state = dialog.to_dict()
 
                 for service in next_services:
-                    await self._loop.create_task(self._transport_bus.process(service, dialog_state))
+                    await self._loop.create_task(self._to_service_callback(service=service, dialog_state=dialog_state))
 
                 service_names_str = ' '.join(next_services)
                 logger.debug(f'State of dialog: [{dialog.id}] processed to services: [{service_names_str}]')
