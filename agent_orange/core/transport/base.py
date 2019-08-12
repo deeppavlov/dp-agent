@@ -10,7 +10,7 @@ class TransportGatewayBase:
         self._callback = callback
 
     @abstractmethod
-    async def process(self, service: str, dialog_state: dict) -> None:
+    async def send_to_service(self, service: str, dialog_state: dict) -> None:
         pass
 
 

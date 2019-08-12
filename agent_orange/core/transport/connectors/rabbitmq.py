@@ -112,7 +112,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
             await self._loop.create_task(self._callback(message=partial_dialog_state, message_type=message_type))
             await message.ack()
 
-    async def process(self, service: str, dialog_state: dict) -> None:
+    async def send_to_service(self, service: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
 
         task = {
