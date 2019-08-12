@@ -3,7 +3,7 @@ from typing import List, Callable, TypeVar, Union, Dict, Any
 
 
 class TransportGatewayBase:
-    _callback: Callable[[dict], None]
+    _callback: Callable[[dict, str], None]
 
     def __init__(self, callback: Callable[[dict, str], None], *args, **kwargs):
         super(TransportGatewayBase, self).__init__(*args, **kwargs)
