@@ -216,6 +216,7 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         except asyncio.TimeoutError:
             responses_batch = None
 
+        # TODO: make correct empty responses handling
         if responses_batch:
             await asyncio.wait([self._send_results(task_agent_names_batch[i], task_uuids_batch[i], dialog_state)
                                 for i, dialog_state in enumerate(responses_batch)])

@@ -14,7 +14,7 @@ class TransportGatewayBase:
         pass
 
 
-# TODO: think, if we need to isolate ServiceCaller to separate process
+# TODO: should we make infer async?
 class ServiceCallerBase:
     @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
