@@ -28,7 +28,7 @@ class Agent:
     _pipeline_routing_map: Dict[frozenset, List[str]]
     _responding_service: str
     _response_timeout: float
-    _dialogs: Dict[ChannelUserKey, Dialog]
+    _dialogs: Dict[ChannelUserKey, Dialog]  # kind of memory cache
     _dialog_id_key_map: Dict[str, ChannelUserKey]
     _utterances_queue: Dict[ChannelUserKey, List[IncomingUtterance]]
     _utterances_locks: Dict[ChannelUserKey, asyncio.Lock]
@@ -89,7 +89,9 @@ class Agent:
 
             dialog = self._dialogs[channel_user_key]
             last_dialog_utt: HumanUtterance = dialog.utterances[-1]
-            response = last_dialog_utt.to_dict().get(self._responding_service, None) or TIMEOUT_MESSAGE
+            last_dialog_utt_dict = last_dialog_utt.to_dict()
+            response = last_dialog_utt_dict['annotations'].get(self._responding_service, None)
+            response = response or TIMEOUT_MESSAGE
 
             await run_sync_in_executor(self._state_manager.add_bot_utterances,
                                        dialogs=[dialog],
@@ -160,13 +162,17 @@ class Agent:
                 service_names_str = ' '.join(next_services)
                 logger.debug(f'State of dialog: [{dialog.id}] processed to services: [{service_names_str}]')
 
+    # This complicate state update via merging was made for demonstration of possible future difficulties of
+    # state update. Of course, if only one utterance from dialog is processed per time, we can be always sure,
+    # that we are merging received message with last utterance in dialog. But what if we are accumulating utterances
+    # (for channels like Telegram) and processing several human utterances at one time?
     async def _update_annotations(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
         dialog = self._dialogs[channel_user_key]
         annotated_utterance = partial_dialog_state['utterances'][0]
         utterance_id: str = annotated_utterance['id']
         annotations: dict = annotated_utterance['annotations']
 
-        # this is clumsy, but 'reversed' makes it rather effective for prototype
+        # This is clumsy, but 'reversed' makes it rather effective for prototype
         for utterance in reversed(dialog.utterances):
             if str(utterance.id) == utterance_id:
                 utterance.annotations.update(annotations)
