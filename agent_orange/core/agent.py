@@ -186,10 +186,10 @@ class Agent:
 
         for utterance in reversed(dialog.utterances):
             if str(utterance.id) == utterance_id:
-                # This is because some Monogo(engine) magic while saving DictField contents to DB
+                # This is because some Mongo(engine) magic while saving DictField contents to DB
                 upd_dct = {}
 
-                for k, v in utterance.annotations:
+                for k, v in utterance.annotations.items():
                     upd_dct[k] = v
 
                 upd_dct.update(upd_annotations)
