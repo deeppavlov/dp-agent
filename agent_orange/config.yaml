@@ -2,7 +2,7 @@ agent_namespace: 'deeppavlov_agent'
 
 agent:
   name: 'dp_agent'
-  response_timeout_sec: 30.0
+  response_timeout_sec: 3
 
   database:
     host: '10.11.1.251'
@@ -30,7 +30,7 @@ service:
   connector_params:
     formatter: 'deeppavlov_ner'
     caller: 'default'
-    url: 'http://192.168.10.221:5000/answer'
+    url: 'http://192.168.10.221:5000/ner'
 
 transport:
   type: 'rabbitmq'

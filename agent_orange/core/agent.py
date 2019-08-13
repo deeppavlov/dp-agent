@@ -93,13 +93,17 @@ class Agent:
             response_event.clear()
 
             await self._loop.create_task(self._process_next_utterance(channel_user_key))
-            await asyncio.wait_for(response_event.wait(), self._response_timeout)
+
+            try:
+                await asyncio.wait_for(response_event.wait(), self._response_timeout)
+            except asyncio.TimeoutError:
+                pass
 
             dialog = self._dialogs[channel_user_key]
             last_dialog_utt: HumanUtterance = dialog.utterances[-1]
             last_dialog_utt_dict = last_dialog_utt.to_dict()
             response = last_dialog_utt_dict['annotations'].get(self._responding_service, None)
-            response = response or TIMEOUT_MESSAGE
+            response = str(response) if response else TIMEOUT_MESSAGE
 
             await run_sync_in_executor(self._state_manager.add_bot_utterances,
                                        dialogs=[dialog],
@@ -139,12 +143,12 @@ class Agent:
             self._dialog_id_key_map[str(dialog.id)] = channel_user_key
             logger.debug(f'Created dialog id: [{dialog.id}] key: [{str(channel_user_key)}]')
 
-        utterances = await run_sync_in_executor(self._state_manager.add_human_utterances,
-                                                dialogs=[dialog],
-                                                texts=[utterance],
-                                                date_times=[datetime.utcnow()])
+        await run_sync_in_executor(self._state_manager.add_human_utterances,
+                                   dialogs=[dialog],
+                                   texts=[utterance],
+                                   date_times=[datetime.utcnow()])
 
-        human_utt: HumanUtterance = utterances[0]
+        human_utt: HumanUtterance = dialog.utterances[-1]
         logger.debug(f'Added human utterance: [{utterance}] utt_id: {human_utt.id} to dialog: [{dialog.id}]')
 
         await self._loop.create_task(self._route_to_next_service(channel_user_key))
