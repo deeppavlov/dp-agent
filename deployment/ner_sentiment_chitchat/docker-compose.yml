@@ -1,0 +1,69 @@
+services:
+  chitchat:
+    build:
+      args:
+        gpu: 'false'
+        skill_endpoint: skill
+        skillconfig: legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+        skillhost: 0.0.0.0
+        skillport: 5000
+      context: ../../
+      dockerfile: dockerfile_skill_basic
+    container_name: chitchat
+    environment:
+    - CUDA_VISIBLE_DEVICES=""
+    ports:
+    - 11001:5000
+    tty: true
+    volumes:
+    #- .:/dp-agent
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+  chitchat_connector:
+    build:
+      args:
+        connectorconfig: deployment/service_configs/chitchat/config.yaml
+      context: ../../
+      dockerfile: dockerfile_skill_basic
+    container_name: chitchat_connector
+    depends_on:
+    - rabbit
+    - chitchat
+    tty: true
+  ner:
+    image: IMAGE!!!
+    container_name: ner
+    ports:
+    - 11002:5000
+    tty: true
+    volumes:
+    #- .:/dp-agent
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+  ner_connector:
+    build:
+      args:
+        connectorconfig: deployment/service_configs/ner/config.yaml
+      context: ../../
+      dockerfile: dockerfile_skill_basic
+    container_name: ner_connector
+    depends_on:
+    - rabbit
+    - ner
+    tty: true
+  mongo:
+    command: mongod
+    image: mongo:3.2.0
+    ports:
+    - 11010:27017
+    #volumes:
+    #- /var/run/docker.sock:/var/run/docker.sock
+  rabbit:
+    #command: mongod
+    image:rabbitmq:3-management
+    ports:
+    - 11011:5672
+    - 11012:15672
+    #volumes:
+    #- /var/run/docker.sock:/var/run/docker.sock
+version: '2.3'

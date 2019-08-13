@@ -20,4 +20,4 @@ ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
 RUN if [ $GPU = "true" ]; then pip install -r /base/DeepPavlov/deeppavlov/requirements/tf-gpu.txt; fi
 RUN python3.6 -m deeppavlov install $CONFIG
 
-ENTRYPOINT python3.6 -m core.run_dp_servers $CONFIG -p $PORT -host $HOST -ep $ENDPOINT
+ENTRYPOINT python3.6 -m legacy_components.core.run_dp_servers $CONFIG -p $PORT -host $HOST -ep $ENDPOINT

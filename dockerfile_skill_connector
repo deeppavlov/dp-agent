@@ -4,6 +4,7 @@ RUN apt-get update -y --fix-missing && \
     apt-get install -y python3 python3-pip python3-dev build-essential git openssl
 
 ENV PYTHONIOENCODING=utf-8
+ENV CONFIG=connectorconfig
 
 COPY requirements.txt /
 RUN pip3 install -r requirements.txt
@@ -12,9 +13,11 @@ RUN mkdir dp-agent
 WORKDIR /dp-agent
 COPY . /dp-agent/.
 
+RUN cp ${CONFIG} ./config.yaml
+
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
-ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
+# ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
 ENV DPA_LAUNCHING_ENV "docker"
 
-EXPOSE 8888
+ENTRYPOINT python3.6 /dp-agent/run.py service
