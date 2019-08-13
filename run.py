@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 
+from core.connection import state_storage
 from agent_orange.config import config
 from agent_orange.core.agent import Agent
 from agent_orange.core.transport import transport_map
@@ -12,6 +13,11 @@ from agent_orange.connectors.formatters import formatters_map
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
 parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'console'})
+
+
+async def test_infer_agent(agent: Agent) -> None:
+    response = await agent.on_channel_message('Hello!', 'cmd_client', 'user', True)
+    print(response)
 
 
 def run_agent() -> None:
@@ -31,6 +37,7 @@ def run_agent() -> None:
     _gateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
 
     loop = asyncio.get_event_loop()
+    loop.create_task(test_infer_agent(_agent))
     loop.run_forever()
 
 
