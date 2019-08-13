@@ -1,5 +1,6 @@
 import asyncio
 import argparse
+from typing import Tuple
 
 from agent_orange.config import config
 from agent_orange.core.agent import Agent
@@ -11,33 +12,31 @@ from agent_orange.connectors.formatters import formatters_map
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
-parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'console'})
+parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'cmd'})
 
 
-async def test_infer_agent(agent: Agent) -> None:
-    await agent.on_channel_message('Hello!', 'cmd_client', 'user', True)
-
-
-def run_agent() -> None:
+def run_agent() -> Tuple[Agent, TTransportGateway]:
     async def on_serivce_message(partial_dialog_state: dict) -> None:
-        await _agent.on_service_message(partial_dialog_state)
+        await agent.on_service_message(partial_dialog_state)
 
     async def send_to_service(service: str, dialog_state: dict) -> None:
-        await _gateway.send_to_service(service, dialog_state)
+        await gateway.send_to_service(service, dialog_state)
 
     # TODO: integrate with channel connectors via Transport Gateway
-    async def send_to_channel(channel_id: str, user_id: str, message: dict) -> None:
-        print(f'<< Outgoing message [{str(message)}] to channel [{channel_id}] from user [{user_id}]')
+    async def send_to_channel(channel_id: str, user_id: str, message: str) -> None:
+        if channel_id == 'cmd_client':
+            print(f'<< {message}')
+            utterance = input('>> ')
+            loop = asyncio.get_event_loop()
+            loop.create_task(agent.on_channel_message(utterance, 'cmd_client', 'cmd_client', False))
 
-    _agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
+    agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
 
     transport_type = config['transport']['type']
     gateway_cls = transport_map[transport_type]['gateway']
-    _gateway: TTransportGateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
+    gateway: TTransportGateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
 
-    loop = asyncio.get_event_loop()
-    loop.create_task(test_infer_agent(_agent))
-    loop.run_forever()
+    return agent, gateway
 
 
 def run_service() -> None:
@@ -54,18 +53,33 @@ def run_service() -> None:
     _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
     _connector: TTransportConnector = connector_cls(config=config, service_caller=_service_caller)
 
+
+def run_cmd_client() -> None:
+    _agent, _gateway = run_agent()
+    utterance = input('>> ')
     loop = asyncio.get_event_loop()
-    loop.run_forever()
+    loop.run_until_complete(_agent.on_channel_message(utterance=utterance,
+                                                      channel_id='cmd_client',
+                                                      user_id='cmd_client',
+                                                      reset_dialog=True))
 
 
 def main():
     args = parser.parse_args()
     mode = args.mode
+    channel = args.channel
+    loop = asyncio.get_event_loop()
 
     if mode == 'agent':
-        run_agent()
-    if mode == 'service':
+        if channel == 'cmd':
+            run_cmd_client()
+        else:
+            run_agent()
+
+    elif mode == 'service':
         run_service()
+
+    loop.run_forever()
 
 
 if __name__ == '__main__':

@@ -85,7 +85,7 @@ class Agent:
                 # TODO updated annotation check required to avoid endless loop
                 await self._route_to_next_service(channel_user_key)
 
-    async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> str:
+    async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
         channel_user_key = ChannelUserKey(channel_id=channel_id, user_id=user_id)
         incoming_utterance = IncomingUtterance(utterance=utterance, reset_dialog=reset_dialog)
         self._utterances_queue[channel_user_key].append(incoming_utterance)
@@ -118,9 +118,8 @@ class Agent:
                                        confidences=[1])
 
             logger.debug(f'Added bot response: [{response}] to dialog: [{dialog.id}]')
-            response_message = {'text': response}
 
-            await self._to_channel_callback(channel_id=channel_id, user_id=user_id, message=response_message)
+            await self._to_channel_callback(channel_id=channel_id, user_id=user_id, message=response)
 
     async def _process_next_utterance(self, channel_user_key: ChannelUserKey) -> None:
         incoming_utterance = self._utterances_queue[channel_user_key].pop(0)
