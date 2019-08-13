@@ -184,7 +184,14 @@ class Agent:
 
         for utterance in reversed(dialog.utterances):
             if str(utterance.id) == utterance_id:
-                utterance.annotations.update(upd_annotations)
+                # This is because some Monogo(engine) magic
+                upd_dct = {}
+
+                for k, v in utterance.annotations:
+                    upd_dct[k] = v
+
+                upd_dct.update(upd_annotations)
+                utterance.annotations = upd_dct
                 utterance.save()
                 logger.debug(f'Utterance: [{utterance_id}] updated with annotations: [{str(upd_annotations)}]')
                 break
