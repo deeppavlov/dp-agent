@@ -23,6 +23,7 @@ class Agent:
     _loop: asyncio.AbstractEventLoop
     _state_manager: StateManager
     _to_service_callback: Awaitable
+    _to_channel_callback: Awaitable
     _pipeline: List[Union[str, List[str]]]
     _pipeline_routing_map: Dict[frozenset, List[str]]
     _responding_service: str
@@ -34,11 +35,12 @@ class Agent:
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
     _annotations_locks: Dict[ChannelUserKey, asyncio.Lock]
 
-    def __init__(self, config: dict, to_service_callback: Awaitable) -> None:
+    def __init__(self, config: dict, to_service_callback: Awaitable, to_channel_callback: Awaitable) -> None:
         self._config = config
         self._loop = asyncio.get_event_loop()
         self._state_manager = StateManager()
         self._to_service_callback = to_service_callback
+        self._to_channel_callback = to_channel_callback
 
         self._pipeline = config['agent']['pipeline']
         self._pipeline_routing_map = self._make_pipeline_routing_map(self._pipeline)
@@ -116,8 +118,9 @@ class Agent:
                                        confidences=[1])
 
             logger.debug(f'Added bot response: [{response}] to dialog: [{dialog.id}]')
+            response_message = {'text': response}
 
-            return response
+            await self._to_channel_callback(channel_id=channel_id, user_id=user_id, message=response_message)
 
     async def _process_next_utterance(self, channel_user_key: ChannelUserKey) -> None:
         incoming_utterance = self._utterances_queue[channel_user_key].pop(0)
