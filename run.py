@@ -2,12 +2,12 @@ import asyncio
 import argparse
 from typing import Tuple
 
-from agent_orange.config import config
-from agent_orange.core.agent import Agent
-from agent_orange.core.transport import transport_map
-from agent_orange.core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
-from agent_orange.connectors.callers import callers_map
-from agent_orange.connectors.formatters import formatters_map
+from core.config import config
+from core.agent import Agent
+from core.transport import transport_map
+from core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
+from connectors.callers import callers_map
+from connectors.formatters import formatters_map
 
 
 parser = argparse.ArgumentParser()

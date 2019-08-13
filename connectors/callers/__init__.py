@@ -1,4 +1,4 @@
-from agent_orange.connectors.callers.http import SimpleHttpServiceCaller
+from connectors.callers.http import SimpleHttpServiceCaller
 
 
 callers_map = {

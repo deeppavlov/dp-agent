@@ -1,4 +1,4 @@
-from agent_orange.core.transport.connectors.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
+from core.transport.connectors.rabbitmq import RabbitMQTransportGateway, RabbitMQTransportConnector
 
 
 transport_map = {

@@ -3,13 +3,13 @@ import json
 import functools
 from abc import abstractmethod
 from uuid import uuid4
-from typing import Dict, List, Optional, Callable, Awaitable
+from typing import Dict, List, Optional, Awaitable
 from logging import getLogger
 
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from agent_orange.core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
+from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
 
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'

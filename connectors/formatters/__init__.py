@@ -1,5 +1,5 @@
-from agent_orange.connectors.formatters.deeppavlov import format_dp_ner
-from agent_orange.connectors.formatters.agent import format_agent_ranking_chitchat_prep
+from connectors.formatters.deeppavlov import format_dp_ner
+from connectors.formatters.agent import format_agent_ranking_chitchat_prep
 
 formatters_map = {
     'deeppavlov_ner': {

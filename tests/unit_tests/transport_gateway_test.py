@@ -3,9 +3,9 @@ import asyncio
 from datetime import datetime
 from copy import deepcopy
 
-from agent_orange.config import config as agent_config
-from agent_orange.core.transport import transport_map
-from agent_orange.core.transport.base import TTransportGateway
+from core.config import config as agent_config
+from core.transport import transport_map
+from core.transport.base import TTransportGateway
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--name', default='fizz_buzz', help='agent name', type=str)

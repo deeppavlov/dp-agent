@@ -8,7 +8,7 @@ agent:
     host: '10.11.1.251'
     port: 10001
 
-  pipeline: [['ner', 'sentiment'],
+  pipeline: [['ner'],
              ['chitchat']]
 
   services:
@@ -22,15 +22,15 @@ agent:
     stateful: false
 
 service:
-  name: 'ner'
+  name: 'chitchat'
   instance_id: ''
   batch_size: 1
   infer_timeout_sec: 30.0
 
   connector_params:
-    formatter: 'deeppavlov_ner'
+    formatter: 'agent_ranking_chitchat_prep'
     caller: 'default'
-    url: 'http://192.168.10.221:5000/ner'
+    url: 'http://192.168.10.221:5001/None'
 
 transport:
   type: 'rabbitmq'

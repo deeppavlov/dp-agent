@@ -1,1 +1,4 @@
-VERSION = "0.11.1"
+from core.log import init_logger
+
+
+init_logger()

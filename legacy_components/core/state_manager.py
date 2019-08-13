@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Sequence, Hashable, Any, Optional, Dict
 
-from core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
-from core.connection import state_storage
-from core.bot import BOT
-from core import VERSION
+from legacy_components.core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
+from legacy_components.core.connection import state_storage
+from legacy_components.core.bot import BOT
+from legacy_components.core import VERSION
 
 
 def get_state(dialogs: Sequence[Dialog]):

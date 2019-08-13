@@ -3,7 +3,7 @@ from typing import List, Dict, Callable, Union, Any
 
 import requests
 
-from agent_orange.core.transport.base import ServiceCallerBase
+from core.transport.base import ServiceCallerBase
 
 
 logger = getLogger(__name__)

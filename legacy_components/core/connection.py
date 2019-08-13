@@ -1,5 +1,5 @@
 from mongoengine import connect
-from agent_orange.config import config
+from core.config import config
 
 
 db_host = config['agent']['database']['host']

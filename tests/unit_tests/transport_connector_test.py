@@ -5,10 +5,10 @@ from uuid import uuid4
 from typing import List
 from copy import deepcopy
 
-from agent_orange.config import config as service_config
-from agent_orange.core.transport import transport_map
-from agent_orange.core.transport.base import TTransportConnector
-from agent_orange.core.transport.base import ServiceCallerBase
+from core.config import config as service_config
+from core.transport import transport_map
+from core.transport.base import TTransportConnector
+from core.transport.base import ServiceCallerBase
 
 
 parser = argparse.ArgumentParser()
