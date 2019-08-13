@@ -27,7 +27,7 @@ class Agent:
     _pipeline_routing_map: Dict[frozenset, List[str]]
     _responding_service: str
     _response_timeout: float
-    _dialogs: Dict[ChannelUserKey, Dialog]  # kind of memory cache
+    _dialogs: Dict[ChannelUserKey, Dialog]
     _dialog_id_key_map: Dict[str, ChannelUserKey]
     _utterances_queue: Dict[ChannelUserKey, List[IncomingUtterance]]
     _utterances_locks: Dict[ChannelUserKey, asyncio.Lock]
@@ -75,12 +75,13 @@ class Agent:
     async def on_service_message(self, partial_dialog_state: dict) -> None:
         dialog_id = partial_dialog_state['id']
         logger.debug(f'Received from service partial state for dialog: [{dialog_id}]')
-        channel_user_key = self._dialog_id_key_map[dialog_id]
+        channel_user_key = self._dialog_id_key_map.get(dialog_id, None)
 
-        async with self._annotations_locks[channel_user_key]:
-            await self._update_annotations(channel_user_key, partial_dialog_state)
-            # TODO updated annotation check required to avoid endless loop
-            await self._route_to_next_service(channel_user_key)
+        if channel_user_key:
+            async with self._annotations_locks[channel_user_key]:
+                await self._update_annotations(channel_user_key, partial_dialog_state)
+                # TODO updated annotation check required to avoid endless loop
+                await self._route_to_next_service(channel_user_key)
 
     async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> str:
         channel_user_key = ChannelUserKey(channel_id=channel_id, user_id=user_id)
