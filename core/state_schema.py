@@ -51,7 +51,7 @@ class Human(User):
 class Utterance(DynamicDocument):
     text = StringField(required=True)
     # annotations = DictField(default={'ner': {}, 'coref': {}, 'sentiment': {}, 'obscenity': {}})
-    annotations = DictField(required=True, default={})
+    annotations = DictField(default={})
     user = ReferenceField(User, required=True)
     date_time = DateTimeField(required=True)
 
