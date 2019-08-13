@@ -79,6 +79,7 @@ class Agent:
 
         async with self._annotations_locks[channel_user_key]:
             await self._update_annotations(channel_user_key, partial_dialog_state)
+            # TODO updated annotation check required to avoid endless loop
             await self._route_to_next_service(channel_user_key)
 
     async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> str:
@@ -174,19 +175,15 @@ class Agent:
                 service_names_str = ' '.join(next_services)
                 logger.debug(f'State of dialog: [{dialog.id}] processed to services: [{service_names_str}]')
 
-    # This complicate state update via merging was made for demonstration of possible future difficulties of
-    # state update. Of course, if only one utterance from dialog is processed per time, we can be always sure,
-    # that we are merging received message with last utterance in dialog. But what if we are accumulating utterances
-    # (for channels like Telegram) and processing several human utterances at one time?
     async def _update_annotations(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
         dialog = self._dialogs[channel_user_key]
         annotated_utterance = partial_dialog_state['utterances'][0]
         utterance_id: str = annotated_utterance['id']
-        annotations: dict = annotated_utterance['annotations']
+        upd_annotations: dict = annotated_utterance['annotations']
 
-        # This is clumsy, but 'reversed' makes it rather effective for prototype
         for utterance in reversed(dialog.utterances):
             if str(utterance.id) == utterance_id:
-                utterance.annotations.update(annotations)
-                logger.debug(f'Utterance: [{utterance_id}] updated with annotations: [{str(annotations)}]')
+                utterance.annotations.update(upd_annotations)
+                utterance.save()
+                logger.debug(f'Utterance: [{utterance_id}] updated with annotations: [{str(upd_annotations)}]')
                 break
