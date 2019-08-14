@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:18.04
 
 RUN apt-get update -y --fix-missing && \
     apt-get install -y python3 python3-pip python3-dev build-essential git openssl
@@ -6,19 +6,22 @@ RUN apt-get update -y --fix-missing && \
 ENV PYTHONIOENCODING=utf-8
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
-ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
-
-COPY requirements.txt /
-RUN pip3 install -r requirements.txt
 
 RUN mkdir dp-agent
 WORKDIR /dp-agent
 COPY . /dp-agent/.
-VOLUME /dp-agent/core/config.yaml
 
-ENTRYPOINT python3.6 core/run.py agent
-    #CMD_STR = "python3.6 /dp-agent/core/run.py " && \
-    #CMD_STR=$CMD_STR" "$MODE" " && \
-    #if [ $MODE = "service" ]; then CMD_STR=$CMD_STR" -n "$SERVICE_NAME" "; fi && \
-    #if [ ! -z $INSTANCE_ID ]; then CMD_STR=$CMD_STR; fi && \
-    #python3.6 /dp-agent/run.py service -n $SERVICE_NAME --config $CONFIG_PATH
+RUN pip3 install -r requirements.txt && \
+    python3 setup.py develop
+
+VOLUME /dp-agent/config.yaml
+
+CMD echo "mode: "$MODE && \
+    echo "using config: "$CONFIG && \
+    echo "service: "$SERVICE_NAME && \
+    echo "instance: "$INSTANCE_ID && \
+    if [ -z $CONFIG ] || [ $CONFIG = "" ]; then CONFIG="/dp-agent/config.yaml"; fi && \
+    if [ ! -f "/dp-agent/config.yaml" ]; then CONFIG="/dp-agent/core/config.yaml"; fi && \
+    ARG_SERVICE="" ; if [ ! -z $SERVICE_NAME ]; then ARG_SERVICE="-n "$SERVICE_NAME; fi && \
+    ARG_INSTANCE="" ; if [ ! -z $INSTANCE_ID ]; then ARG_INSTANCE="-i "$INSTANCE_ID; fi && \
+    python3 /dp-agent/core/run.py $MODE --config $CONFIG $ARG_SERVICE $ARG_INSTANCE

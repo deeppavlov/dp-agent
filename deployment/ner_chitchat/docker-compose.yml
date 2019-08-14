@@ -1,4 +1,5 @@
 services:
+  # services
   chitchat:
     build:
       args:
@@ -8,62 +9,69 @@ services:
         skillhost: 0.0.0.0
         skillport: 5000
       context: ../../
-      dockerfile: dockerfile_skill_basic
+      dockerfile: Dockerfile_skill_legacy
     container_name: chitchat
     environment:
     - CUDA_VISIBLE_DEVICES=""
     ports:
     - 11001:5000
-    tty: true
     volumes:
-    #- .:/dp-agent
     - ~/dp_logs:/logs
     - ~/.deeppavlov:/root/.deeppavlov
-  chitchat_connector:
-    build:
-      args:
-        connectorconfig: deployment/ner_sentiment_chitchat/service_configs/chitchat/config.yaml
-      context: ../../
-      dockerfile: dockerfile_skill_connector
-    container_name: chitchat_connector
-    depends_on:
-    - rabbit
-    - chitchat
     tty: true
+
   ner:
     image: deeppavlov/ner_ru
     container_name: ner
     ports:
     - 11002:5000
-    tty: true
     volumes:
-    #- .:/dp-agent
     - ~/dp_logs:/logs
     - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  #connectors
+  chitchat_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: chitchat_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=chitchat
+    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+    - chitchat
+
   ner_connector:
     build:
-      args:
-        connectorconfig: deployment/ner_sentiment_chitchat/service_configs/ner/config.yaml
       context: ../../
-      dockerfile: dockerfile_skill_connector
+      dockerfile: Dockerfile
     container_name: ner_connector
-    depends_on:
-    - rabbit
-    - ner
+    environment:
+    - MODE=service
+    - SERVICE_NAME=ner
+    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
     tty: true
-  mongo:
-    command: mongod
+    depends_on:
+    - rabbitmq
+    - ner
+
+  # infrastructure
+  mongodb:
     image: mongo:3.2.0
+    command: mongod
+    container_name: mongodb
     ports:
     - 11010:27017
     #volumes:
     #- /var/run/docker.sock:/var/run/docker.sock
-  rabbit:
-    command: mongod
+  rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
     - 11011:5672
     - 11012:15672
-    #volumes:
-    #- /var/run/docker.sock:/var/run/docker.sock
 version: '2.3'

@@ -1,0 +1,40 @@
+agent_namespace: 'deeppavlov_agent'
+
+agent:
+  name: 'ner_chitchat_agent'
+  response_timeout_sec: 10
+  pipeline: [['ner'],
+             ['chitchat']]
+
+services:
+  ner:
+    batch_size: 5
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'deeppavlov_ner_stand'
+      caller: 'default'
+      url: 'http://ner:11002/answer'
+
+  chitchat:
+    batch_size: 5
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_ranking_chitchat_prep'
+      caller: 'default'
+      url: 'http://chitchat:11001/skill'
+
+database:
+  host: '127.0.0.1'
+  port: 11010
+
+transport:
+  type: 'rabbitmq'
+
+  rabbitmq:
+    host: 'rabbitmq'
+    port: 11011
+    login: 'guest'
+    password: 'guest'
+    virtualhost: '/'
