@@ -13,6 +13,8 @@ from connectors.formatters import formatters_map
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
 parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'cmd'})
+parser.add_argument('-n', '--skill-name', help='skill name', type=str)
+parser.add_argument('-i', '--instance-id', help='instance id', type=str, default='')
 
 
 def run_agent() -> Tuple[Agent, TTransportGateway]:
@@ -24,6 +26,7 @@ def run_agent() -> Tuple[Agent, TTransportGateway]:
 
     # TODO: integrate with channel connectors via Transport Gateway
     async def send_to_channel(channel_id: str, user_id: str, message: str) -> None:
+        # TODO: should we make cmd_client mode less ad-hoc?
         if channel_id == 'cmd_client':
             print(f'<< {message}')
             utterance = input('>> ')
@@ -39,7 +42,7 @@ def run_agent() -> Tuple[Agent, TTransportGateway]:
     return agent, gateway
 
 
-def run_service() -> None:
+def run_service(upd_config: dict) -> None:
     transport_type = config['transport']['type']
     connector_cls = transport_map[transport_type]['connector']
 
@@ -50,8 +53,8 @@ def run_service() -> None:
     caller_name = formatters_map[formatter_name]['default_caller'] if caller_name == 'default' else caller_name
     caller_cls = callers_map[caller_name]['caller']
 
-    _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
-    _connector: TTransportConnector = connector_cls(config=config, service_caller=_service_caller)
+    _service_caller: TServiceCaller = caller_cls(config=upd_config, formatter=formatter)
+    _connector: TTransportConnector = connector_cls(config=upd_config, service_caller=_service_caller)
 
 
 def run_cmd_client() -> None:
@@ -67,17 +70,27 @@ def run_cmd_client() -> None:
 def main():
     args = parser.parse_args()
     mode = args.mode
-    channel = args.channel
     loop = asyncio.get_event_loop()
 
     if mode == 'agent':
+        channel = args.channel
+
         if channel == 'cmd':
             run_cmd_client()
         else:
             run_agent()
 
     elif mode == 'service':
-        run_service()
+        skill_name = args.skill_name
+        instance_id = args.instance_id
+
+        if skill_name in config['skills'].keys():
+            skill_config = config['skills'][skill_name]
+            skill_config['instance_id'] = instance_id
+            config['skill'] = skill_config
+            run_service(config)
+        else:
+            raise ValueError(f'Settings for skill [{skill_name}] were not found in config file')
 
     loop.run_forever()
 

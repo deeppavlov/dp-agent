@@ -5,36 +5,37 @@ agent:
   response_timeout_sec: 10
 
   database:
-    host: '127.0.0.1'
-    port: 11010
+    host: '10.11.251'
+    port: 10001
 
   pipeline: [['ner'],
              ['chitchat']]
 
-  services:
-  - name: 'ner'
-    stateful: false
+services:
+- name: 'ner'
+  batch_size: 5
+  infer_timeout_sec: 30.0
 
-  - name: 'chitchat'
-    stateful: false
+  connector_params:
+    formatter: 'format_dp_ner_stand'
+    caller: 'default'
+    url: 'http://127.0.0.1:5000/answer'
 
-service:
-  name: 'chitchat'
-  instance_id: ''
-  batch_size: 1
+- name: 'chitchat'
+  batch_size: 5
   infer_timeout_sec: 30.0
 
   connector_params:
     formatter: 'agent_ranking_chitchat_prep'
     caller: 'default'
-    url: 'http://127.0.0.1:5000/skill'
+    url: 'http://127.0.0.1:5001/skill'
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
     host: '127.0.0.1'
-    port: 11011
+    port: 10000
     login: 'guest'
     password: 'guest'
     virtualhost: '/'
@@ -44,10 +45,6 @@ logging:
   disable_existing_loggers: false
   loggers:
     core:
-      level: 'INFO'
-      propagate: true
-      handlers: ['stderr']
-    agent_orange:
       level: 'INFO'
       propagate: true
       handlers: ['stderr']
