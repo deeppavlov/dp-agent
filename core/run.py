@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Tuple
 
 from core.config import get_config
-from core.log import init_logger
 from core.agent import Agent
 from core.transport import transport_map
 from core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
@@ -77,8 +76,6 @@ def main():
     config_path = args.config
     config_path = Path(config_path).resolve() if config_path else None
     config = get_config(config_path)
-
-
 
     loop = asyncio.get_event_loop()
 
