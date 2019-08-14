@@ -22,16 +22,16 @@ services:
   chitchat_connector:
     build:
       args:
-        connectorconfig: deployment/service_configs/chitchat/config.yaml
+        connectorconfig: deployment/ner_sentiment_chitchat/service_configs/chitchat/config.yaml
       context: ../../
-      dockerfile: dockerfile_skill_basic
+      dockerfile: dockerfile_skill_connector
     container_name: chitchat_connector
     depends_on:
     - rabbit
     - chitchat
     tty: true
   ner:
-    image: IMAGE!!!
+    image: deeppavlov/ner_ru
     container_name: ner
     ports:
     - 11002:5000
@@ -43,9 +43,9 @@ services:
   ner_connector:
     build:
       args:
-        connectorconfig: deployment/service_configs/ner/config.yaml
+        connectorconfig: deployment/ner_sentiment_chitchat/service_configs/ner/config.yaml
       context: ../../
-      dockerfile: dockerfile_skill_basic
+      dockerfile: dockerfile_skill_connector
     container_name: ner_connector
     depends_on:
     - rabbit
@@ -59,8 +59,8 @@ services:
     #volumes:
     #- /var/run/docker.sock:/var/run/docker.sock
   rabbit:
-    #command: mongod
-    image:rabbitmq:3-management
+    command: mongod
+    image: rabbitmq:3-management
     ports:
     - 11011:5672
     - 11012:15672

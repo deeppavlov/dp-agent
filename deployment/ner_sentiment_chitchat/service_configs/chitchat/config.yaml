@@ -2,20 +2,17 @@ agent_namespace: 'deeppavlov_agent'
 
 agent:
   name: 'dp_agent'
-  response_timeout_sec: 3
+  response_timeout_sec: 10
 
   database:
-    host: '10.11.1.251'
-    port: 10001
+    host: 'mongo'
+    port: 11010
 
   pipeline: [['ner'],
              ['chitchat']]
 
   services:
   - name: 'ner'
-    stateful: false
-
-  - name: 'sentiment'
     stateful: false
 
   - name: 'chitchat'
@@ -30,14 +27,14 @@ service:
   connector_params:
     formatter: 'agent_ranking_chitchat_prep'
     caller: 'default'
-    url: 'http://192.168.10.221:5001/None'
+    url: 'http://chitchat:11001/skill'
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '192.168.10.221'
-    port: 10000
+    host: 'rabbit'
+    port: 11011
     login: 'guest'
     password: 'guest'
     virtualhost: '/'
@@ -51,7 +48,7 @@ logging:
       propagate: true
       handlers: ['stderr']
     agent_orange:
-      level: 'DEBUG'
+      level: 'INFO'
       propagate: true
       handlers: ['stderr']
   formatters:

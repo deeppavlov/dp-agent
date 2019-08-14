@@ -4,7 +4,7 @@
     "in": ["dialogs"],
     "pipe": [
       {
-        "class_name": "core.state_parsers.state_parser:DialogsParser",
+        "class_name": "legacy_components.core.state_parsers.state_parser:DialogsParser",
         "in": ["dialogs"],
         "out": [
           "utterances_batch",
@@ -16,21 +16,21 @@
         ]
       },
       {
-        "class_name": "core.state_parsers.state_parser:AnnotationsParser",
+        "class_name": "legacy_components.core.state_parsers.state_parser:AnnotationsParser",
         "keys": ["ner.tokens", "ner.tags"],
         "in": ["last_annotations"],
         "out": ["utterance_toks", "utterance_tags"]
       },
       {
         "info": "0. Detect if user introduced himself",
-        "class_name": "annotators.person.person_normalizer:MyselfDetector",
+        "class_name": "legacy_components.annotators.person.person_normalizer:MyselfDetector",
         "person_tag": "PER",
         "in": ["utterance_toks", "utterance_tags", "dialogs"],
         "out": ["name"]
       },
       {
         "info": "1. Replace separators from input string",
-        "class_name": "skills.ranking_chitchat.compose_inputs_hybrid_ranker:ComposeInputsHybridRanker",
+        "class_name": "legacy_components.skills.ranking_chitchat.compose_inputs_hybrid_ranker:ComposeInputsHybridRanker",
         "context_depth": 3,
         "history_includes_last_utterance": true,
         "use_user_context_only": true,
@@ -58,7 +58,7 @@
       },
       {
         "info": "3. Retrieve response candidates using the context retrieved",
-        "class_name": "skills.ranking_chitchat.retrieve_candidates:RetrieveCandidates",
+        "class_name": "legacy_components.skills.ranking_chitchat.retrieve_candidates:RetrieveCandidates",
         "map_filename": "{MODELS_PATH}/chitchat_2staged_tfidf_smn_v3/train_index_dict_v3.pickle",
         "in": ["expanded_context_batch", "tfidf_doc_ids", "tfidf_doc_scores"],
         "out": ["response_candidates", "model_inputs"]
@@ -115,7 +115,7 @@
       },
       {
         "info": "5. Return actual response",
-        "class_name": "skills.ranking_chitchat.hybrid_ranker_predictor:HybridRankerPredictor",
+        "class_name": "legacy_components.skills.ranking_chitchat.hybrid_ranker_predictor:HybridRankerPredictor",
         "sample_size": 5,
         "in": ["response_candidates", "y_predicted"],
         "out": ["text", "confidence"]
