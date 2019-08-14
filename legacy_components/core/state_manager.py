@@ -1,10 +1,13 @@
 from datetime import datetime
 from typing import Sequence, Hashable, Any, Optional, Dict
 
+from mongoengine import connect
+
 from legacy_components.core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
-from core import state_storage
-from legacy_components.core.bot import BOT
 from legacy_components.core import VERSION
+
+
+BOT_ID = '5c7cf00e5c70e839bf9cb115'
 
 
 def get_state(dialogs: Sequence[Dialog]):
@@ -15,45 +18,54 @@ def get_state(dialogs: Sequence[Dialog]):
 
 
 class StateManager:
+    def __init__(self, config: dict):
+        db_host = config['database']['host']
+        db_port = config['database']['port']
+        db_name = f'{config["agent_namespace"]}_{config["agent"]["name"]}'
 
-    @classmethod
-    def get_or_create_users(cls, user_telegram_ids=Sequence[Hashable], user_device_types=Sequence[Any]):
+        self._connection = connect(host=db_host, port=db_port, db=db_name)
+
+        try:
+            self._bot = Bot.objects(id__exact=BOT_ID)[0]
+        except IndexError:
+            self._bot = Bot(id=BOT_ID)
+            self._bot.save()
+
+    def get_or_create_users(self, user_telegram_ids=Sequence[Hashable], user_device_types=Sequence[Any]):
         users = []
         for user_telegram_id, device_type in zip(user_telegram_ids, user_device_types):
             user_query = Human.objects(user_telegram_id__exact=user_telegram_id)
             if not user_query:
-                user = cls.create_new_human(user_telegram_id, device_type)
+                user = self.create_new_human(user_telegram_id, device_type)
             else:
                 user = user_query[0]
             users.append(user)
         return users
 
-    @classmethod
-    def get_or_create_dialogs(cls, users, locations, channel_types, should_reset):
+    def get_or_create_dialogs(self, users, locations, channel_types, should_reset):
         dialogs = []
         for user, loc, channel_type, reset in zip(users, locations, channel_types, should_reset):
             if reset:
-                dialog = cls.create_new_dialog(user=user,
-                                               bot=BOT,
-                                               location=loc,
-                                               channel_type=channel_type)
+                dialog = self.create_new_dialog(user=user,
+                                                bot=self._bot,
+                                                location=loc,
+                                                channel_type=channel_type)
             else:
                 exist_dialogs = Dialog.objects(user__exact=user)
                 if not exist_dialogs:
-                    # TODO better to keep it: not all channels have dialog reset markers such as /start in Telegram
                     # TODO remove this "if" condition: it should never happen in production, only while testing
-                    dialog = cls.create_new_dialog(user=user,
-                                                   bot=BOT,
-                                                   location=loc,
-                                                   channel_type=channel_type)
+                    # TODO better to keep it:
+                    dialog = self.create_new_dialog(user=user,
+                                                    bot=self._bot,
+                                                    location=loc,
+                                                    channel_type=channel_type)
                 else:
                     dialog = exist_dialogs[0]
 
             dialogs.append(dialog)
         return dialogs
 
-    @classmethod
-    def add_human_utterances(cls, dialogs: Sequence[Dialog], texts: Sequence[str], date_times: Sequence[datetime],
+    def add_human_utterances(self, dialogs: Sequence[Dialog], texts: Sequence[str], date_times: Sequence[datetime],
                              annotations: Optional[Sequence[dict]] = None,
                              selected_skills: Optional[Sequence[dict]] = None) -> None:
         if annotations is None:
@@ -63,12 +75,11 @@ class StateManager:
             selected_skills = [None] * len(texts)
 
         for dialog, text, anno, date_time, ss in zip(dialogs, texts, annotations, date_times, selected_skills):
-            utterance = cls.create_new_human_utterance(text, dialog.user, date_time, anno, ss)
+            utterance = self.create_new_human_utterance(text, dialog.user, date_time, anno, ss)
             dialog.utterances.append(utterance)
             dialog.save()
 
-    @classmethod
-    def add_bot_utterances(cls, dialogs: Sequence[Dialog], orig_texts: Sequence[str], texts: Sequence[str],
+    def add_bot_utterances(self, dialogs: Sequence[Dialog], orig_texts: Sequence[str], texts: Sequence[str],
                            date_times: Sequence[datetime], active_skills: Sequence[str],
                            confidences: Sequence[float], annotations: Optional[Sequence[dict]] = None) -> None:
         if annotations is None:
@@ -77,7 +88,7 @@ class StateManager:
         for dialog, orig_text, text, date_time, active_skill, confidence, anno in zip(dialogs, orig_texts, texts,
                                                                                       date_times, active_skills,
                                                                                       confidences, annotations):
-            utterance = cls.create_new_bot_utterance(orig_text, text, dialog.bot, date_time, active_skill, confidence,
+            utterance = self.create_new_bot_utterance(orig_text, text, dialog.bot, date_time, active_skill, confidence,
                                                      anno)
             dialog.utterances.append(utterance)
             dialog.save()

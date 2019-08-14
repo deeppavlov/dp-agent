@@ -38,7 +38,7 @@ class Agent:
     def __init__(self, config: dict, to_service_callback: Awaitable, to_channel_callback: Awaitable) -> None:
         self._config = config
         self._loop = asyncio.get_event_loop()
-        self._state_manager = StateManager()
+        self._state_manager = StateManager(config)
         self._to_service_callback = to_service_callback
         self._to_channel_callback = to_channel_callback
 
