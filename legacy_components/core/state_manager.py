@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Sequence, Hashable, Any, Optional, Dict
 
 from legacy_components.core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
-from legacy_components.core.connection import state_storage
+from core import state_storage
 from legacy_components.core.bot import BOT
 from legacy_components.core import VERSION
 

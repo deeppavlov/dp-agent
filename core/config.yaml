@@ -5,30 +5,30 @@ agent:
   response_timeout_sec: 10
 
   database:
-    host: '10.11.251'
+    host: '10.11.1.251'
     port: 10001
 
   pipeline: [['ner'],
              ['chitchat']]
 
 services:
-- name: 'ner'
-  batch_size: 5
-  infer_timeout_sec: 30.0
+  ner:
+    batch_size: 5
+    infer_timeout_sec: 30.0
 
-  connector_params:
-    formatter: 'format_dp_ner_stand'
-    caller: 'default'
-    url: 'http://127.0.0.1:5000/answer'
+    connector_params:
+      formatter: 'deeppavlov_ner_stand'
+      caller: 'default'
+      url: 'http://127.0.0.1:5000/answer'
 
-- name: 'chitchat'
-  batch_size: 5
-  infer_timeout_sec: 30.0
+  chitchat:
+    batch_size: 5
+    infer_timeout_sec: 30.0
 
-  connector_params:
-    formatter: 'agent_ranking_chitchat_prep'
-    caller: 'default'
-    url: 'http://127.0.0.1:5001/skill'
+    connector_params:
+      formatter: 'agent_ranking_chitchat_prep'
+      caller: 'default'
+      url: 'http://127.0.0.1:5001/skill'
 
 transport:
   type: 'rabbitmq'

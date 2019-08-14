@@ -5,7 +5,7 @@ from uuid import uuid4
 from typing import List
 from copy import deepcopy
 
-from core.config import config as service_config
+from core.config import config as conf
 from core.transport import transport_map
 from core.transport.base import TTransportConnector
 from core.transport.base import ServiceCallerBase
@@ -74,10 +74,12 @@ if __name__ == '__main__':
     instance_id = args.instance
     batch_size = args.batch_size
 
-    conf = deepcopy(service_config)
-    conf['service']['name'] = service_name
-    conf['service']['instance_id'] = instance_id
-    conf['service']['batch_size'] = batch_size
+    service_config = {'infer_timeout_sec': 30.0}
+    service_config['name'] = service_name
+    service_config['instance_id'] = instance_id
+    service_config['batch_size'] = batch_size
+
+    conf['service'] = service_config
 
     try:
         service_caller = MockServiceCaller(conf)
