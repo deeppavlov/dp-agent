@@ -1,21 +1,27 @@
 import yaml
 from pathlib import Path
+from typing import Optional
 
 
 ERR_MSG_TEMPLATE = 'Agent config verification error: {}'
 
 
-_config_path = Path(__file__).resolve().parent / 'config.yaml'
-with _config_path.open('r') as f:
-    config = yaml.safe_load(f)
+def get_config(config_path: Optional[Path] = None) -> dict:
+    config_path = config_path or Path(__file__).resolve().parent / 'config.yaml'
+
+    with config_path.open('r') as f:
+        config = yaml.safe_load(f)
+
+    verify(config)
+    return config
 
 
-def verify(cfg: dict) -> None:
-    verify_pipeline(cfg)
+def verify(config: dict) -> None:
+    verify_pipeline(config)
 
 
-def verify_pipeline(cfg: dict) -> None:
-    pipeline = cfg['agent']['pipeline']
+def verify_pipeline(config: dict) -> None:
+    pipeline = config['agent']['pipeline']
     type_error_text = 'Pipeline elements should be of List[str] types'
 
     if not isinstance(pipeline, list):
@@ -36,6 +42,3 @@ def verify_pipeline(cfg: dict) -> None:
 
     if len(pipeline[-1]) > 1:
         raise ValueError(ERR_MSG_TEMPLATE.format('Pipeline last services group should contain only one service'))
-
-
-verify(config)

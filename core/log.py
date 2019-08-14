@@ -1,12 +1,15 @@
+import yaml
 import logging
 import logging.config
 from pathlib import Path
 
-from core.config import config
-
 
 def init_logger():
-    log_config = config['logging']
+    config_path = Path(__file__).resolve().parent / 'log_config.yaml'
+
+    with config_path.open('r') as f:
+        log_config = yaml.safe_load(f)
+
     configured_loggers = [log_config.get('root', {})] + [logger for logger in
                                                          log_config.get('loggers', {}).values()]
 
