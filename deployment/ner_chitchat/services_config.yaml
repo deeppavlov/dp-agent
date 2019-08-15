@@ -14,7 +14,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_ner_stand'
       caller: 'default'
-      url: 'http://ner:11002/answer'
+      url: 'http://ner:5000/answer'
 
   chitchat:
     batch_size: 5
@@ -23,7 +23,7 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://chitchat:11001/skill'
+      url: 'http://chitchat:5000/skill'
 
 database:
   host: '127.0.0.1'
@@ -34,7 +34,7 @@ transport:
 
   rabbitmq:
     host: 'rabbitmq'
-    port: 11011
+    port: 5672
     login: 'guest'
     password: 'guest'
     virtualhost: '/'

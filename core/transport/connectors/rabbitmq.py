@@ -1,6 +1,7 @@
 import asyncio
 import json
 import functools
+import time
 from abc import abstractmethod
 from uuid import uuid4
 from typing import Dict, List, Optional, Awaitable
@@ -52,10 +53,18 @@ class RabbitMQTransportBase:
         virtualhost = self._config['transport']['rabbitmq']['virtualhost']
 
         logger.info('Starting RabbitMQ connection...')
-        self._connection = await aio_pika.connect_robust(loop=self._loop, host=host, port=port, login=login,
-                                                         password=password, virtualhost=virtualhost)
 
-        logger.info('RabbitMQ connected')
+        while True:
+            try:
+                self._connection = await aio_pika.connect_robust(loop=self._loop, host=host, port=port, login=login,
+                                                                 password=password, virtualhost=virtualhost)
+
+                logger.info('RabbitMQ connected')
+                break
+            except ConnectionError:
+                reconnect_timeout = 5
+                logger.error(f'RabbitMQ connection error, making another attempt in {reconnect_timeout} secs')
+                time.sleep(reconnect_timeout)
 
         self._agent_in_channel = await self._connection.channel()
         agent_in_exchange_name = AGENT_IN_EXCHANGE_NAME_TEMPLATE.format(agent_namespace=agent_namespace)

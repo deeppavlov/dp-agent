@@ -16,12 +16,8 @@ RUN pip3 install -r requirements.txt && \
 
 VOLUME /dp-agent/config.yaml
 
-CMD echo "mode: "$MODE && \
-    echo "using config: "$CONFIG && \
-    echo "service: "$SERVICE_NAME && \
-    echo "instance: "$INSTANCE_ID && \
-    if [ -z $CONFIG ] || [ $CONFIG = "" ]; then CONFIG="/dp-agent/config.yaml"; fi && \
-    if [ ! -f "/dp-agent/config.yaml" ]; then CONFIG="/dp-agent/core/config.yaml"; fi && \
+CMD if [ -z $CONFIG ] || [ $CONFIG = "" ]; then CONFIG="/dp-agent/config.yaml"; fi && \
+    if [ ! -f $CONFIG ]; then CONFIG="/dp-agent/core/config.yaml"; fi && \
     ARG_SERVICE="" ; if [ ! -z $SERVICE_NAME ]; then ARG_SERVICE="-n "$SERVICE_NAME; fi && \
     ARG_INSTANCE="" ; if [ ! -z $INSTANCE_ID ]; then ARG_INSTANCE="-i "$INSTANCE_ID; fi && \
     python3 /dp-agent/core/run.py $MODE --config $CONFIG $ARG_SERVICE $ARG_INSTANCE
