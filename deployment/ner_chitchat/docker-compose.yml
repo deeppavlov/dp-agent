@@ -6,8 +6,7 @@ services:
     container_name: mongodb
     ports:
     - 11010:27017
-    #volumes:
-    #- /var/run/docker.sock:/var/run/docker.sock
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
