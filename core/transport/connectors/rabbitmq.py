@@ -11,6 +11,7 @@ import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
 from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
+from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, TMessageBase, get_transport_message
 
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'
@@ -113,30 +114,28 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         logger.info(f'Queue: {in_queue_name} bound to routing key: {routing_key}')
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
-        result: dict = json.loads(message.body, encoding='utf-8')
-        message_type = result['type']
-        logger.debug(f'Received incoming message: {str(result)}')
+        message_in: TMessageBase = get_transport_message(json.loads(message.body, encoding='utf-8'))
 
-        if message_type == 'service_response':
-            partial_dialog_state: dict = result['partial_dialog_state']
-            await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
+        if isinstance(message_in, ServiceResponseMessage):
+            logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
+            partial_dialog_state = message_in.partial_dialog_state
+            service_name = message_in.service_name
+            await self._loop.create_task(self._on_service_callback(service_name=service_name,
+                                                                   partial_dialog_state=partial_dialog_state))
+
             await message.ack()
 
-    async def send_to_service(self, service: str, dialog_state: dict) -> None:
+    async def send_to_service(self, service_name: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
+        task = ServiceTaskMessage(agent_name=self._agent_name, task_uuid=task_uuid, dialog_state=dialog_state)
+        logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog_state)}')
 
-        task = {
-            'type': 'service_task',
-            'agent_name': self._agent_name,
-            'task_uuid': task_uuid,
-            'dialog_state': dialog_state
-        }
+        message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
 
-        logger.debug(f'Created task {task_uuid}: service {service}, task: {str(dialog_state)}')
-        message = Message(body=json.dumps(task).encode('utf-8'), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
-        routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service)
+        routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
-        logger.debug(f'Published task {str(task)} with routing key {routing_key}')
+        logger.debug(f'Published task {task_uuid} with routing key {routing_key}')
 
 
 class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
@@ -203,7 +202,9 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
                 if self._add_to_buffer_lock.locked():
                     self._add_to_buffer_lock.release()
 
-                tasks_batch = [json.loads(message.body, encoding='utf-8') for message in messages_batch]
+                tasks_batch = [ServiceTaskMessage.from_json(json.loads(message.body, encoding='utf-8'))
+                               for message in messages_batch]
+
                 await self._process_tasks(tasks_batch)
 
                 for message in messages_batch:
@@ -214,9 +215,9 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
         finally:
             self._infer_lock.release()
 
-    async def _process_tasks(self, tasks_batch: List[dict]) -> None:
+    async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> None:
         task_agent_names_batch, task_uuids_batch, dialog_states_batch = \
-            zip(*[(task['agent_name'], task['task_uuid'], task['dialog_state']) for task in tasks_batch])
+            zip(*[(task.agent_name, task.task_uuid, task.dialog_state) for task in tasks_batch])
 
         logger.debug(f'Prepared for infering tasks {str(task_uuids_batch)}')
 
@@ -234,15 +235,15 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
                                 for i, partial_state in enumerate(responses_batch)])
 
     async def _send_results(self, agent_name: str, task_uuid: str, partial_dialog_state: dict) -> None:
-        result = {
-            'type': 'service_response',
-            'service': self._service_name,
-            'service_instance_id': self._instance_id,
-            'task_uuid': task_uuid,
-            'partial_dialog_state': partial_dialog_state
-        }
+        result = ServiceResponseMessage(agent_name=agent_name,
+                                        task_uuid=task_uuid,
+                                        service_name=self._service_name,
+                                        service_instance_id=self._instance_id,
+                                        partial_dialog_state=partial_dialog_state)
 
-        message = Message(body=json.dumps(result).encode('utf-8'), delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+        message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
         logger.debug(f'Sent response for task {str(task_uuid)} with routing key {routing_key}')
