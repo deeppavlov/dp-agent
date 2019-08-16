@@ -1,4 +1,20 @@
 services:
+  # infrastructure
+  mongodb:
+    image: mongo:3.2.0
+    command: mongod
+    container_name: mongodb
+    ports:
+    - 11010:27017
+    #volumes:
+    #- /var/run/docker.sock:/var/run/docker.sock
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+    - 11011:5672
+    - 11012:15672
+
   # services
   chitchat:
     build:
@@ -59,19 +75,4 @@ services:
     - rabbitmq
     - ner
 
-  # infrastructure
-  mongodb:
-    image: mongo:3.2.0
-    command: mongod
-    container_name: mongodb
-    ports:
-    - 11010:27017
-    #volumes:
-    #- /var/run/docker.sock:/var/run/docker.sock
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-    - 11011:5672
-    - 11012:15672
 version: '2.3'
