@@ -1,5 +1,7 @@
 import argparse
 import time
+
+from aiohttp import web
 from datetime import datetime
 from threading import Thread
 from multiprocessing import Process, Pipe
@@ -9,12 +11,12 @@ from typing import Callable, Optional, Collection, Hashable, List, Tuple
 import telebot
 from telebot.types import Message, Location, User
 
-from core.config import TELEGRAM_TOKEN, TELEGRAM_PROXY
-
+from core.transform_config import TELEGRAM_TOKEN, TELEGRAM_PROXY
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-ch", "--channel", help="run agent in telegram or cmd_client", type=str,
-                    choices=['telegram', 'cmd_client'], default='cmd_client')
+parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
+                    choices=['telegram', 'cmd_client', 'http_client'], default='cmd_client')
+parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 args = parser.parse_args()
 CHANNEL = args.channel
 
@@ -25,19 +27,21 @@ def _model_process(model_function: Callable, conn: Connection, batch_size: int =
     if batch_size <= 0:
         batch_size = float('inf')
 
+    check_time = time.time()
+
     while True:
         batch: List[Tuple[str, Hashable]] = []
-        while conn.poll() and len(batch) < batch_size:
+        while conn.poll() and len(batch) < batch_size and time.time() - check_time <= poll_period:
             batch.append(conn.recv())
 
         if not batch:
-            time.sleep(poll_period)
             continue
 
         messages, dialog_ids = zip(*batch)
         responses = model(messages, dialog_ids)
         for response, dialog_id in zip(responses, dialog_ids):
             conn.send((response, dialog_id))
+        check_time = time.time()  # maybe it should be moved before model call
 
 
 def experimental_bot(
@@ -86,11 +90,9 @@ def run():
     from core.state_manager import StateManager
     from core.skill_manager import SkillManager
     from core.rest_caller import RestCaller
-    from core.service import Service
-    from core.postprocessor import DefaultPostprocessor
-    from core.response_selector import ConfidenceResponseSelector
-    from core.skill_selector import ChitchatQASelector
-    from core.config import MAX_WORKERS, ANNOTATORS, SKILL_SELECTORS, SKILLS
+    from models.postprocessor import DefaultPostprocessor
+    from models.response_selector import ConfidenceResponseSelector
+    from core.transform_config import MAX_WORKERS, ANNOTATORS, SKILL_SELECTORS, SKILLS
 
     import logging
 
@@ -98,21 +100,24 @@ def run():
 
     state_manager = StateManager()
 
-    anno_names, anno_urls = zip(
-        *[(annotator['name'], annotator['url']) for annotator in ANNOTATORS])
-    preprocessor = Service(
-        rest_caller=RestCaller(max_workers=MAX_WORKERS, names=anno_names, urls=anno_urls))
+    anno_names, anno_urls, anno_formatters = zip(
+        *[(a['name'], a['url'], a['formatter']) for a in ANNOTATORS])
+    preprocessor = RestCaller(max_workers=MAX_WORKERS, names=anno_names, urls=anno_urls,
+                               formatters=anno_formatters)
     postprocessor = DefaultPostprocessor()
     skill_caller = RestCaller(max_workers=MAX_WORKERS)
     response_selector = ConfidenceResponseSelector()
     skill_selector = None
     if SKILL_SELECTORS:
-        ss_names, ss_urls = zip(*[(selector['name'], selector['url']) for selector in SKILL_SELECTORS])
-        skill_selector = ChitchatQASelector(
-            rest_caller=RestCaller(max_workers=MAX_WORKERS, names=ss_names, urls=ss_urls))
+        ss_names, ss_urls, ss_formatters = zip(
+            *[(selector['name'], selector['url'], selector['formatter']) for selector in
+              SKILL_SELECTORS])
+        skill_selector = RestCaller(max_workers=MAX_WORKERS, names=ss_names, urls=ss_urls,
+                                   formatters=ss_formatters)
     skill_manager = SkillManager(skill_selector=skill_selector, response_selector=response_selector,
-                                 skill_caller=skill_caller, profile_handlers=[skill['name'] for skill in SKILLS
-                                                                              if skill.get('profile_handler')])
+                                 skill_caller=skill_caller,
+                                 profile_handlers=[skill['name'] for skill in SKILLS
+                                                   if skill.get('profile_handler')])
 
     agent = Agent(state_manager, preprocessor, postprocessor, skill_manager)
 
@@ -134,7 +139,8 @@ def run():
         locations: List[Optional[Location]] = [message.location for message in messages]
         ch_types = ['telegram'] * len(messages)
 
-        answers = agent(utterances=utterances, user_telegram_ids=u_tg_ids, user_device_types=u_d_types,
+        answers = agent(utterances=utterances, user_telegram_ids=u_tg_ids,
+                        user_device_types=u_d_types,
                         date_times=date_times, locations=locations, channel_types=ch_types)
         return answers
 
@@ -145,8 +151,10 @@ def run():
         date_times = [datetime.utcnow()] * len(messages)
         locations: List[Optional[Location]] = [None] * len(messages)
 
-        answers = agent(utterances=utterances, user_telegram_ids=u_ids, user_device_types=[None] * len(messages),
-                        date_times=date_times, locations=locations, channel_types=['cmd_client'] * len(messages))
+        answers = agent(utterances=utterances, user_telegram_ids=u_ids,
+                        user_device_types=[None] * len(messages),
+                        date_times=date_times, locations=locations,
+                        channel_types=['cmd_client'] * len(messages))
         return answers
 
     if CHANNEL == 'telegram':
@@ -155,10 +163,38 @@ def run():
         return infer_cmd
 
 
+async def init_app():
+    app = web.Application()
+    handle_func = await api_message_processor(run())
+    app.router.add_post('/', handle_func)
+    return app
+
+
+async def api_message_processor(message_processor):
+    async def api_handle(request):
+        result = {}
+        if request.method == 'POST':
+            if request.headers.get('content-type') != 'application/json':
+                raise web.HTTPBadRequest(reason='Content-Type should be application/json')
+            data = await request.json()
+            user_id = data.get('user_id')
+            payload = data.get('payload', '')
+
+            if not user_id:
+                raise web.HTTPBadRequest(reason='user_id key is required')
+
+            message = {'data': payload, 'from_user': {'id': user_id}}
+            responses = message_processor([message], [1])
+            result = {'user_id': user_id, 'response': responses[0]}
+        return web.json_response(result)
+
+    return api_handle
+
+
 def main():
     if CHANNEL == 'telegram':
         experimental_bot(run, token=TELEGRAM_TOKEN, proxy=TELEGRAM_PROXY)
-    else:
+    elif CHANNEL == 'cmd_client':
         message_processor = run()
         user_id = input('Provide user id: ')
         user = {'id': user_id}
@@ -168,6 +204,9 @@ def main():
                 message = {'data': msg, 'from_user': user}
                 responses = message_processor([message], [1])
                 print('Bot: ', responses[0])
+    elif CHANNEL == 'http_client':
+        app = init_app()
+        web.run_app(app, port=args.port)
 
 
 if __name__ == '__main__':
