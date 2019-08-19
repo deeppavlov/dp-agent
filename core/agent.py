@@ -1,4 +1,5 @@
 import asyncio
+from itertools import chain
 from logging import getLogger
 from datetime import datetime
 from collections import defaultdict, namedtuple
@@ -6,11 +7,12 @@ from typing import Dict, List, Union, Awaitable
 
 from core.utils import run_sync_in_executor
 from legacy_components.core.state_manager import StateManager
-from legacy_components.core.state_schema import Dialog, HumanUtterance
+from legacy_components.core.state_schema import Dialog, HumanUtterance, BotUtterance, User
 
 
 TIMEOUT_MESSAGE = 'Sorry, we could not answer your request'
-END_OF_PIPELINE_MARKER = '#end'
+PIPELINE_ORDER = ['utterance_annotators', 'skill_selector', 'skills', 'response_selector',
+                  'response_annotators', 'response_formatter']
 
 logger = getLogger(__name__)
 
@@ -22,77 +24,79 @@ class Agent:
     _config: Dict
     _loop: asyncio.AbstractEventLoop
     _state_manager: StateManager
+    _pipeline: Dict[str, List[str]]
+    _actual_stages = List[str]
+
     _to_service_callback: Awaitable
     _to_channel_callback: Awaitable
-    _pipeline: List[Union[str, List[str]]]
-    _pipeline_routing_map: Dict[frozenset, List[str]]
-    _responding_service: str
+
     _response_timeout: float
     _dialogs: Dict[ChannelUserKey, Dialog]
+    _dialogs_stages: Dict[ChannelUserKey, int]
+    _pruned_services: Dict[ChannelUserKey, List[str]]
     _dialog_id_key_map: Dict[str, ChannelUserKey]
     _utterances_queue: Dict[ChannelUserKey, List[IncomingUtterance]]
     _utterances_locks: Dict[ChannelUserKey, asyncio.Lock]
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
-    _annotations_locks: Dict[ChannelUserKey, asyncio.Lock]
+    _dialog_locks: Dict[ChannelUserKey, asyncio.Lock]
 
     def __init__(self, config: dict, to_service_callback: Awaitable, to_channel_callback: Awaitable) -> None:
         self._config = config
         self._loop = asyncio.get_event_loop()
         self._state_manager = StateManager(config)
+
+        self._pipeline = config['agent']['pipeline']
+        self._actual_stages = [stage for stage in PIPELINE_ORDER if self._pipeline[stage]]
+        logger.info(f'Initiated pipeline: {str([self._pipeline[stage] for stage in self._actual_stages])}')
+
         self._to_service_callback = to_service_callback
         self._to_channel_callback = to_channel_callback
 
-        self._pipeline = config['agent']['pipeline']
-        self._pipeline_routing_map = self._make_pipeline_routing_map(self._pipeline)
-        self._responding_service = self._pipeline[-1][0]
         self._response_timeout = config['agent']['response_timeout_sec']
-
         self._dialogs = {}
+        self._dialogs_stages = {}
+        self._pruned_services = defaultdict(list)
         self._dialog_id_key_map = {}
         self._utterances_queue = defaultdict(list)
         self._utterances_locks = defaultdict(asyncio.Lock)
         self._responses_events = defaultdict(asyncio.Event)
-        self._annotations_locks = defaultdict(asyncio.Lock)
+        self._dialog_locks = defaultdict(asyncio.Lock)
 
         logger.info(f'Agent {self._config["agent"]["name"]} initiated')
 
-    @staticmethod
-    def _make_pipeline_routing_map(pipeline: List[Union[str, List[str]]]) -> Dict[frozenset, List[str]]:
-        pipeline_routing_map = {}
-        pipeline_routing_map[frozenset()] = pipeline[0]
-        cumul_skills = []
-
-        for i, skills in enumerate(pipeline[1:]):
-            cumul_skills.extend(pipeline[i])
-            pipeline_routing_map[frozenset(cumul_skills)] = list(skills)
-
-        cumul_skills.extend(list(pipeline[-1]))
-        pipeline_routing_map[frozenset(cumul_skills)] = [END_OF_PIPELINE_MARKER]
-
-        routing_map_str = '\n'.join([f'\t{str(key)}: {str(value)}' for key, value in pipeline_routing_map.items()])
-        logger.debug(f'Initiated pipeline routing map:\n{routing_map_str}')
-
-        return pipeline_routing_map
-
     async def on_service_message(self, service_name: str, partial_dialog_state: dict) -> None:
         dialog_id = partial_dialog_state['id']
-        logger.debug(f'Received from service partial state for dialog: [{dialog_id}]')
+        logger.debug(f'Received from service partial state for dialog: {dialog_id}')
         channel_user_key = self._dialog_id_key_map.get(dialog_id, None)
 
         if channel_user_key:
-            async with self._annotations_locks[channel_user_key]:
-                await self._update_annotations(channel_user_key, partial_dialog_state)
-                # TODO updated annotation check required to avoid endless loop
-                await self._route_to_next_service(channel_user_key)
+            async with self._dialog_locks[channel_user_key]:
+                await self._add_service_responses(channel_user_key, partial_dialog_state)
+                await self._route_to_next_services(channel_user_key)
+
+    async def _add_service_responses(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
+        last_received_utterance = partial_dialog_state['utterances'][0]
+        utterance_id: str = last_received_utterance['id']
+        service_responses: dict = last_received_utterance['service_responses']
+        dialog = self._dialogs[channel_user_key]
+
+        for utterance in reversed(dialog.utterances):
+            if str(utterance.id) == utterance_id:
+                current_responses = dict(**utterance.service_responses)
+                current_responses.update(service_responses)
+                utterance.service_responses = current_responses
+                utterance.save()
+                logger.debug(f'Added to dialog {dialog.id} responses from partial state: {str(partial_dialog_state)}')
+                break
 
     async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
         channel_user_key = ChannelUserKey(channel_id=channel_id, user_id=user_id)
         incoming_utterance = IncomingUtterance(utterance=utterance, reset_dialog=reset_dialog)
         self._utterances_queue[channel_user_key].append(incoming_utterance)
-        logger.debug(f'Received utt: [{utterance}], usr: [{user_id}], chnl: [{channel_id}]')
+        logger.debug(f'Received utt: {utterance}, usr: {user_id}, chnl: {channel_id}')
 
         async with self._utterances_locks[channel_user_key]:
-            logger.debug(f'Processing utt: [{utterance}], usr: [{user_id}], chnl: [{channel_id}]')
+            logger.debug(f'Processing utt: {utterance}, usr: {user_id}, chnl: {channel_id}')
             response_event = self._responses_events[channel_user_key]
             response_event.clear()
 
@@ -103,21 +107,13 @@ class Agent:
             except asyncio.TimeoutError:
                 pass
 
+            self._dialogs_stages.pop(channel_user_key, None)
+            self._pruned_services.pop(channel_user_key, None)
+
             dialog = self._dialogs[channel_user_key]
-            last_dialog_utt: HumanUtterance = dialog.utterances[-1]
-            last_dialog_utt_dict = last_dialog_utt.to_dict()
-            response = last_dialog_utt_dict['annotations'].get(self._responding_service, None)
-            response = str(response) if response else TIMEOUT_MESSAGE
-
-            await run_sync_in_executor(self._state_manager.add_bot_utterances,
-                                       dialogs=[dialog],
-                                       orig_texts=[response],
-                                       texts=[response],
-                                       date_times=[datetime.utcnow()],
-                                       active_skills=[self._responding_service],
-                                       confidences=[1])
-
-            logger.debug(f'Added bot response: [{response}] to dialog: [{dialog.id}]')
+            last_utterance: Union[BotUtterance, HumanUtterance] = dialog.utterances[-1]
+            response = last_utterance.text if isinstance(last_utterance, BotUtterance) else TIMEOUT_MESSAGE
+            logger.debug(f'Sent response resp: {response}, usr: {user_id}, chnl: {channel_id}')
 
             await self._to_channel_callback(channel_id=channel_id, user_id=user_id, message=response)
 
@@ -145,7 +141,7 @@ class Agent:
             dialog = dialogs[0]
             self._dialogs[channel_user_key] = dialogs[0]
             self._dialog_id_key_map[str(dialog.id)] = channel_user_key
-            logger.debug(f'Created dialog id: [{dialog.id}] key: [{str(channel_user_key)}]')
+            logger.debug(f'Created dialog id: {dialog.id} key: {str(channel_user_key)}')
 
         await run_sync_in_executor(self._state_manager.add_human_utterances,
                                    dialogs=[dialog],
@@ -153,47 +149,98 @@ class Agent:
                                    date_times=[datetime.utcnow()])
 
         human_utt: HumanUtterance = dialog.utterances[-1]
-        logger.debug(f'Added human utterance: [{utterance}] utt_id: {human_utt.id} to dialog: [{dialog.id}]')
+        logger.debug(f'Added human utterance: {utterance} utt_id: {human_utt.id} to dialog: {dialog.id}')
 
-        await self._loop.create_task(self._route_to_next_service(channel_user_key))
+        await self._loop.create_task(self._route_to_next_services(channel_user_key))
 
-    async def _route_to_next_service(self, channel_user_key: ChannelUserKey) -> None:
+    async def _route_to_next_services(self, channel_user_key: ChannelUserKey) -> None:
         dialog = self._dialogs[channel_user_key]
-        logger.debug(f'Routing to next service dialog: [{dialog.id}]')
-        last_utterance: HumanUtterance = dialog.utterances[-1]
-        annotations: dict = last_utterance.to_dict()['annotations']
-        responded_services_set = frozenset(annotations.keys())
-        next_services = self._pipeline_routing_map.get(responded_services_set, None)
+        logger.debug(f'Routing to next service dialog: {dialog.id}')
 
-        if next_services:
-            if END_OF_PIPELINE_MARKER in next_services:
+        if channel_user_key not in self._dialogs_stages.keys():
+            logger.debug(f'Beginning going through the pipeline for dialog {dialog.id}')
+            self._dialogs_stages[channel_user_key] = 0
+            first_stage_name = self._actual_stages[0]
+            services = self._pipeline[first_stage_name]
+            await self._send_to_services(channel_user_key, services)
+            return
+
+        stage_index = self._dialogs_stages[channel_user_key]
+        current_stage_name = self._actual_stages[stage_index]
+        current_stage_services = self._pipeline[current_stage_name]
+
+        last_utterance: Union[BotUtterance, HumanUtterance] = dialog.utterances[-1]
+        responded_services = list(last_utterance.service_responses.keys())
+        logger.debug(f'On stage {stage_index}, {current_stage_name}, responded services: {str(responded_services)}')
+        pruned_services = self._pruned_services[channel_user_key]
+
+        if set(current_stage_services).issubset(set(chain(responded_services, pruned_services))):
+            await self._process_pipeline_stage(channel_user_key, current_stage_name)
+            stage_index += 1
+
+            if stage_index + 1 > len(self._actual_stages):
                 self._responses_events[channel_user_key].set()
-                logger.debug(f'Finished pipeline for dialog: [{dialog.id}]')
             else:
-                dialog_state = dialog.to_dict()
+                self._dialogs_stages[channel_user_key] = stage_index
+                next_stage_name = self._actual_stages[stage_index]
+                next_stage_services = self._pipeline[next_stage_name]
+                await self._send_to_services(channel_user_key, next_stage_services)
 
-                for service in next_services:
-                    await self._loop.create_task(self._to_service_callback(service=service, dialog_state=dialog_state))
-
-                service_names_str = ' '.join(next_services)
-                logger.debug(f'State of dialog: [{dialog.id}] processed to services: [{service_names_str}]')
-
-    async def _update_annotations(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
+    async def _send_to_services(self, channel_user_key: ChannelUserKey, services: List[str]) -> None:
         dialog = self._dialogs[channel_user_key]
-        annotated_utterance = partial_dialog_state['utterances'][0]
-        utterance_id: str = annotated_utterance['id']
-        upd_annotations: dict = annotated_utterance['annotations']
+        dialog_state = dialog.to_dict()
 
-        for utterance in reversed(dialog.utterances):
-            if str(utterance.id) == utterance_id:
-                # This is because some Mongo(engine) magic while saving DictField contents to DB
-                upd_dct = {}
+        for service in services:
+            await self._loop.create_task(self._to_service_callback(service=service, dialog_state=dialog_state))
+            logger.debug(f'Dialog {dialog.id} state was sent to services: {str(services)}')
 
-                for k, v in utterance.annotations.items():
-                    upd_dct[k] = v
+    async def _process_pipeline_stage(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
+        dialog = self._dialogs[channel_user_key]
+        last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
+        service_responses = dict(**last_utterance.service_responses)
+        stage_services = self._pipeline[pipeline_stage]
+        logger.debug(f'Processing dialog {dialog.id} with service responses {str(service_responses)}')
 
-                upd_dct.update(upd_annotations)
-                utterance.annotations = upd_dct
-                utterance.save()
-                logger.debug(f'Utterance: [{utterance_id}] updated with annotations: [{str(upd_annotations)}]')
-                break
+        if pipeline_stage in ('utterance_annotators', 'response_annotators'):
+            annotations = dict(**last_utterance.annotations)
+
+            for service in stage_services:
+                annotation = service_responses.pop(service, None)
+                if annotation:
+                    annotations[service] = annotation
+
+            last_utterance.annotations = annotations
+            last_utterance.service_responses = service_responses
+            last_utterance.save()
+            logger.debug(f'Updated annotations for utterance {last_utterance.id} in dialog {dialog.id}')
+
+        if pipeline_stage == 'skills':
+            selected_skills = []
+
+            for service in stage_services:
+                skill_response = service_responses.pop(service, None)
+                if skill_response:
+                    selected_skills.append(skill_response)
+
+            last_utterance.selected_skills = selected_skills
+            last_utterance.service_responses = service_responses
+            last_utterance.save()
+            logger.debug(f'Updated selected skills for utterance {last_utterance.id} in dialog {dialog.id}')
+
+            # adding BotUtterance if skill selector is not defined
+            if not self._pipeline['response_selector'] and selected_skills:
+                response: dict = selected_skills[0]
+                response_skill = response['name']
+                response_text = response['text']
+                response_confidence = response['confidence']
+
+                await run_sync_in_executor(self._state_manager.add_bot_utterances,
+                                           dialogs=[dialog],
+                                           orig_texts=[response_text],
+                                           texts=[response_text],
+                                           date_times=[datetime.utcnow()],
+                                           active_skills=[response_skill],
+                                           confidences=[response_confidence])
+
+                bot_utterance: BotUtterance = dialog.utterances[-1]
+                logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id} from random skill')

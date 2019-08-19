@@ -40,8 +40,8 @@ class SimpleHttpServiceCaller(ServiceCallerBase):
             last_utterance_id = dialog_states_batch[i]['utterances'][-1]['id']
             partial_last_utterance = {}
             partial_last_utterance['id'] = last_utterance_id
-            partial_last_utterance['annotations'] = {}
-            partial_last_utterance['annotations'][self._service_name] = result
+            partial_last_utterance['service_responses'] = {}
+            partial_last_utterance['service_responses'][self._service_name] = result
 
             partial_state['utterances'].append(partial_last_utterance)
             partial_dialog_states_batch.append(partial_state)

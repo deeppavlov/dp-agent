@@ -3,15 +3,15 @@ from typing import Union, List, Dict
 
 def format_dp_ner(data: Union[List[Dict], List[List[List[str]]]], out: bool) -> Union[Dict[str, List[str]], List[Dict]]:
     if out:
-        annotations = []
+        service_responses = []
 
         for response in data:
-            annotation = {}
-            annotation['tokens'] = response[0]
-            annotation['tags'] = response[1]
-            annotations.append(annotation)
+            service_response = {}
+            service_response['tokens'] = response[0]
+            service_response['tags'] = response[1]
+            service_responses.append(service_response)
 
-        return annotations
+        return service_responses
 
     else:
         payload = {}
@@ -30,15 +30,15 @@ def format_dp_ner(data: Union[List[Dict], List[List[List[str]]]], out: bool) -> 
 def format_dp_ner_stand(data: Union[List[Dict], List[List[List[str]]]],
                         out: bool) -> Union[Dict[str, List[str]], List[Dict]]:
     if out:
-        annotations = []
+        service_responses = []
 
         for response in data:
-            annotation = {}
-            annotation['tokens'] = response[0]
-            annotation['tags'] = response[1]
-            annotations.append(annotation)
+            service_response = {}
+            service_response['tokens'] = response[0]
+            service_response['tags'] = response[1]
+            service_responses.append(service_response)
 
-        return annotations
+        return service_responses
 
     else:
         payload = {}

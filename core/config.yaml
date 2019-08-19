@@ -3,8 +3,15 @@ agent_namespace: 'deeppavlov_agent'
 agent:
   name: 'dp_agent'
   response_timeout_sec: 10
-  pipeline: [['ner'],
-             ['chitchat']]
+
+  pipeline: {
+    utterance_annotators: ['ner'],
+    skill_selector: [],
+    skills: ['chitchat'],
+    response_selector: [],
+    response_annotators: ['ner'],
+    response_formatter: [],
+  }
 
 services:
   ner:

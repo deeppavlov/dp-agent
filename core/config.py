@@ -24,21 +24,18 @@ def verify_pipeline(config: dict) -> None:
     pipeline = config['agent']['pipeline']
     type_error_text = 'Pipeline elements should be of List[str] types'
 
-    if not isinstance(pipeline, list):
-        raise TypeError(ERR_MSG_TEMPLATE.format('Pipeline should be list instance'))
+    if not isinstance(pipeline, dict):
+        raise TypeError(ERR_MSG_TEMPLATE.format('Pipeline should be dict instance'))
 
     if len(pipeline) == 0:
         raise ValueError(ERR_MSG_TEMPLATE.format('Pipeline should not be empty'))
 
-    for services_group in pipeline:
-        if not isinstance(services_group, list):
+    for stage_name, services in pipeline.items():
+        if not isinstance(services, list):
             raise TypeError(ERR_MSG_TEMPLATE.format(type_error_text))
 
-        if len(services_group) == 0:
-            raise ValueError(ERR_MSG_TEMPLATE.format('Services groups should not be empty'))
-
-        if not all(isinstance(service, str) for service in services_group):
+        if not all(isinstance(service, str) for service in services):
             raise TypeError(ERR_MSG_TEMPLATE.format(type_error_text))
 
-    if len(pipeline[-1]) > 1:
-        raise ValueError(ERR_MSG_TEMPLATE.format('Pipeline last services group should contain only one service'))
+        if stage_name == 'skills' and not services:
+            raise ValueError('Skills pipeline stage should contain at least one service')

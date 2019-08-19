@@ -50,8 +50,8 @@ class Human(User):
 
 class Utterance(DynamicDocument):
     text = StringField(required=True)
-    # annotations = DictField(default={'ner': {}, 'coref': {}, 'sentiment': {}, 'obscenity': {}})
-    annotations = DictField(default={})
+    service_responses = DictField(default={})
+    annotations = DictField(default={'ner': {}, 'coref': {}, 'sentiment': {}, 'obscenity': {}})
     user = ReferenceField(User, required=True)
     date_time = DateTimeField(required=True)
 
@@ -68,6 +68,7 @@ class HumanUtterance(Utterance):
         return {'id': str(self.id),
                 'text': self.text,
                 'user_id': str(self.user.id),
+                'service_responses': self.service_responses,
                 'annotations': self.annotations,
                 'date_time': str(self.date_time),
                 'selected_skills': self.selected_skills}
@@ -87,6 +88,7 @@ class BotUtterance(Utterance):
             'text': self.text,
             'orig_text': self.orig_text,
             'user_id': str(self.user.id),
+            'service_responses': self.service_responses,
             'annotations': self.annotations,
             'date_time': str(self.date_time)
         }
