@@ -6,7 +6,7 @@ agent:
 
   pipeline: {
     utterance_annotators: ['ner'],
-    skill_selector: [],
+    skill_selector: ['chitchat_odqa'],
     skills: ['chitchat'],
     response_selector: [],
     response_annotators: ['ner'],
@@ -31,6 +31,15 @@ services:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
       url: 'http://127.0.0.1:5001/skill'
+
+  chitchat_odqa:
+    batch_size: 5
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_ranking_chitchat_prep'
+      caller: 'default'
+      url: 'http://127.0.0.1:5002/skill'
 
 database:
   host: '10.11.1.251'

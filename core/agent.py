@@ -184,7 +184,8 @@ class Agent:
                 self._dialogs_stages[channel_user_key] = stage_index
                 next_stage_name = self._actual_stages[stage_index]
                 next_stage_services = self._pipeline[next_stage_name]
-                await self._send_to_services(channel_user_key, next_stage_services)
+                selected_services = list(set(next_stage_services) - set(pruned_services))
+                await self._send_to_services(channel_user_key, selected_services)
 
     async def _send_to_services(self, channel_user_key: ChannelUserKey, services: List[str]) -> None:
         dialog = self._dialogs[channel_user_key]
@@ -214,7 +215,17 @@ class Agent:
             last_utterance.save()
             logger.debug(f'Updated annotations for utterance {last_utterance.id} in dialog {dialog.id}')
 
-        if pipeline_stage == 'skills':
+        elif pipeline_stage == 'skill_selector':
+            selector_service = stage_services[0]
+            skills = self._pipeline['skills']
+            selector_response = service_responses.pop(selector_service, None)
+            response_skills = selector_response['skill_names'] if selector_response else []
+            selected_skills = set(skills).intersection(set(response_skills))
+            pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
+            self._pruned_services[channel_user_key].extend(pruned_skills)
+            logger.debug(f'Pruned services {str(pruned_skills)}')
+
+        elif pipeline_stage == 'skills':
             selected_skills = []
 
             for service in stage_services:

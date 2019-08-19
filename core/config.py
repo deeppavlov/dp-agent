@@ -23,6 +23,7 @@ def verify(config: dict) -> None:
 def verify_pipeline(config: dict) -> None:
     pipeline = config['agent']['pipeline']
     type_error_text = 'Pipeline elements should be of List[str] types'
+    single_service_stages = ['skill_selector', 'response_selector', 'response_formatter']
 
     if not isinstance(pipeline, dict):
         raise TypeError(ERR_MSG_TEMPLATE.format('Pipeline should be dict instance'))
@@ -39,3 +40,6 @@ def verify_pipeline(config: dict) -> None:
 
         if stage_name == 'skills' and not services:
             raise ValueError('Skills pipeline stage should contain at least one service')
+
+        if stage_name in single_service_stages and len(services) > 1:
+            raise ValueError(f'Stages {str(single_service_stages)} can not contain more than one service')
