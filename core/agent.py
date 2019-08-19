@@ -6,8 +6,8 @@ from collections import defaultdict, namedtuple
 from typing import Dict, List, Union, Awaitable
 
 from core.utils import run_sync_in_executor
-from legacy_components.core.state_manager import StateManager
-from legacy_components.core.state_schema import Dialog, HumanUtterance, BotUtterance, User
+from core.state.manager import StateManager
+from core.state.schema import Dialog, HumanUtterance, BotUtterance
 
 
 TIMEOUT_MESSAGE = 'Sorry, we could not answer your request'

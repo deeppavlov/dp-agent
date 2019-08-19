@@ -3,8 +3,8 @@ from typing import Sequence, Hashable, Any, Optional, Dict
 
 from mongoengine import connect
 
-from legacy_components.core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
-from legacy_components.core import VERSION
+from core.state.schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog
+from core import VERSION
 
 
 BOT_ID = '5c7cf00e5c70e839bf9cb115'
