@@ -7,7 +7,7 @@ agent:
   pipeline: {
     utterance_annotators: ['ner'],
     skill_selector: ['chitchat_odqa'],
-    skills: ['chitchat'],
+    skills: ['chitchat', 'odqa'],
     response_selector: [],
     response_annotators: ['ner'],
     response_formatter: [],
@@ -39,7 +39,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_odqa_stand'
       caller: 'default'
-      url: 'http://127.0.0.1:5003/skill'
+      url: 'https://7012.lnsigo.mipt.ru/answer'
 
   chitchat_odqa:
     batch_size: 5
