@@ -4,7 +4,7 @@
 
 1. `cd` to `dp-agent/deployment/ner_chitchat`
 2. Run `docker-compose build`
-3. Run `docker-compose up `
+3. Run `docker-compose up`
 4. Wait until services initialisation
 
 In other terminal to interact with bot:
