@@ -20,15 +20,15 @@ parser.add_argument('--config', help='path to config', type=str, default='')
 
 
 def run_agent(config: dict) -> Tuple[Agent, TTransportGateway]:
-    async def on_serivce_message(service_name: str, partial_dialog_state: dict) -> None:
-        await agent.on_service_message(service_name=service_name, partial_dialog_state=partial_dialog_state)
+    async def on_service_message(partial_dialog_state: dict) -> None:
+        await agent.on_service_message(partial_dialog_state=partial_dialog_state)
 
     async def send_to_service(service: str, dialog_state: dict) -> None:
         await gateway.send_to_service(service, dialog_state)
 
     # TODO: integrate with channel connectors via Transport Gateway
     async def send_to_channel(channel_id: str, user_id: str, message: str) -> None:
-        # TODO: should we make async cmd_client mode less ad-hoc (via tranport bus)?
+        # TODO: should we make async cmd_client mode less ad-hoc (via transport bus)?
         if channel_id == 'cmd_client':
             print(f'<< {message}')
             utterance = input('>> ')
@@ -39,7 +39,7 @@ def run_agent(config: dict) -> Tuple[Agent, TTransportGateway]:
 
     transport_type = config['transport']['type']
     gateway_cls = transport_map[transport_type]['gateway']
-    gateway: TTransportGateway = gateway_cls(config=config, on_service_callback=on_serivce_message)
+    gateway: TTransportGateway = gateway_cls(config=config, on_service_callback=on_service_message)
 
     return agent, gateway
 

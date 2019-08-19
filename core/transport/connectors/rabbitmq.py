@@ -119,10 +119,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         if isinstance(message_in, ServiceResponseMessage):
             logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
             partial_dialog_state = message_in.partial_dialog_state
-            service_name = message_in.service_name
-            await self._loop.create_task(self._on_service_callback(service_name=service_name,
-                                                                   partial_dialog_state=partial_dialog_state))
-
+            await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
             await message.ack()
 
     async def send_to_service(self, service_name: str, dialog_state: dict) -> None:

@@ -64,7 +64,7 @@ class Agent:
 
         logger.info(f'Agent {self._config["agent"]["name"]} initiated')
 
-    async def on_service_message(self, service_name: str, partial_dialog_state: dict) -> None:
+    async def on_service_message(self, partial_dialog_state: dict) -> None:
         dialog_id = partial_dialog_state['id']
         logger.debug(f'Received from service partial state for dialog: {dialog_id}')
         channel_user_key = self._dialog_id_key_map.get(dialog_id, None)
