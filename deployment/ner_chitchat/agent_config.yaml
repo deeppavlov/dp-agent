@@ -6,11 +6,11 @@ agent:
 
   pipeline: {
     utterance_annotators: ['ner'],
-    skill_selector: [],
-    skills: ['chitchat'],
-    response_selector: [],
+    skill_selector: ['chitchat_odqa'],
+    skills: ['chitchat', 'odqa'],
+    response_selector: ['max_confidence'],
     response_annotators: ['ner'],
-    response_formatter: [],
+    response_formatter: ['test_formatter'],
   }
 
 services:
@@ -21,7 +21,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_ner_stand'
       caller: 'default'
-      url: 'http://ner:11002/answer'
+      url: 'https://7004.lnsigo.mipt.ru/answer'
 
   chitchat:
     batch_size: 5
@@ -30,7 +30,41 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://chitchat:11001/skill'
+      url: 'http://chitchat:5000/skill'
+
+  odqa:
+    batch_size: 1
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'deeppavlov_odqa_stand'
+      caller: 'default'
+      url: 'https://7012.lnsigo.mipt.ru/answer'
+
+  chitchat_odqa:
+    batch_size: 5
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_chitchat_odqa_selector'
+      caller: 'default'
+      url: 'http://chitchat_odqa:5000/skill'
+
+  max_confidence:
+    batch_size: 100
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_max_conf_response_selector'
+      caller: 'default'
+
+  test_formatter:
+    batch_size: 100
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_test_response_formatter'
+      caller: 'default'
 
 database:
   host: '127.0.0.1'
