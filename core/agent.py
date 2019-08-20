@@ -204,6 +204,8 @@ class Agent:
             await self._on_skills(channel_user_key, pipeline_stage)
         elif pipeline_stage == 'response_selector':
             await self._on_response_selector(channel_user_key, pipeline_stage)
+        elif pipeline_stage == 'response_formatter':
+            await self._on_response_formatter(channel_user_key, pipeline_stage)
 
     async def _on_annotators(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
@@ -225,7 +227,7 @@ class Agent:
 
     async def _on_skill_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
+        last_utterance: HumanUtterance = dialog.utterances[-1]
         service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
@@ -245,7 +247,7 @@ class Agent:
 
     async def _on_skills(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
+        last_utterance: HumanUtterance = dialog.utterances[-1]
         service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
@@ -282,7 +284,7 @@ class Agent:
 
     async def _on_response_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
+        last_utterance: HumanUtterance = dialog.utterances[-1]
         service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
@@ -304,6 +306,22 @@ class Agent:
 
             bot_utterance: BotUtterance = dialog.utterances[-1]
             logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id}')
+
+            last_utterance.service_responses = service_responses
+            await run_sync_in_executor(last_utterance.save)
+
+    async def _on_response_formatter(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
+        dialog = self._dialogs[channel_user_key]
+        last_utterance: BotUtterance = dialog.utterances[-1]
+        service_responses = dict(**last_utterance.service_responses)
+        stage_services = self._pipeline[pipeline_stage]
+
+        formatter_service = stage_services[0]
+        formatter_response = service_responses.pop(formatter_service, None)
+
+        if formatter_response:
+            last_utterance.text = formatter_response['formatted_text']
+            logger.debug(f'Added formatted response to bot utterance {last_utterance.id} to dialog {dialog.id}')
 
             last_utterance.service_responses = service_responses
             await run_sync_in_executor(last_utterance.save)

@@ -38,3 +38,15 @@ def max_conf_response_selector(data: List[Dict]) -> List[Dict[str, str]]:
         selected_skills_batch.append(selected_skill)
 
     return selected_skills_batch
+
+
+def test_response_formatter(data: List[Dict]) -> List[Dict[str, str]]:
+    formatted_responses_batch = []
+
+    for dialog_state in data:
+        last_utterance = dialog_state['utterances'][-1]
+        orig_text = last_utterance['orig_text']
+        formatted_text = f'Agent issued response: {orig_text}'
+        formatted_responses_batch.append({'formatted_text': formatted_text})
+
+    return formatted_responses_batch

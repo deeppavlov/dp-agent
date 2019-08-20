@@ -10,7 +10,7 @@ agent:
     skills: ['chitchat', 'odqa'],
     response_selector: ['max_confidence'],
     response_annotators: ['ner'],
-    response_formatter: [],
+    response_formatter: ['test_formatter'],
   }
 
 services:
@@ -56,6 +56,14 @@ services:
 
     connector_params:
       formatter: 'agent_max_conf_response_selector'
+      caller: 'default'
+
+  test_formatter:
+    batch_size: 100
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_test_response_formatter'
       caller: 'default'
 
 database:

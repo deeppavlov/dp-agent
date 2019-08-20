@@ -29,7 +29,12 @@ formatters_map = {
     },
     'agent_max_conf_response_selector': {
         'formatter': max_conf_response_selector,
-        'description': 'Script implementing selection from agent skills responses by max confidence criteria',
+        'description': 'Script implementation of selection from agent skills responses by max confidence criteria',
+        'default_caller': 'test_python_caller'
+    },
+    'agent_test_response_formatter': {
+        'formatter': test_response_formatter,
+        'description': 'Test response formatter script',
         'default_caller': 'test_python_caller'
     }
 }
