@@ -200,58 +200,70 @@ class Agent:
         last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
         service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
-        logger.debug(f'Processing dialog {dialog.id} with service responses {str(service_responses)}')
 
-        if pipeline_stage in ('utterance_annotators', 'response_annotators'):
-            annotations = dict(**last_utterance.annotations)
-
-            for service in stage_services:
-                annotation = service_responses.pop(service, None)
-                if annotation:
-                    annotations[service] = annotation
-
-            last_utterance.annotations = annotations
-            last_utterance.service_responses = service_responses
-            last_utterance.save()
+        if pipeline_stage in ['utterance_annotators', 'response_annotators']:
+            await self._on_annotators(last_utterance, service_responses, stage_services)
             logger.debug(f'Updated annotations for utterance {last_utterance.id} in dialog {dialog.id}')
-
         elif pipeline_stage == 'skill_selector':
-            selector_service = stage_services[0]
-            skills = self._pipeline['skills']
-            selector_response = service_responses.pop(selector_service, None)
-            response_skills = selector_response['skill_names'] if selector_response else []
-            selected_skills = set(skills).intersection(set(response_skills))
-            pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
-            self._pruned_services[channel_user_key].extend(pruned_skills)
-            logger.debug(f'Pruned services {str(pruned_skills)}')
-
+            await self._on_skill_selector(service_responses, stage_services, channel_user_key)
+            logger.debug(f'Pruned services {str(self._pruned_services[channel_user_key])} in dialog {dialog.id}')
         elif pipeline_stage == 'skills':
-            selected_skills = []
-
-            for service in stage_services:
-                skill_response = service_responses.pop(service, None)
-                if skill_response:
-                    selected_skills.append(skill_response)
-
-            last_utterance.selected_skills = selected_skills
-            last_utterance.service_responses = service_responses
-            last_utterance.save()
+            await self._on_skills(dialog, last_utterance, service_responses, stage_services)
             logger.debug(f'Updated selected skills for utterance {last_utterance.id} in dialog {dialog.id}')
 
-            # adding BotUtterance if skill selector is not defined
-            if not self._pipeline['response_selector'] and selected_skills:
-                response: dict = selected_skills[0]
-                response_skill = response['name']
-                response_text = response['text']
-                response_confidence = response['confidence']
+    async def _on_annotators(self, last_utterance: Union[HumanUtterance, BotUtterance], service_responses: dict,
+                             stage_services: List[str]) -> None:
 
-                await run_sync_in_executor(self._state_manager.add_bot_utterances,
-                                           dialogs=[dialog],
-                                           orig_texts=[response_text],
-                                           texts=[response_text],
-                                           date_times=[datetime.utcnow()],
-                                           active_skills=[response_skill],
-                                           confidences=[response_confidence])
+        annotations = dict(**last_utterance.annotations)
 
-                bot_utterance: BotUtterance = dialog.utterances[-1]
-                logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id} from random skill')
+        for service in stage_services:
+            annotation = service_responses.pop(service, None)
+            if annotation:
+                annotations[service] = annotation
+
+        last_utterance.annotations = annotations
+        last_utterance.service_responses = service_responses
+        last_utterance.save()
+
+    async def _on_skill_selector(self, service_responses: dict, stage_services: List[str],
+                                 channel_user_key: ChannelUserKey) -> None:
+
+        selector_service = stage_services[0]
+        skills = self._pipeline['skills']
+        selector_response = service_responses.pop(selector_service, None)
+        response_skills = selector_response['skill_names'] if selector_response else []
+        selected_skills = set(skills).intersection(set(response_skills))
+        pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
+        self._pruned_services[channel_user_key].extend(pruned_skills)
+
+    async def _on_skills(self, dialog: Dialog, last_utterance: HumanUtterance, service_responses: dict,
+                         stage_services: List[str]) -> None:
+
+        selected_skills = []
+
+        for service in stage_services:
+            skill_response = service_responses.pop(service, None)
+            if skill_response:
+                selected_skills.append(skill_response)
+
+        last_utterance.selected_skills = selected_skills
+        last_utterance.service_responses = service_responses
+        last_utterance.save()
+
+        # adding BotUtterance if skill selector is not defined
+        if not self._pipeline['response_selector'] and selected_skills:
+            response: dict = selected_skills[0]
+            response_skill = response['name']
+            response_text = response['text']
+            response_confidence = response['confidence']
+
+            await run_sync_in_executor(self._state_manager.add_bot_utterances,
+                                       dialogs=[dialog],
+                                       orig_texts=[response_text],
+                                       texts=[response_text],
+                                       date_times=[datetime.utcnow()],
+                                       active_skills=[response_skill],
+                                       confidences=[response_confidence])
+
+            bot_utterance: BotUtterance = dialog.utterances[-1]
+            logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id} from random skill')
