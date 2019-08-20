@@ -8,7 +8,7 @@ agent:
     utterance_annotators: ['ner'],
     skill_selector: ['chitchat_odqa'],
     skills: ['chitchat', 'odqa'],
-    response_selector: [],
+    response_selector: ['max_confidence'],
     response_annotators: ['ner'],
     response_formatter: [],
   }
@@ -49,6 +49,14 @@ services:
       formatter: 'agent_chitchat_odqa_selector'
       caller: 'default'
       url: 'http://127.0.0.1:5002/skill'
+
+  max_confidence:
+    batch_size: 100
+    infer_timeout_sec: 30.0
+
+    connector_params:
+      formatter: 'agent_max_conf_response_selector'
+      caller: 'default'
 
 database:
   host: '10.11.1.251'

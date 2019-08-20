@@ -1,5 +1,5 @@
-from connectors.formatters.deeppavlov import format_dp_ner, format_dp_ner_stand, format_dp_odqa_stand
-from connectors.formatters.agent import format_agent_ranking_chitchat_prep, format_chitchat_odqa_selector
+from connectors.formatters.deeppavlov import *
+from connectors.formatters.agent import *
 
 formatters_map = {
     'deeppavlov_ner': {
@@ -26,5 +26,10 @@ formatters_map = {
         'formatter': format_chitchat_odqa_selector,
         'description': 'Adapter to legacy Agent chitchat-ODQA skill selector',
         'default_caller': 'simple_http_caller'
+    },
+    'agent_max_conf_response_selector': {
+        'formatter': max_conf_response_selector,
+        'description': 'Script implementing selection from agent skills responses by max confidence criteria',
+        'default_caller': 'test_python_caller'
     }
 }
