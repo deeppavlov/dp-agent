@@ -6,17 +6,21 @@ from typing import Tuple
 from core.config import get_config
 from core.agent import Agent
 from core.transport import transport_map
-from core.transport.base import TAgentGateway, TServiceCaller, TServiceGateway
+from core.channels import channels_map
+from core.transport.base import TAgentGateway, TServiceCaller, TServiceGateway, TChannelConnector, TChannelGateway
 from connectors.callers import callers_map
 from connectors.formatters import formatters_map
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
-parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'cmd'})
+parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'cmd_client'})
 parser.add_argument('-n', '--service-name', help='service name', type=str)
 parser.add_argument('-i', '--instance-id', help='instance id', type=str, default='')
 parser.add_argument('--config', help='path to config', type=str, default='')
+
+
+# TODO: check all async type annotations
 
 
 def run_agent(config: dict) -> Tuple[Agent, TAgentGateway]:
@@ -28,12 +32,13 @@ def run_agent(config: dict) -> Tuple[Agent, TAgentGateway]:
 
     # TODO: integrate with channel connectors via Transport Gateway
     async def send_to_channel(channel_id: str, user_id: str, message: str) -> None:
+        pass
         # TODO: should we make async cmd_client mode less ad-hoc (via transport bus)?
-        if channel_id == 'cmd_client':
-            print(f'<< {message}')
-            utterance = input('>> ')
-            loop = asyncio.get_event_loop()
-            loop.create_task(agent.on_channel_message(utterance, 'cmd_client', 'cmd_client', False))
+        #if channel_id == 'cmd_client':
+        #    print(f'<< {message}')
+        #    utterance = input('>> ')
+        #    loop = asyncio.get_event_loop()
+        #    loop.create_task(agent.on_channel_message(utterance, 'cmd_client', 'cmd_client', False))
 
     agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
 
@@ -56,17 +61,36 @@ def run_service(config: dict) -> None:
     caller_cls = callers_map[caller_name]['caller']
 
     _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
-    _connector: TServiceGateway = gateway_cls(config=config, service_caller=_service_caller)
+    _gateway: TServiceGateway = gateway_cls(config=config, service_caller=_service_caller)
 
 
-def run_cmd_client(config: dict) -> None:
-    _agent, _gateway = run_agent(config)
-    utterance = input('>> ')
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(_agent.on_channel_message(utterance=utterance,
-                                                      channel_id='cmd_client',
-                                                      user_id='cmd_client',
-                                                      reset_dialog=True))
+def run_channel(config: dict) -> None:
+    async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+        pass
+
+    async def send_to_channel(self, user_id: str, response: str) -> None:
+        pass
+
+    transport_type = config['transport']['type']
+    gateway_cls = transport_map[transport_type]['transport']
+
+    channel_name = config['channel']['name']
+    connector_cls = channels_map[channel_name]
+
+    _gateway: TChannelGateway = gateway_cls(config=config, to_channel_callback=send_to_channel)
+    _connector: TChannelConnector = connector_cls(config=config, on_channel_callback=on_channel_message)
+
+
+
+
+#def run_cmd_client(config: dict) -> None:
+#    _agent, _gateway = run_agent(config)
+#    utterance = input('>> ')
+#    loop = asyncio.get_event_loop()
+#    loop.run_until_complete(_agent.on_channel_message(utterance=utterance,
+#                                                      channel_id='cmd_client',
+#                                                      user_id='cmd_client',
+#                                                      reset_dialog=True))
 
 
 def main():
@@ -80,22 +104,18 @@ def main():
     loop = asyncio.get_event_loop()
 
     if mode == 'agent':
-        channel = args.channel
-
-        if channel == 'cmd':
-            run_cmd_client(config)
-        else:
-            run_agent(config)
+        #channel = args.channel
+        run_agent(config)
 
     elif mode == 'service':
         service_name = args.service_name
         instance_id = args.instance_id
 
         if service_name in config['services'].keys():
-            skill_config = config['services'][service_name]
-            skill_config['name'] = service_name
-            skill_config['instance_id'] = instance_id
-            config['service'] = skill_config
+            service_config = config['services'][service_name]
+            service_config['name'] = service_name
+            service_config['instance_id'] = instance_id
+            config['service'] = service_config
             run_service(config)
         else:
             raise ValueError(f'Settings for service [{service_name}] were not found in config file')
