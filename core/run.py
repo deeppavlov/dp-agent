@@ -6,7 +6,7 @@ from typing import Tuple
 from core.config import get_config
 from core.agent import Agent
 from core.transport import transport_map
-from core.transport.base import TTransportGateway, TServiceCaller, TServiceConnector
+from core.transport.base import TAgentGateway, TServiceCaller, TServiceGateway
 from connectors.callers import callers_map
 from connectors.formatters import formatters_map
 
@@ -19,7 +19,7 @@ parser.add_argument('-i', '--instance-id', help='instance id', type=str, default
 parser.add_argument('--config', help='path to config', type=str, default='')
 
 
-def run_agent(config: dict) -> Tuple[Agent, TTransportGateway]:
+def run_agent(config: dict) -> Tuple[Agent, TAgentGateway]:
     async def on_service_message(partial_dialog_state: dict) -> None:
         await agent.on_service_message(partial_dialog_state=partial_dialog_state)
 
@@ -38,15 +38,15 @@ def run_agent(config: dict) -> Tuple[Agent, TTransportGateway]:
     agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
 
     transport_type = config['transport']['type']
-    gateway_cls = transport_map[transport_type]['gateway']
-    gateway: TTransportGateway = gateway_cls(config=config, on_service_callback=on_service_message)
+    gateway_cls = transport_map[transport_type]['agent']
+    gateway: TAgentGateway = gateway_cls(config=config, on_service_callback=on_service_message)
 
     return agent, gateway
 
 
 def run_service(config: dict) -> None:
     transport_type = config['transport']['type']
-    connector_cls = transport_map[transport_type]['connector']
+    gateway_cls = transport_map[transport_type]['service']
 
     formatter_name = config['service']['connector_params']['formatter']
     formatter: callable = formatters_map[formatter_name]['formatter']
@@ -56,7 +56,7 @@ def run_service(config: dict) -> None:
     caller_cls = callers_map[caller_name]['caller']
 
     _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
-    _connector: TServiceConnector = connector_cls(config=config, service_caller=_service_caller)
+    _connector: TServiceGateway = gateway_cls(config=config, service_caller=_service_caller)
 
 
 def run_cmd_client(config: dict) -> None:

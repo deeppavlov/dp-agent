@@ -10,7 +10,7 @@ from logging import getLogger
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from core.transport.base import TransportGatewayBase, ServiceConnectorBase, ServiceCallerBase
+from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ServiceCallerBase
 from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, TMessageBase, get_transport_message
 
 
@@ -88,13 +88,13 @@ class RabbitMQTransportBase:
         pass
 
 
-class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
+class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
     _agent_name: str
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
     def __init__(self, config: dict, on_service_callback: Awaitable) -> None:
-        super(RabbitMQTransportGateway, self).__init__(config=config, on_service_callback=on_service_callback)
+        super(RabbitMQAgentGateway, self).__init__(config=config, on_service_callback=on_service_callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
 
@@ -135,7 +135,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         logger.debug(f'Published task {task_uuid} with routing key {routing_key}')
 
 
-class RabbitMQTransportConnector(RabbitMQTransportBase, ServiceConnectorBase):
+class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
     _service_caller: ServiceCallerBase
     _service_name: str
     _instance_id: str
@@ -145,7 +145,7 @@ class RabbitMQTransportConnector(RabbitMQTransportBase, ServiceConnectorBase):
     _infer_lock: asyncio.Lock
 
     def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
-        super().__init__(config=config, service_caller=service_caller)
+        super(RabbitMQServiceGateway, self).__init__(config=config, service_caller=service_caller)
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
         self._instance_id = self._config['service']['instance_id'] or f'{self._service_name}{str(uuid4())}'

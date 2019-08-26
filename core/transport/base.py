@@ -2,11 +2,11 @@ from abc import abstractmethod
 from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable
 
 
-class TransportGatewayBase:
+class AgentGatewayBase:
     _on_service_callback: Awaitable
 
     def __init__(self, on_service_callback: Awaitable, *args, **kwargs):
-        super(TransportGatewayBase, self).__init__(*args, **kwargs)
+        super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
 
     @abstractmethod
@@ -14,7 +14,7 @@ class TransportGatewayBase:
         pass
 
 
-# TODO: Make service caller async
+# TODO: Make service caller async?
 class ServiceCallerBase:
     _config: dict
     _service_name: str
@@ -33,11 +33,11 @@ class ServiceCallerBase:
         pass
 
 
-class ServiceConnectorBase:
+class ServiceGatewayBase:
     _service_caller: ServiceCallerBase
 
     def __init__(self, service_caller: ServiceCallerBase, *args, **kwargs) -> None:
-        super(ServiceConnectorBase, self).__init__(*args, **kwargs)
+        super(ServiceGatewayBase, self).__init__(*args, **kwargs)
         self._service_caller = service_caller
 
     def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
@@ -48,10 +48,10 @@ class ChannelConnectorBase:
     pass
 
 
-class ChannelConnectorBase:
+class ChannelGatewayBase:
     pass
 
 
-TTransportGateway = TypeVar('TTransportGateway', bound='TransportGatewayBase')
+TAgentGateway = TypeVar('TAgentGateway', bound='AgentGatewayBase')
 TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
-TServiceConnector = TypeVar('TServiceConnector', bound='ServiceConnectorBase')
+TServiceGateway = TypeVar('TServiceGateway', bound='ServiceGatewayBase')
