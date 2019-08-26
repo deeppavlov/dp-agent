@@ -30,7 +30,6 @@ class AgentGatewayBase:
         pass
 
 
-# TODO: Make service caller async?
 class ServiceCallerBase:
     _config: dict
     _service_name: str
