@@ -66,6 +66,9 @@ services:
       formatter: 'agent_test_response_formatter'
       caller: 'default'
 
+channels:
+  cmd_client: {}
+
 database:
   host: '10.11.1.251'
   port: 10001
