@@ -3,7 +3,7 @@ from itertools import chain
 from logging import getLogger
 from datetime import datetime
 from collections import defaultdict, namedtuple
-from typing import Dict, List, Union, Awaitable
+from typing import Dict, List, Union, Callable, Awaitable
 
 from core.utils import run_sync_in_executor
 from core.state.manager import StateManager
@@ -27,8 +27,8 @@ class Agent:
     _pipeline: Dict[str, List[str]]
     _actual_stages = List[str]
 
-    _to_service_callback: Awaitable
-    _to_channel_callback: Awaitable
+    _to_service_callback: Callable[[str, Dict], Awaitable]
+    _to_channel_callback: Callable[[str, str, str], Awaitable]
 
     _response_timeout: float
     _dialogs: Dict[ChannelUserKey, Dialog]
@@ -40,7 +40,10 @@ class Agent:
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
     _dialog_locks: Dict[ChannelUserKey, asyncio.Lock]
 
-    def __init__(self, config: dict, to_service_callback: Awaitable, to_channel_callback: Awaitable) -> None:
+    def __init__(self, config: dict,
+                 to_service_callback: Callable[[str, Dict], Awaitable],
+                 to_channel_callback: Callable[[str, str, str], Awaitable]) -> None:
+
         self._config = config
         self._loop = asyncio.get_event_loop()
         self._state_manager = StateManager(config)

@@ -4,7 +4,7 @@ import functools
 import time
 from abc import abstractmethod
 from uuid import uuid4
-from typing import Dict, List, Optional, Awaitable
+from typing import Dict, List, Optional, Callable, Awaitable
 from logging import getLogger
 
 import aio_pika
@@ -99,7 +99,10 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict, on_service_callback: Awaitable, on_channel_callback: Awaitable) -> None:
+    def __init__(self, config: dict,
+                 on_service_callback: Callable[[Dict], Awaitable],
+                 on_channel_callback: Callable[[str, str, str, bool], Awaitable]) -> None:
+
         super(RabbitMQAgentGateway, self).__init__(config=config,
                                                    on_service_callback=on_service_callback,
                                                    on_channel_callback=on_channel_callback)
@@ -289,7 +292,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
     _agent_name: str
     _channel_id: str
 
-    def __init__(self, config: dict, to_channel_callback: Awaitable) -> None:
+    def __init__(self, config: dict, to_channel_callback: Callable[[str, str], Awaitable]) -> None:
         super(RabbitMQChannelGateway, self).__init__(config=config, to_channel_callback=to_channel_callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']

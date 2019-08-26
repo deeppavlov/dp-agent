@@ -10,10 +10,13 @@ TChannelGateway = TypeVar('TChannelGateway', bound='ChannelGatewayBase')
 
 
 class AgentGatewayBase:
-    _on_service_callback: Awaitable
-    _on_channel_callback: Awaitable
+    _on_service_callback: Callable[[Dict], Awaitable]
+    _on_channel_callback: Callable[[str, str, str, bool], Awaitable]
 
-    def __init__(self, on_service_callback: Awaitable, on_channel_callback: Awaitable, *args, **kwargs):
+    def __init__(self, on_service_callback: Callable[[Dict], Awaitable],
+                 on_channel_callback: Callable[[str, str, str, bool], Awaitable],
+                 *args, **kwargs):
+
         super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
         self._on_channel_callback = on_channel_callback
@@ -60,9 +63,9 @@ class ServiceGatewayBase:
 class ChannelConnectorBase:
     _config: dict
     _channel_id: str
-    _on_channel_callback: Awaitable
+    _on_channel_callback: Callable[[str, str, str, bool], Awaitable]
 
-    def __init__(self, config: dict, on_channel_callback: Awaitable) -> None:
+    def __init__(self, config: dict, on_channel_callback: Callable[[str, str, str, bool], Awaitable]) -> None:
         self._config = config
         self._channel_id = self._config['channel']['id']
         self._on_channel_callback = on_channel_callback
@@ -73,9 +76,9 @@ class ChannelConnectorBase:
 
 
 class ChannelGatewayBase:
-    _to_channel_callback: Awaitable
+    _to_channel_callback: Callable[[str, str], Awaitable]
 
-    def __init__(self, to_channel_callback: Awaitable, *args, **kwargs) -> None:
+    def __init__(self, to_channel_callback: Callable[[str, str], Awaitable], *args, **kwargs) -> None:
         super(ChannelGatewayBase, self).__init__(*args, **kwargs)
         self._to_channel_callback = to_channel_callback
 

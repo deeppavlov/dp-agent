@@ -19,9 +19,6 @@ parser.add_argument('-i', '--instance-id', help='service instance id', type=str,
 parser.add_argument('--config', help='path to config', type=str, default='')
 
 
-# TODO: check all async type annotations
-
-
 def run_agent(config: dict) -> None:
     async def on_service_message(partial_dialog_state: dict) -> None:
         await _agent.on_service_message(partial_dialog_state=partial_dialog_state)
