@@ -17,6 +17,7 @@ class MessageBase:
         return self.__dict__
 
 
+# TODO: Think if we can get rid of task uuid
 class ServiceTaskMessage(MessageBase):
     type = 'service_task'
     agent_name: str
@@ -47,6 +48,39 @@ class ServiceResponseMessage(MessageBase):
         self.service_name = service_name
         self.service_instance_id = service_instance_id
         self.partial_dialog_state = partial_dialog_state
+
+
+# TODO: think about  in/out channel rich content
+class ToChannelMessage(MessageBase):
+    type = 'channel_message'
+    agent_name: str
+    channel_name: str
+    user_id: str
+    response: str
+
+    def __init__(self, agent_name: str, channel_name: str, user_id: str, response: str) -> None:
+        self.type = self.__class__.type
+        self.agent_name = agent_name
+        self.channel_name = channel_name
+        self.user_id = user_id
+        self.response = response
+
+
+class FromChannelMessage(MessageBase):
+    type = 'channel_message'
+    agent_name: str
+    channel_name: str
+    user_id: str
+    utterance: str
+    reset_dialog: bool
+
+    def __init__(self, agent_name: str, channel_name: str, user_id: str, utterance: str, reset_dialog: bool) -> None:
+        self.type = self.__class__.type
+        self.agent_name = agent_name
+        self.channel_name = channel_name
+        self.user_id = user_id
+        self.utterance = utterance
+        self.reset_dialog = reset_dialog
 
 
 def get_transport_message(message_json: dict) -> TMessageBase:
