@@ -1,4 +1,24 @@
 services:
+  # agent
+  agent:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: agent
+    environment:
+      - MODE=agent
+      - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - ner_connector
+      - chitchat_connector
+      - odqa_connector
+      - chitchat_odqa_connector
+      - max_confidence_connector
+      - test_formatter_connector
+
   # services
   chitchat:
     build:
@@ -49,7 +69,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=ner
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq
@@ -62,7 +82,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq
@@ -76,7 +96,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=odqa
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq
@@ -89,7 +109,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat_odqa
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq
@@ -103,7 +123,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=max_confidence
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq
@@ -116,7 +136,7 @@ services:
     environment:
     - MODE=service
     - SERVICE_NAME=test_formatter
-    - CONFIG=/dp-agent/deployment/ner_chitchat/services_config.yaml
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
     tty: true
     depends_on:
     - rabbitmq

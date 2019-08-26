@@ -66,9 +66,11 @@ services:
       formatter: 'agent_test_response_formatter'
       caller: 'default'
 
+channels: {}
+
 database:
-  host: '127.0.0.1'
-  port: 11010
+  host: 'mongodb'
+  port: 27017
 
 transport:
   type: 'rabbitmq'
