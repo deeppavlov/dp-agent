@@ -2,19 +2,28 @@ from abc import abstractmethod
 from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable
 
 
+TAgentGateway = TypeVar('TAgentGateway', bound='AgentGatewayBase')
+TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
+TServiceGateway = TypeVar('TServiceGateway', bound='ServiceGatewayBase')
+TChannelConnector = TypeVar('TChannelConnector', bound='ChannelConnectorBase')
+TChannelGateway = TypeVar('TChannelGateway', bound='ChannelGatewayBase')
+
+
 class AgentGatewayBase:
     _on_service_callback: Awaitable
+    _on_channel_callback: Awaitable
 
-    def __init__(self, on_service_callback: Awaitable, *args, **kwargs):
+    def __init__(self, on_service_callback: Awaitable, on_channel_callback: Awaitable, *args, **kwargs):
         super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
+        self._on_channel_callback = on_channel_callback
 
     @abstractmethod
     async def send_to_service(self, service: str, dialog_state: dict) -> None:
         pass
 
 
-# TODO: Make service caller async?
+# TODO: Make service caller async
 class ServiceCallerBase:
     _config: dict
     _service_name: str
@@ -34,7 +43,7 @@ class ServiceCallerBase:
 
 
 class ServiceGatewayBase:
-    _service_caller: ServiceCallerBase
+    _service_caller: TServiceCaller
 
     def __init__(self, service_caller: ServiceCallerBase, *args, **kwargs) -> None:
         super(ServiceGatewayBase, self).__init__(*args, **kwargs)
@@ -45,13 +54,27 @@ class ServiceGatewayBase:
 
 
 class ChannelConnectorBase:
-    pass
+    _config: dict
+    _channel_id: str
+    _on_channel_callback: Awaitable
+
+    def __init__(self, config: dict, on_channel_callback: Awaitable) -> None:
+        self._config = config
+        self._channel_id = self._config['channel']['name']
+        self._on_channel_callback = on_channel_callback
+
+    @abstractmethod
+    async def send_to_channel(self, user_id: str, message: str) -> None:
+        pass
 
 
 class ChannelGatewayBase:
-    pass
+    _to_channel_callback: Awaitable
 
+    def __init__(self, to_channel_callback: Awaitable, *args, **kwargs) -> None:
+        super(ChannelGatewayBase, self).__init__(*args, **kwargs)
+        self._to_channel_callback = to_channel_callback
 
-TAgentGateway = TypeVar('TAgentGateway', bound='AgentGatewayBase')
-TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
-TServiceGateway = TypeVar('TServiceGateway', bound='ServiceGatewayBase')
+    @abstractmethod
+    async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+        pass
