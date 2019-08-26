@@ -10,17 +10,23 @@ from logging import getLogger
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ServiceCallerBase
-from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, TMessageBase, get_transport_message
+from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ChannelGatewayBase
+from core.transport.base import TServiceCaller
+from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
+from core.transport.messages import TMessageBase, get_transport_message
 
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'
 AGENT_OUT_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_out'
 AGENT_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_agent_{agent_name}'
-AGENT_ROUTING_KEY_TEMPLATE = '{agent_name}'
+AGENT_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}'
+
 SERVICE_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_service_{service_name}'
-SERVICE_ROUTING_KEY_TEMPLATE = '{service_name}.any'
-SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE = '{service_name}.instance.{instance_id}'
+SERVICE_ROUTING_KEY_TEMPLATE = 'service.{service_name}.any'
+SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE = 'service.{service_name}.instance.{instance_id}'
+
+CHANNEL_QUEUE_NAME_TEMPLATE = '{agent_namespace}_{agent_name}_q_channel_{channel_name}'
+CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_name}.any'
 
 logger = getLogger(__name__)
 
@@ -93,8 +99,11 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
     _service_responded_events: Dict[str, asyncio.Event]
     _service_responses: Dict[str, dict]
 
-    def __init__(self, config: dict, on_service_callback: Awaitable) -> None:
-        super(RabbitMQAgentGateway, self).__init__(config=config, on_service_callback=on_service_callback)
+    def __init__(self, config: dict, on_service_callback: Awaitable, on_channel_callback: Awaitable) -> None:
+        super(RabbitMQAgentGateway, self).__init__(config=config,
+                                                   on_service_callback=on_service_callback,
+                                                   on_channel_callback=on_channel_callback)
+
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
 
@@ -121,6 +130,10 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
             partial_dialog_state = message_in.partial_dialog_state
             await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
             await message.ack()
+        elif isinstance(message_in, FromChannelMessage):
+            logger.debug(f'Received message from channel {message_in.channel_name}, user {message.user_id}')
+            utterance = message_in.message
+            await message.ack()
 
     async def send_to_service(self, service_name: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
@@ -136,7 +149,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
 
 class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
-    _service_caller: ServiceCallerBase
+    _service_caller: TServiceCaller
     _service_name: str
     _instance_id: str
     _batch_size: int
@@ -144,7 +157,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
     _add_to_buffer_lock: asyncio.Lock
     _infer_lock: asyncio.Lock
 
-    def __init__(self, config: dict, service_caller: ServiceCallerBase) -> None:
+    def __init__(self, config: dict, service_caller: TServiceCaller) -> None:
         super(RabbitMQServiceGateway, self).__init__(config=config, service_caller=service_caller)
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
@@ -244,3 +257,52 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
         logger.debug(f'Sent response for task {str(task_uuid)} with routing key {routing_key}')
+
+
+class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
+    _agent_name: str
+
+    def __init__(self, config: dict, to_channel_callback: Awaitable) -> None:
+        super(RabbitMQChannelGateway, self).__init__(config=config, to_channel_callback=to_channel_callback)
+        self._loop = asyncio.get_event_loop()
+        self._agent_name = self._config['agent']['name']
+
+        self._loop.run_until_complete(self._connect())
+        self._loop.run_until_complete(self._setup_queues())
+        self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
+        logger.info(f'Channel connector messages queue from agent started consuming')
+
+    async def _setup_queues(self) -> None:
+        agent_namespace = self._config['agent_namespace']
+
+        in_queue_name = CHANNEL_QUEUE_NAME_TEMPLATE.format(agent_namespace=agent_namespace,
+                                                           agent_name=self._agent_name,
+                                                           channel_name=self._channel_name)
+
+        self._in_queue = await self._agent_out_channel.declare_queue(name=in_queue_name, durable=True)
+        logger.info(f'Declared channel in queue: {in_queue_name}')
+
+        routing_key = CHANNEL_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name, channel_name=self._channel_name)
+        await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=routing_key)
+        logger.info(f'Queue: {in_queue_name} bound to routing key: {routing_key}')
+
+    async def _on_message_callback(self, message: IncomingMessage) -> None:
+        message_json = json.loads(message.body, encoding='utf-8')
+        message_to_channel: ToChannelMessage = ToChannelMessage.from_json(message_json)
+        await self._loop.create_task(self._to_channel_callback(message_to_channel.user_id, message_to_channel.response))
+        logger.debug(f'Processed message to channel: {str(message_json)}')
+
+    async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+        message_from_channel = FromChannelMessage(agent_name=self._agent_name,
+                                                  channel_name=channel_id,
+                                                  user_id=user_id,
+                                                  utterance=utterance,
+                                                  reset_dialog=reset_dialog)
+
+        message_json = message_from_channel.to_json()
+        message = Message(body=json.dumps(message_json).encode('utf-8'),
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+
+        routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name)
+        await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
+        logger.debug(f'Processed message to agent: {str(message_json)}')

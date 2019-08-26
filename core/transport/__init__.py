@@ -1,9 +1,10 @@
-from core.transport.connectors.rabbitmq import RabbitMQAgentGateway, RabbitMQServiceGateway
+from core.transport.connectors.rabbitmq import RabbitMQAgentGateway, RabbitMQServiceGateway, RabbitMQChannelGateway
 
 
 transport_map = {
     'rabbitmq': {
         'agent': RabbitMQAgentGateway,
-        'service': RabbitMQServiceGateway
+        'service': RabbitMQServiceGateway,
+        'channel': RabbitMQChannelGateway
     }
 }
