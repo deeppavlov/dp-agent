@@ -1,7 +1,6 @@
 import asyncio
 import argparse
 from pathlib import Path
-from typing import Tuple
 
 from core.config import get_config
 from core.agent import Agent
@@ -14,39 +13,38 @@ from connectors.formatters import formatters_map
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
-parser.add_argument('-c', '--channel', help='channel type', type=str, choices={'cmd_client'})
+parser.add_argument('-c', '--channel', help='channel id', type=str, choices={'cmd_client'})
 parser.add_argument('-n', '--service-name', help='service name', type=str)
-parser.add_argument('-i', '--instance-id', help='instance id', type=str, default='')
+parser.add_argument('-i', '--instance-id', help='service instance id', type=str, default='')
 parser.add_argument('--config', help='path to config', type=str, default='')
 
 
 # TODO: check all async type annotations
 
 
-def run_agent(config: dict) -> Tuple[Agent, TAgentGateway]:
+def run_agent(config: dict) -> None:
     async def on_service_message(partial_dialog_state: dict) -> None:
-        await agent.on_service_message(partial_dialog_state=partial_dialog_state)
+        await _agent.on_service_message(partial_dialog_state=partial_dialog_state)
 
-    async def send_to_service(service: str, dialog_state: dict) -> None:
-        await gateway.send_to_service(service, dialog_state)
+    async def send_to_service(service_name: str, dialog_state: dict) -> None:
+        await _gateway.send_to_service(service_name=service_name, dialog_state=dialog_state)
 
-    # TODO: integrate with channel connectors via Transport Gateway
-    async def send_to_channel(channel_id: str, user_id: str, message: str) -> None:
-        pass
-        # TODO: should we make async cmd_client mode less ad-hoc (via transport bus)?
-        #if channel_id == 'cmd_client':
-        #    print(f'<< {message}')
-        #    utterance = input('>> ')
-        #    loop = asyncio.get_event_loop()
-        #    loop.create_task(agent.on_channel_message(utterance, 'cmd_client', 'cmd_client', False))
+    async def on_channel_message(utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+        await _agent.on_channel_message(utterance=utterance,
+                                        channel_id=channel_id,
+                                        user_id=user_id,
+                                        reset_dialog=reset_dialog)
 
-    agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
+    async def send_to_channel(channel_id: str, user_id: str, response: str) -> None:
+        await _gateway.send_to_channel(channel_id=channel_id, user_id=user_id, response=response)
+
+    _agent = Agent(config=config, to_service_callback=send_to_service, to_channel_callback=send_to_channel)
 
     transport_type = config['transport']['type']
     gateway_cls = transport_map[transport_type]['agent']
-    gateway: TAgentGateway = gateway_cls(config=config, on_service_callback=on_service_message)
-
-    return agent, gateway
+    _gateway: TAgentGateway = gateway_cls(config=config,
+                                          on_service_callback=on_service_message,
+                                          on_channel_callback=on_channel_message)
 
 
 def run_service(config: dict) -> None:
@@ -65,32 +63,23 @@ def run_service(config: dict) -> None:
 
 
 def run_channel(config: dict) -> None:
-    async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
-        pass
+    async def on_channel_message(utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+        await _gateway.send_to_agent(utterance=utterance,
+                                     channel_id=channel_id,
+                                     user_id=user_id,
+                                     reset_dialog=reset_dialog)
 
-    async def send_to_channel(self, user_id: str, response: str) -> None:
-        pass
+    async def send_to_channel(user_id: str, response: str) -> None:
+        await _channel_connector.send_to_channel(user_id=user_id, response=response)
 
     transport_type = config['transport']['type']
-    gateway_cls = transport_map[transport_type]['transport']
+    gateway_cls = transport_map[transport_type]['channel']
 
-    channel_name = config['channel']['name']
-    connector_cls = channels_map[channel_name]
+    _channel_id = config['channel']['id']
+    connector_cls = channels_map[_channel_id]
 
     _gateway: TChannelGateway = gateway_cls(config=config, to_channel_callback=send_to_channel)
-    _connector: TChannelConnector = connector_cls(config=config, on_channel_callback=on_channel_message)
-
-
-
-
-#def run_cmd_client(config: dict) -> None:
-#    _agent, _gateway = run_agent(config)
-#    utterance = input('>> ')
-#    loop = asyncio.get_event_loop()
-#    loop.run_until_complete(_agent.on_channel_message(utterance=utterance,
-#                                                      channel_id='cmd_client',
-#                                                      user_id='cmd_client',
-#                                                      reset_dialog=True))
+    _channel_connector: TChannelConnector = connector_cls(config=config, on_channel_callback=on_channel_message)
 
 
 def main():
@@ -104,7 +93,6 @@ def main():
     loop = asyncio.get_event_loop()
 
     if mode == 'agent':
-        #channel = args.channel
         run_agent(config)
 
     elif mode == 'service':
@@ -118,7 +106,19 @@ def main():
             config['service'] = service_config
             run_service(config)
         else:
-            raise ValueError(f'Settings for service [{service_name}] were not found in config file')
+            raise ValueError(f'Settings for service {service_name} were not found in config file')
+
+    elif mode == 'channel':
+        channel_id = args.channel
+        config['channels']['cmd_client'] = {}
+
+        if channel_id in config['channels'].keys():
+            channel_config = config['channels'][channel_id]
+            channel_config['id'] = channel_id
+            config['channel'] = channel_config
+            run_channel(config)
+        else:
+            raise ValueError(f'Settings for channel {channel_id} were not found in config file')
 
     loop.run_forever()
 

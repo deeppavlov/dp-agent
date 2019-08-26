@@ -11,7 +11,7 @@ class CmdConnector(ChannelConnectorBase):
     def __init__(self, config: dict, on_channel_callback: Awaitable) -> None:
         super(CmdConnector, self).__init__(config=config, on_channel_callback=on_channel_callback)
         self._loop = asyncio.get_event_loop()
-        self._user_id = self._config['channel']['instance_id'] or 'cmd_client'
+        self._user_id = 'cmd_client'
 
         utterance = input('>> ')
         self._loop.create_task(self._on_channel_callback(utterance=utterance,

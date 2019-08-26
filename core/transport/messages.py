@@ -52,32 +52,32 @@ class ServiceResponseMessage(MessageBase):
 
 # TODO: think about  in/out channel rich content
 class ToChannelMessage(MessageBase):
-    type = 'channel_message'
+    type = 'to_channel_message'
     agent_name: str
-    channel_name: str
+    channel_id: str
     user_id: str
     response: str
 
-    def __init__(self, agent_name: str, channel_name: str, user_id: str, response: str) -> None:
+    def __init__(self, agent_name: str, channel_id: str, user_id: str, response: str) -> None:
         self.type = self.__class__.type
         self.agent_name = agent_name
-        self.channel_name = channel_name
+        self.channel_id = channel_id
         self.user_id = user_id
         self.response = response
 
 
 class FromChannelMessage(MessageBase):
-    type = 'channel_message'
+    type = 'from_channel_message'
     agent_name: str
-    channel_name: str
+    channel_id: str
     user_id: str
     utterance: str
     reset_dialog: bool
 
-    def __init__(self, agent_name: str, channel_name: str, user_id: str, utterance: str, reset_dialog: bool) -> None:
+    def __init__(self, agent_name: str, channel_id: str, user_id: str, utterance: str, reset_dialog: bool) -> None:
         self.type = self.__class__.type
         self.agent_name = agent_name
-        self.channel_name = channel_name
+        self.channel_id = channel_id
         self.user_id = user_id
         self.utterance = utterance
         self.reset_dialog = reset_dialog
@@ -90,5 +90,9 @@ def get_transport_message(message_json: dict) -> TMessageBase:
         return ServiceTaskMessage.from_json(message_json)
     elif message_type == 'service_response':
         return ServiceResponseMessage.from_json(message_json)
+    elif message_type == 'to_channel_message':
+        return ToChannelMessage.from_json(message_json)
+    elif message_type == 'from_channel_message':
+        return FromChannelMessage.from_json(message_json)
     else:
         raise ValueError(f'Unknown transport message type: {message_type}')

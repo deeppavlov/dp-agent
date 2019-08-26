@@ -115,7 +115,9 @@ class Agent:
             response = last_utterance.text if isinstance(last_utterance, BotUtterance) else TIMEOUT_MESSAGE
             logger.debug(f'Sent response resp: {response}, usr: {user_id}, chnl: {channel_id}')
 
-            await self._to_channel_callback(channel_id=channel_id, user_id=user_id, message=response)
+            await self._loop.create_task(self._to_channel_callback(channel_id=channel_id,
+                                                                   user_id=user_id,
+                                                                   response=response))
 
     async def _process_next_utterance(self, channel_user_key: ChannelUserKey) -> None:
         incoming_utterance = self._utterances_queue[channel_user_key].pop(0)
@@ -192,7 +194,7 @@ class Agent:
         dialog_state = dialog.to_dict()
 
         for service in services:
-            await self._loop.create_task(self._to_service_callback(service=service, dialog_state=dialog_state))
+            await self._loop.create_task(self._to_service_callback(service_name=service, dialog_state=dialog_state))
             logger.debug(f'Dialog {dialog.id} state was sent to services: {str(services)}')
 
     async def _process_pipeline_stage(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:

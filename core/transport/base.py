@@ -22,8 +22,12 @@ class AgentGatewayBase:
     async def send_to_service(self, service: str, dialog_state: dict) -> None:
         pass
 
+    @abstractmethod
+    async def send_to_channel(self, channel_id: str, user_id: str, response: str) -> None:
+        pass
 
-# TODO: Make service caller async
+
+# TODO: Make service caller async?
 class ServiceCallerBase:
     _config: dict
     _service_name: str
@@ -60,11 +64,11 @@ class ChannelConnectorBase:
 
     def __init__(self, config: dict, on_channel_callback: Awaitable) -> None:
         self._config = config
-        self._channel_id = self._config['channel']['name']
+        self._channel_id = self._config['channel']['id']
         self._on_channel_callback = on_channel_callback
 
     @abstractmethod
-    async def send_to_channel(self, user_id: str, message: str) -> None:
+    async def send_to_channel(self, user_id: str, response: str) -> None:
         pass
 
 
