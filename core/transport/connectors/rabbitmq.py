@@ -32,8 +32,6 @@ logger = getLogger(__name__)
 
 
 # TODO: add proper RabbitMQ SSL authentication
-# TODO: add graceful connection close
-# TODO: implement sent message timeout (lifetime) control on exchange protocol level
 # TODO: add load balancing for stateful skills
 class RabbitMQTransportBase:
     _config: dict
@@ -44,11 +42,13 @@ class RabbitMQTransportBase:
     _agent_in_channel: Channel
     _agent_out_channel: Channel
     _in_queue: Optional[Queue]
+    _response_timeout_sec: int
 
     def __init__(self, config: dict, *args, **kwargs):
         super(RabbitMQTransportBase, self).__init__(*args, **kwargs)
         self._config = config
         self._in_queue = None
+        self._response_timeout_sec = config['agent']['response_timeout_sec']
 
     async def _connect(self) -> None:
         agent_namespace = self._config['agent_namespace']
@@ -150,7 +150,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog_state)}')
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
-                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                          expiration=self._response_timeout_sec)
 
         routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -164,7 +165,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         channel_message_json = channel_message.to_json()
         message = Message(body=json.dumps(channel_message_json).encode('utf-8'),
-                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                          expiration=self._response_timeout_sec)
 
         routing_key = CHANNEL_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name, channel_id=channel_id)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -275,7 +277,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
                                         partial_dialog_state=partial_dialog_state)
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
-                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                          expiration=self._response_timeout_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
@@ -315,6 +318,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
         message_json = json.loads(message.body, encoding='utf-8')
         message_to_channel: ToChannelMessage = ToChannelMessage.from_json(message_json)
         await self._loop.create_task(self._to_channel_callback(message_to_channel.user_id, message_to_channel.response))
+        await message.ack()
         logger.debug(f'Processed message to channel: {str(message_json)}')
 
     async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
@@ -326,7 +330,8 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
 
         message_json = message_from_channel.to_json()
         message = Message(body=json.dumps(message_json).encode('utf-8'),
-                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT)
+                          delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                          expiration=self._response_timeout_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
