@@ -33,17 +33,25 @@ class ServiceCallerBase:
         pass
 
 
-class TransportConnectorBase:
+class ServiceConnectorBase:
     _service_caller: ServiceCallerBase
 
     def __init__(self, service_caller: ServiceCallerBase, *args, **kwargs) -> None:
-        super(TransportConnectorBase, self).__init__(*args, **kwargs)
+        super(ServiceConnectorBase, self).__init__(*args, **kwargs)
         self._service_caller = service_caller
 
     def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
         return self._service_caller.infer(dialog_states_batch)
 
 
+class ChannelConnectorBase:
+    pass
+
+
+class ChannelConnectorBase:
+    pass
+
+
 TTransportGateway = TypeVar('TTransportGateway', bound='TransportGatewayBase')
 TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
-TTransportConnector = TypeVar('TTransportConnector', bound='TransportConnectorBase')
+TServiceConnector = TypeVar('TServiceConnector', bound='ServiceConnectorBase')

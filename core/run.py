@@ -6,7 +6,7 @@ from typing import Tuple
 from core.config import get_config
 from core.agent import Agent
 from core.transport import transport_map
-from core.transport.base import TTransportGateway, TServiceCaller, TTransportConnector
+from core.transport.base import TTransportGateway, TServiceCaller, TServiceConnector
 from connectors.callers import callers_map
 from connectors.formatters import formatters_map
 
@@ -56,7 +56,7 @@ def run_service(config: dict) -> None:
     caller_cls = callers_map[caller_name]['caller']
 
     _service_caller: TServiceCaller = caller_cls(config=config, formatter=formatter)
-    _connector: TTransportConnector = connector_cls(config=config, service_caller=_service_caller)
+    _connector: TServiceConnector = connector_cls(config=config, service_caller=_service_caller)
 
 
 def run_cmd_client(config: dict) -> None:

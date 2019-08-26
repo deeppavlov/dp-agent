@@ -10,7 +10,7 @@ from logging import getLogger
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from core.transport.base import TransportGatewayBase, TransportConnectorBase, ServiceCallerBase
+from core.transport.base import TransportGatewayBase, ServiceConnectorBase, ServiceCallerBase
 from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, TMessageBase, get_transport_message
 
 
@@ -135,7 +135,7 @@ class RabbitMQTransportGateway(RabbitMQTransportBase, TransportGatewayBase):
         logger.debug(f'Published task {task_uuid} with routing key {routing_key}')
 
 
-class RabbitMQTransportConnector(RabbitMQTransportBase, TransportConnectorBase):
+class RabbitMQTransportConnector(RabbitMQTransportBase, ServiceConnectorBase):
     _service_caller: ServiceCallerBase
     _service_name: str
     _instance_id: str
