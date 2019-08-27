@@ -1,0 +1,186 @@
+services:
+  # agent
+  agent:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: agent
+    environment:
+      - MODE=agent
+      - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - ner_connector
+      - chitchat_connector
+      - odqa_connector
+      - chitchat_odqa_connector
+      - max_confidence_connector
+      - test_formatter_connector
+
+  # services
+  chitchat:
+    build:
+      args:
+        gpu: 'false'
+        skill_endpoint: skill
+        skillconfig: legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+        skillhost: 0.0.0.0
+        skillport: 5000
+      context: ../../
+      dockerfile: Dockerfile_skill_legacy
+    container_name: chitchat
+    environment:
+    - CUDA_VISIBLE_DEVICES=""
+    ports:
+    - 11001:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  chitchat_odqa:
+    build:
+      args:
+        gpu: 'false'
+        skill_endpoint: skill
+        skillconfig: legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
+        skillhost: 0.0.0.0
+        skillport: 5000
+      context: ../../
+      dockerfile: Dockerfile_skill_legacy
+    container_name: chitchat_odqa
+    environment:
+    - CUDA_VISIBLE_DEVICES=""
+    ports:
+    - 11002:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  ner:
+    container_name: ner
+    image: deeppavlov/ner_ru
+    environment:
+    - CUDA_VISIBLE_DEVICES=""
+    ports:
+    - 11003:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  odqa:
+    container_name: odqa
+    image: deeppavlov/odqa_ru
+    runtime: nvidia
+    environment:
+    - CUDA_VISIBLE_DEVICES=all
+    ports:
+    - 11004:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  #connectors
+  ner_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: ner_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=ner
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+    - ner
+
+  chitchat_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: chitchat_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=chitchat
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+    - chitchat
+
+  odqa_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: odqa_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=odqa
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+    - odqa
+
+  chitchat_odqa_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: chitchat_odqa_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=chitchat_odqa
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+    - chitchat_odqa
+
+  max_confidence_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: max_confidence_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=max_confidence
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+
+  test_formatter_connector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: test_formatter_connector
+    environment:
+    - MODE=service
+    - SERVICE_NAME=test_formatter
+    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    tty: true
+    depends_on:
+    - rabbitmq
+
+  # infrastructure
+  mongodb:
+    image: mongo:3.2.0
+    command: mongod
+    container_name: mongodb
+    ports:
+    - 11010:27017
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+    - 11011:5672
+    - 11012:15672
+
+version: '2.3'
