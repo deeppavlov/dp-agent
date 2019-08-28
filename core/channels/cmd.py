@@ -4,6 +4,7 @@ from typing import Callable, Awaitable
 from core.transport.base import ChannelConnectorBase
 
 
+# TODO: refactor to handle message timeout
 class CmdConnector(ChannelConnectorBase):
     _loop: asyncio.AbstractEventLoop
     _user_id: str
