@@ -21,7 +21,8 @@ services:
     connector_params:
       formatter: 'deeppavlov_ner_stand'
       caller: 'default'
-      url: 'https://7004.lnsigo.mipt.ru/answer'
+      url: 'http://localhost:5003/answer'
+      #url: 'https://7004.lnsigo.mipt.ru/answer'
 
   chitchat:
     batch_size: 5
@@ -39,7 +40,8 @@ services:
     connector_params:
       formatter: 'deeppavlov_odqa_stand'
       caller: 'default'
-      url: 'https://7012.lnsigo.mipt.ru/answer'
+      url: 'http://localhost:5004/answer'
+      #url: 'https://7012.lnsigo.mipt.ru/answer'
 
   chitchat_odqa:
     batch_size: 5
@@ -69,7 +71,8 @@ services:
 channels: {}
 
 database:
-  host: '10.11.1.251'
+  host: '127.0.0.1'
+  #host: '10.11.1.251'
   port: 10001
 
 transport:
