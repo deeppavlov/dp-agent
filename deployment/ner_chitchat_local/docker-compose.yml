@@ -1,13 +1,16 @@
 services:
   # agent
   agent:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: agent
+    image: deeppavlov/agent:transport-debug
     environment:
       - MODE=agent
-      - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+      #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+    - ./:/config
     tty: true
     depends_on:
       - rabbitmq
@@ -21,18 +24,19 @@ services:
 
   # services
   chitchat:
-    build:
-      args:
-        gpu: 'false'
-        skill_endpoint: skill
-        skillconfig: legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
-        skillhost: 0.0.0.0
-        skillport: 5000
-      context: ../../
-      dockerfile: Dockerfile_skill_legacy
+    #build:
+    #  args:
+    #    gpu: 'false'
+    #    skill_endpoint: skill
+    #    skillconfig: legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+    #    skillhost: 0.0.0.0
+    #    skillport: 5000
+    #  context: ../../
+    #  dockerfile: Dockerfile_skill_legacy
     container_name: chitchat
+    image: deeppavlov/agent:skill-legacy
     environment:
-    - CUDA_VISIBLE_DEVICES=""
+    - CONFIG=legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
     ports:
     - 11001:5000
     volumes:
@@ -41,18 +45,19 @@ services:
     tty: true
 
   chitchat_odqa:
-    build:
-      args:
-        gpu: 'false'
-        skill_endpoint: skill
-        skillconfig: legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
-        skillhost: 0.0.0.0
-        skillport: 5000
-      context: ../../
-      dockerfile: Dockerfile_skill_legacy
+    #build:
+    #  args:
+    #    gpu: 'gpu'
+    #    skill_endpoint: skill
+    #    skillconfig: legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
+    #    skillhost: 0.0.0.0
+    #    skillport: 5000
+    #  context: ../../
+    #  dockerfile: Dockerfile_skill_legacy
     container_name: chitchat_odqa
+    image: deeppavlov/agent:skill-legacy
     environment:
-    - CUDA_VISIBLE_DEVICES=""
+    - CONFIG=legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
     ports:
     - 11002:5000
     volumes:
@@ -63,8 +68,6 @@ services:
   ner:
     container_name: ner
     image: deeppavlov/ner_ru
-    environment:
-    - CUDA_VISIBLE_DEVICES=""
     ports:
     - 11003:5000
     volumes:
@@ -87,83 +90,101 @@ services:
 
   #connectors
   ner_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: ner_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=ner
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq
     - ner
 
   chitchat_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: chitchat_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq
     - chitchat
 
   odqa_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: odqa_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=odqa
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq
     - odqa
 
   chitchat_odqa_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: chitchat_odqa_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat_odqa
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq
     - chitchat_odqa
 
   max_confidence_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: max_confidence_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=max_confidence
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq
 
   test_formatter_connector:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../../
+    #  dockerfile: Dockerfile
     container_name: test_formatter_connector
+    image: deeppavlov/agent:transport-debug
     environment:
     - MODE=service
     - SERVICE_NAME=test_formatter
-    - CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    #- CONFIG=/dp-agent/deployment/ner_chitchat/container_config.yaml
+    volumes:
+      - ./:/config
     tty: true
     depends_on:
     - rabbitmq

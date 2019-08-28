@@ -76,8 +76,8 @@ transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '127.0.0.1'
-    port: 11011
+    host: 'rabbitmq'
+    port: 5672
     login: 'guest'
     password: 'guest'
     virtualhost: '/'
