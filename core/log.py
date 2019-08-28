@@ -4,6 +4,7 @@ import logging.config
 from pathlib import Path
 
 
+# TODO: logger should cover dp-agent dir
 def init_logger():
     config_path = Path(__file__).resolve().parent / 'log_config.yaml'
 
