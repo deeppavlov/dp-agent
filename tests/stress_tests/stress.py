@@ -1,12 +1,14 @@
 import argparse
 import asyncio
-import datetime
 import random
 import uuid
+from collections import defaultdict
 from pathlib import Path
+from time import time
 from typing import Awaitable, Callable, Dict
 
 import yaml
+import numpy as np
 
 from core.config import get_config
 from core.transport import transport_map
@@ -32,34 +34,28 @@ loop = asyncio.get_event_loop()
 
 
 class StressConnector(ChannelConnectorBase):
-    _loop: asyncio.AbstractEventLoop
-    _user_id: str
-
     def __init__(self, config: dict, on_channel_callback: Callable[[str, str, str, bool], Awaitable]) -> None:
         super(StressConnector, self).__init__(config=config, on_channel_callback=on_channel_callback)
-        self._utterances = {}
-        self.successful = {}
+        self.utterances = defaultdict(dict)
         self.event = asyncio.Event()
 
     async def send_data(self, utters, utters_number) -> None:
         for _ in range(utters_number):
             utterance = random.choice(utters)
             _user_id = str(uuid.uuid4())
-            self._utterances[_user_id] = {'send': utterance,
-                                          'send_time': datetime.datetime.now()}
-            print(f'>> {utterance}')
+            self.utterances['request'][_user_id] = {'send': utterance,
+                                                    'send_time': time()}
             loop.create_task(self._on_channel_callback(utterance=utterance,
                                                        channel_id=self._channel_id,
                                                        user_id=_user_id,
                                                        reset_dialog=False))
 
     async def send_to_channel(self, user_id: str, response: str) -> None:
-        print(f'<< {response}')
-        utter = self._utterances.pop(user_id)
-        utter['resp_time'] = datetime.datetime.now()
+        utter = self.utterances['request'].pop(user_id)
+        utter['resp_time'] = time()
         utter['response'] = response
-        self.successful[user_id] = utter
-        if not self._utterances:
+        self.utterances['response'][user_id] = utter
+        if not self.utterances['request']:
             self.event.set()
 
 
@@ -81,10 +77,21 @@ def run_channel(config: Dict):
     return _channel_connector
 
 
+def process_results(utts):
+    resp = utts['response']
+    req = utts['request']
+    dt = [utt['resp_time'] - utt['send_time'] for utt in resp.values()]
+    print(f'{len(req)} errors\nAverage response time: {np.average(dt)}\nStandart deviation: {np.std(dt)}')
+
+
 async def foo(connector, utters, utters_number):
     await connector.send_data(utters, utters_number)
-    await connector.event.wait()
-    print(connector.successful)
+    try:
+        await asyncio.wait_for(connector.event.wait(), timeout=stress_config['test_timeout'])
+    except asyncio.TimeoutError:
+        print('Timeout error')
+    finally:
+        process_results(connector.utterances)
 
 
 def main():
