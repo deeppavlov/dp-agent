@@ -252,7 +252,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
                 else:
                     for message in messages_batch:
                         # TODO: thin reject o nack?
-                        await message.reject(requeue=True)
+                        await message.nack()
 
             elif self._add_to_buffer_lock.locked():
                 self._add_to_buffer_lock.release()
