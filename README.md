@@ -11,7 +11,7 @@
 
 **Demo dir** is `dp-agent/deployment/ner_chitchat` if you want to use cloud DP models
 or `dp-agent/deployment/ner_chitchat_local` if you want to run all services locally 
-(warning: ~25GB free RAM required to run all models locally).
+(warning: ~24GB free RAM required to run all models locally).
 
 1. `cd` to demo dir
 2. Run `docker-compose build`
@@ -24,5 +24,5 @@ In other terminal to interact with bot:
 5. `cd` to `dp-agent`
 6. Activate virtual environment: `source env/bin/activate`
 7. Run `python core/run.py channel -c cmd_client --config deployment/ner_chitchat/config.yaml`
-(or if running all services locally: `python core/run.py channel -c cmd_client --config deployment/ner_chitchat_local/config.yaml`)
+(or if running all services locally: `python core/run.py channel -c cmd_client --config deployment/ner_chitchat_local/run_config.yaml`)
 8. To turn off run `docker-compose down` from demo dir
