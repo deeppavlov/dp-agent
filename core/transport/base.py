@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable
+from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable, Optional
 
 
 TAgentGateway = TypeVar('TAgentGateway', bound='AgentGatewayBase')
@@ -44,7 +44,7 @@ class ServiceCallerBase:
         self._formatter = formatter
 
     @abstractmethod
-    def infer(self, dialog_states_batch: List[dict]) -> List[dict]:
+    def infer(self, dialog_states_batch: List[dict]) -> Optional[List[dict]]:
         pass
 
 

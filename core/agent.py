@@ -140,7 +140,7 @@ class Agent:
                                                  should_reset=[reset_dialog])
 
             if dialog:
-                await run_sync_in_executor(dialog.save())
+                await run_sync_in_executor(dialog.save)
                 self._dialog_id_key_map.pop(str(dialog.id), None)
 
             dialog = dialogs[0]

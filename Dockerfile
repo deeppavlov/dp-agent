@@ -7,16 +7,16 @@ ENV PYTHONIOENCODING=utf-8
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
-RUN mkdir dp-agent
+RUN mkdir /dp-agent /config
 WORKDIR /dp-agent
 COPY . /dp-agent/.
 
 RUN pip3 install -r requirements.txt && \
     python3 setup.py develop
 
-VOLUME /dp-agent/config.yaml
+VOLUME /config
 
-CMD if [ -z $CONFIG ] || [ $CONFIG = "" ]; then CONFIG="/dp-agent/config.yaml"; fi && \
+CMD if [ -z $CONFIG ] || [ $CONFIG = "" ]; then CONFIG="/config/config.yaml"; fi && \
     if [ ! -f $CONFIG ]; then CONFIG="/dp-agent/core/config.yaml"; fi && \
     ARG_SERVICE="" ; if [ ! -z $SERVICE_NAME ]; then ARG_SERVICE="-n "$SERVICE_NAME; fi && \
     ARG_INSTANCE="" ; if [ ! -z $INSTANCE_ID ]; then ARG_INSTANCE="-i "$INSTANCE_ID; fi && \

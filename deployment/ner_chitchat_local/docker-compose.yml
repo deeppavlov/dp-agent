@@ -1,0 +1,161 @@
+services:
+  # agent
+  agent:
+    container_name: agent
+    image: deeppavlov/agent:transport-debug
+    environment:
+      - MODE=agent
+    volumes:
+    - ./:/config
+    tty: true
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - ner_connector
+      - chitchat_connector
+      - odqa_connector
+      - chitchat_odqa_connector
+      - max_confidence_connector
+      - test_formatter_connector
+
+  # services
+  chitchat:
+    container_name: chitchat
+    image: deeppavlov/agent:skill-legacy
+    environment:
+    - CONFIG=legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+    ports:
+    - 11001:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  chitchat_odqa:
+    container_name: chitchat_odqa
+    image: deeppavlov/agent:skill-legacy
+    environment:
+    - CONFIG=legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
+    ports:
+    - 11002:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  ner:
+    container_name: ner
+    image: deeppavlov/ner_ru
+    ports:
+    - 11003:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  odqa:
+    container_name: odqa
+    image: deeppavlov/odqa_ru
+    runtime: nvidia
+    environment:
+    - CUDA_VISIBLE_DEVICES=0
+    ports:
+    - 11004:5000
+    volumes:
+    - ~/dp_logs:/logs
+    - ~/.deeppavlov:/root/.deeppavlov
+    tty: true
+
+  #connectors
+  ner_connector:
+    container_name: ner_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=ner
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+    - ner
+
+  chitchat_connector:
+    container_name: chitchat_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=chitchat
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+    - chitchat
+
+  odqa_connector:
+    container_name: odqa_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=odqa
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+    - odqa
+
+  chitchat_odqa_connector:
+    container_name: chitchat_odqa_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=chitchat_odqa
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+    - chitchat_odqa
+
+  max_confidence_connector:
+    container_name: max_confidence_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=max_confidence
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+
+  test_formatter_connector:
+    container_name: test_formatter_connector
+    image: deeppavlov/agent:transport-debug
+    environment:
+    - MODE=service
+    - SERVICE_NAME=test_formatter
+    volumes:
+      - ./:/config
+    tty: true
+    depends_on:
+    - rabbitmq
+
+  # infrastructure
+  mongodb:
+    image: mongo:3.2.0
+    command: mongod
+    container_name: mongodb
+    ports:
+    - 11010:27017
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+    - 11011:5672
+    - 11012:15672
+
+version: '2.3'

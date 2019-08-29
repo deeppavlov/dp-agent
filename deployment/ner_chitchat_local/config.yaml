@@ -1,8 +1,8 @@
 agent_namespace: 'deeppavlov_agent'
 
 agent:
-  name: 'dp_agent'
-  response_timeout_sec: 10
+  name: 'ner_chitchat_agent'
+  response_timeout_sec: 20
 
   pipeline: {
     utterance_annotators: ['ner'],
@@ -10,7 +10,7 @@ agent:
     skills: ['chitchat', 'odqa'],
     response_selector: ['max_confidence'],
     response_annotators: ['ner'],
-    response_formatter: ['test_formatter'],
+    response_formatter: ['test_formatter']
   }
 
 services:
@@ -21,8 +21,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_ner_stand'
       caller: 'default'
-      url: 'http://localhost:5003/answer'
-      #url: 'https://7004.lnsigo.mipt.ru/answer'
+      url: 'http://ner:5000/answer'
 
   chitchat:
     batch_size: 5
@@ -31,7 +30,7 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://127.0.0.1:5001/skill'
+      url: 'http://chitchat:5000/skill'
 
   odqa:
     batch_size: 1
@@ -40,8 +39,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_odqa_stand'
       caller: 'default'
-      url: 'http://localhost:5004/answer'
-      #url: 'https://7012.lnsigo.mipt.ru/answer'
+      url: 'http://odqa:5000/answer'
 
   chitchat_odqa:
     batch_size: 5
@@ -50,7 +48,7 @@ services:
     connector_params:
       formatter: 'agent_chitchat_odqa_selector'
       caller: 'default'
-      url: 'http://127.0.0.1:5002/skill'
+      url: 'http://chitchat_odqa:5000/skill'
 
   max_confidence:
     batch_size: 100
@@ -71,16 +69,15 @@ services:
 channels: {}
 
 database:
-  host: '127.0.0.1'
-  #host: '10.11.1.251'
-  port: 10001
+  host: 'mongodb'
+  port: 27017
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '127.0.0.1'
-    port: 10000
+    host: 'rabbitmq'
+    port: 5672
     login: 'guest'
     password: 'guest'
     virtualhost: '/'

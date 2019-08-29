@@ -31,6 +31,7 @@ CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_id}.any'
 logger = getLogger(__name__)
 
 
+# TODO: add handling of: Server connection probably hang, last heartbeat received 1067.857 seconds ago
 # TODO: add proper RabbitMQ SSL authentication
 # TODO: add load balancing for stateful skills
 class RabbitMQTransportBase:
@@ -243,22 +244,28 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
                 tasks_batch = [ServiceTaskMessage.from_json(json.loads(message.body, encoding='utf-8'))
                                for message in messages_batch]
 
-                await self._process_tasks(tasks_batch)
+                processed_ok = await self._process_tasks(tasks_batch)
 
-                for message in messages_batch:
-                    await message.ack()
+                if processed_ok:
+                    for message in messages_batch:
+                        await message.ack()
+                else:
+                    for message in messages_batch:
+                        # TODO: thin reject o nack?
+                        await message.reject(requeue=True)
 
             elif self._add_to_buffer_lock.locked():
                 self._add_to_buffer_lock.release()
         finally:
             self._infer_lock.release()
 
-    async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> None:
+    async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> bool:
         task_agent_names_batch, task_uuids_batch, dialog_states_batch = \
             zip(*[(task.agent_name, task.task_uuid, task.dialog_state) for task in tasks_batch])
 
         logger.debug(f'Prepared for infering tasks {str(task_uuids_batch)}')
 
+        # TODO: Think about proper infer errors and aknowledge handling
         try:
             inferer = functools.partial(self._infer, dialog_states_batch)
             infer_timeout = self._config['service']['infer_timeout_sec']
@@ -271,6 +278,9 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         if responses_batch:
             await asyncio.wait([self._send_results(task_agent_names_batch[i], task_uuids_batch[i], partial_state)
                                 for i, partial_state in enumerate(responses_batch)])
+            return True
+        else:
+            return False
 
     async def _send_results(self, agent_name: str, task_uuid: str, partial_dialog_state: dict) -> None:
         result = ServiceResponseMessage(agent_name=agent_name,
