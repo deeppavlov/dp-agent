@@ -99,7 +99,7 @@ class Dialog(DynamicDocument):
     utterances = ListField(ReferenceField(Utterance), default=[])
     user = ReferenceField(Human, required=True)
     bot = ReferenceField(Bot, required=True)
-    channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client'], default='telegram')
+    channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client', 'tests'], default='telegram')
 
     def to_dict(self):
         return {

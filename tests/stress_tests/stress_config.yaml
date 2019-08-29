@@ -1,0 +1,2 @@
+config_path: 'deployment/ner_chitchat_local/run_config.yaml'
+phrases: ['Привет', 'Кто такой Путин?']
