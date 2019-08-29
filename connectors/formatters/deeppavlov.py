@@ -61,7 +61,7 @@ def format_dp_odqa_stand(data: Union[List[Dict], List[List[str]]],
 
         for response in data:
             service_response = {}
-            service_response['text'] = response[0]
+            service_response['text'] = str(response[0]).strip() or 'do not know...'
             service_response['confidence'] = response[1]
             service_response['name'] = None
             service_responses.append(service_response)
