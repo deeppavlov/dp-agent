@@ -3,7 +3,7 @@ from typing import Sequence, Hashable, Any, Callable, List, Dict
 from itertools import compress
 import operator
 
-from core.state_manager import StateManager, get_state
+from core.state_manager import StateManager
 from core.skill_manager import SkillManager
 from models.hardcode_utterances import TG_START_UTT
 from core.state_schema import Dialog, Human
@@ -30,7 +30,9 @@ class Agent:
         me_dialogs = self.state_manager.get_or_create_dialogs(me_users, locations, channel_types,
                                                               should_reset)
         self.state_manager.add_human_utterances(me_dialogs, utterances, date_times)
+        
         informative_dialogs = list(compress(me_dialogs, map(operator.not_, should_reset)))
+
         self._update_annotations(informative_dialogs)
 
         selected_skills = self.skill_manager.get_skill_responses(me_dialogs)
@@ -50,7 +52,7 @@ class Agent:
         return sent_responses  # return text only to the users
 
     def _update_annotations(self, me_dialogs: Sequence[Dialog]) -> None:
-        annotations = self.preprocessor(get_state(me_dialogs))
+        annotations = self.preprocessor([i.to_dict() for i in me_dialogs])
         utterances = [dialog.utterances[-1] for dialog in me_dialogs]
         self.state_manager.add_annotations(utterances, annotations)
 

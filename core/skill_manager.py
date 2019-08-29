@@ -7,7 +7,6 @@ from warnings import warn
 from core.transform_config import MAX_WORKERS, SKILLS
 from models.hardcode_utterances import NOANSWER_UTT
 from core.state_schema import Human
-from core.state_manager import get_state
 
 
 class SkillManager:
@@ -62,7 +61,7 @@ class SkillManager:
         skill_urls = [s['url'] for s in self.skills]
         skill_formatters = [s['formatter'] for s in self.skills]
 
-        state = get_state(dialogs)
+        state = [i.to_dict() for i in dialogs]
         if self.skill_selector is not None:
             selected_skills = [list(d.values())[0] for d in self.skill_selector(state)]
             for i, skills in enumerate(selected_skills):
@@ -83,13 +82,13 @@ class SkillManager:
         payloads = []
         for exclude, skill in zip(excluded_skills, self.skills):
             s = copy.deepcopy(state)
-            compressed_dialogs = list(compress(s['dialogs'], map(operator.not_, exclude)))
+            compressed_dialogs = list(compress(s, map(operator.not_, exclude)))
             if not compressed_dialogs:
                 skill_names.remove(skill['name'])
                 skill_urls.remove(skill['url'])
                 skill_formatters.remove(skill['formatter'])
                 continue
-            s['dialogs'] = compressed_dialogs
+            s = compressed_dialogs
             payloads.append(s)
         skill_responses = self.skill_caller(payload=payloads, names=skill_names, urls=skill_urls,
                                             formatters=skill_formatters)

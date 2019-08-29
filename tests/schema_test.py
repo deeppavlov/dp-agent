@@ -10,9 +10,10 @@ from core.bot import BOT
 # User.drop_collection()
 
 
-state = {'version': '0.10.1', 'dialogs': []}
-for d in Dialog.objects:
-    state['dialogs'].append(d.to_dict())
+# state = {'version': '0.10.1', 'dialogs': []}
+# for d in Dialog.objects:
+#    state['dialogs'].append(d.to_dict())
+state = [d.to_dict() for d in Dialog.objects]
 
 print(state)
 
@@ -46,10 +47,8 @@ print(b_utt_3.to_dict())
 # for d in Dialog.objects:
 #    print(d.to_dict())
 
-state = {'version': '0.10.1', 'dialogs': []}
-for d in Dialog.objects:
-    state['dialogs'].append(d.to_dict())
+# state = {'version': '0.10.1', 'dialogs': []}
+# for d in Dialog.objects:
+#    state['dialogs'].append(d.to_dict())
 
 print(state)
-
-

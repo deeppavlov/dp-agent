@@ -27,11 +27,10 @@ class RestCaller:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.formatters = formatters
 
-    def __call__(self, payload: Union[Dict, Sequence[Dict]],
+    def __call__(self, payload: List,
                  names: Optional[Sequence[str]] = None,
                  urls: Optional[Sequence[str]] = None,
-                 formatters = None) -> List[
-        Dict[str, Dict[str, Any]]]:
+                 formatters = None) -> List[Dict[str, Dict[str, Any]]]:
 
         names = names if names is not None else self.names
         urls = urls if urls is not None else self.urls
@@ -44,7 +43,7 @@ class RestCaller:
         if formatters is None:
             raise ValueError('No state formatters were provided.')
 
-        if not isinstance(payload, Sequence):
+        if not isinstance(payload[0], list):
             payload = [payload] * len(names)
 
         total_result = []

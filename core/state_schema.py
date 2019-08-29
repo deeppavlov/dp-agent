@@ -1,6 +1,6 @@
 from mongoengine import DynamicDocument, ReferenceField, ListField, StringField, DynamicField, \
     DateTimeField, FloatField, DictField
-
+from core import VERSION
 
 class User(DynamicDocument):
     persona = ListField(default=[])
@@ -97,6 +97,7 @@ class Dialog(DynamicDocument):
     user = ReferenceField(Human, required=True)
     bot = ReferenceField(Bot, required=True)
     channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client'], default='telegram')
+    state_version = StringField(default=VERSION)
 
     def to_dict(self):
         return {
@@ -106,4 +107,5 @@ class Dialog(DynamicDocument):
             'user': self.user.to_dict(),
             'bot': self.bot.to_dict(),
             'channel_type': self.channel_type,
+            'state_version': self.state_version,
         }
