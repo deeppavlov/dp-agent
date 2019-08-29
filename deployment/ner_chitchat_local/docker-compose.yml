@@ -2,7 +2,10 @@ services:
   # agent
   agent:
     container_name: agent
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
       - MODE=agent
     volumes:
@@ -21,7 +24,10 @@ services:
   # services
   chitchat:
     container_name: chitchat
-    image: deeppavlov/agent:skill-legacy
+    #image: deeppavlov/agent:skill-legacy
+    build:
+      context: ../../
+      dockerfile: legacy_components/Dockerfile_skill_legacy
     environment:
     - CONFIG=legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
     ports:
@@ -33,7 +39,10 @@ services:
 
   chitchat_odqa:
     container_name: chitchat_odqa
-    image: deeppavlov/agent:skill-legacy
+    #image: deeppavlov/agent:skill-legacy
+    build:
+      context: ../../
+      dockerfile: legacy_components/Dockerfile_skill_legacy
     environment:
     - CONFIG=legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
     ports:
@@ -69,7 +78,10 @@ services:
   #connectors
   ner_connector:
     container_name: ner_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=ner
@@ -82,7 +94,10 @@ services:
 
   chitchat_connector:
     container_name: chitchat_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat
@@ -95,7 +110,10 @@ services:
 
   odqa_connector:
     container_name: odqa_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=odqa
@@ -108,7 +126,10 @@ services:
 
   chitchat_odqa_connector:
     container_name: chitchat_odqa_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=chitchat_odqa
@@ -121,7 +142,10 @@ services:
 
   max_confidence_connector:
     container_name: max_confidence_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=max_confidence
@@ -133,7 +157,10 @@ services:
 
   test_formatter_connector:
     container_name: test_formatter_connector
-    image: deeppavlov/agent:transport-debug
+    #image: deeppavlov/agent:transport-debug
+    build:
+      context: ../../
+      dockerfile: Dockerfile
     environment:
     - MODE=service
     - SERVICE_NAME=test_formatter
