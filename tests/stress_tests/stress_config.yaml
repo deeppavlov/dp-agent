@@ -1,5 +1,5 @@
 config_path: 'deployment/ner_chitchat_local/run_config.yaml'
-test_timeout: 120
+test_timeout: 600
 phrases:
   odqa:
     - 'Что такое машинное обучение?'
@@ -13,7 +13,6 @@ phrases:
     - 'Чем занимаешься?'
     - 'Ты живой?'
     - 'Что ты любишь есть?'
-log_file_name_format: '%Y-%m-%d_%H-%M-%S-%f_test_results.txt'
 logging:
   version: 1
   formatters:
@@ -22,20 +21,13 @@ logging:
       format: "%(asctime)s %(levelname)s %(message)s"
   handlers:
     log_to_stderr:
-      level: "DEBUG"
+      level: "INFO"
       class: "logging.StreamHandler"
       stream: "ext://sys.stderr"
       formatter: "log_formatter"
-    log_to_file:
-      level: "DEBUG"
-      class: "logging.FileHandler"
-      filename: "stress.log"
-      formatter: "log_formatter"
-      mode: "w"
   loggers:
     stress_logger:
       propagate: False
-      level: "DEBUG"
+      level: "INFO"
       handlers:
        - "log_to_stderr"
-       - "log_to_file"
