@@ -13,7 +13,7 @@ phrases:
     - 'Чем занимаешься?'
     - 'Ты живой?'
     - 'Что ты любишь есть?'
-log_file_name_format: '%Y-%m-%d_%H-%M-%S-%f_test_results.log'
+log_file_name_format: '%Y-%m-%d_%H-%M-%S-%f_test_results.txt'
 logging:
   version: 1
   formatters:

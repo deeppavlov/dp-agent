@@ -38,11 +38,6 @@ with stress_config_path.open('r') as f:
 
 config = get_config(root_dir / stress_config['config_path'])
 
-channel_id = 'tests'
-config['channel'] = config['channels'][channel_id] = {'id': channel_id}
-transport_type = config['transport']['type']
-gateway_cls = transport_map[transport_type]['channel']
-
 stress_config['logging']['handlers']['log_to_file']['filename'] = datetime.now().strftime(stress_config['log_file_name_format'])
 log_config.dictConfig(stress_config["logging"])
 log = logging.root.manager.loggerDict['stress_logger']
@@ -51,7 +46,12 @@ loop = asyncio.get_event_loop()
 
 
 class StressConnector:
-    def __init__(self, utters_type: str) -> None:
+    def __init__(self, config: dict, utters_type: str) -> None:
+        self._channel_id = 'tests'
+        config['channel'] = config['channels'][self._channel_id] = {'id': self._channel_id}
+        transport_type = config['transport']['type']
+        gateway_cls = transport_map[transport_type]['channel']
+
         self._responses_left = None
         self._event = asyncio.Event()
         self._lock = asyncio.Lock()
@@ -83,7 +83,7 @@ class StressConnector:
         batch_send_time = datetime.now()
         for utterance in utters_list:
             loop.create_task(self._gateway.send_to_agent(utterance=utterance,
-                                                         channel_id=channel_id,
+                                                         channel_id=self._channel_id,
                                                          user_id=str(uuid.uuid4()),
                                                          reset_dialog=False))
         try:
@@ -106,7 +106,7 @@ def main():
     batch_size = args.batch_size
     utters_type = args.utters_type
     infers_num = args.infers_num
-    _channel_connector: StressConnector = StressConnector(utters_type)
+    _channel_connector: StressConnector = StressConnector(config, utters_type)
     loop.run_until_complete(_channel_connector.run_test(batch_size, infers_num))
 
 
