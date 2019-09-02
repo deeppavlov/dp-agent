@@ -8,10 +8,7 @@ from core import VERSION
 
 
 def get_state(dialogs: Sequence[Dialog]):
-    state = {'version': VERSION, 'dialogs': []}
-    for d in dialogs:
-        state['dialogs'].append(d.to_dict())
-    return state
+    return [i.to_dict() for i in dialogs]
 
 
 class StateManager:

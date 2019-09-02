@@ -2,10 +2,12 @@ from mongoengine import DynamicDocument, ReferenceField, ListField, StringField,
     DateTimeField, FloatField, DictField
 from core import VERSION
 
+
 class User(DynamicDocument):
     persona = ListField(default=[])
 
     meta = {'allow_inheritance': True}
+    state_version = StringField(default=VERSION)
 
     def to_dict(self):
         raise NotImplementedError

@@ -27,7 +27,7 @@ class RestCaller:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.formatters = formatters
 
-    def __call__(self, payload: List,
+    def __call__(self, payload: Union[Sequence[List], Sequence[Dict]],
                  names: Optional[Sequence[str]] = None,
                  urls: Optional[Sequence[str]] = None,
                  formatters = None) -> List[Dict[str, Dict[str, Any]]]:
