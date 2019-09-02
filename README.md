@@ -16,7 +16,7 @@ or `dp-agent/deployment/ner_chitchat_local` if you want to run all services loca
 1. `cd` to demo dir
 2. Run `docker-compose build`
 3. Run `docker-compose up`
-4. Wait until services initialisation (`chitchat` usually initialises last with this
+4. Wait until services initialisation (if run services locally, `chitchat` usually initialises last with this
 message: `chitchat| * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)`)
 
 In other terminal to interact with bot:
