@@ -24,10 +24,7 @@ services:
   # services
   chitchat:
     container_name: chitchat
-    #image: deeppavlov/agent:skill-legacy
-    build:
-      context: ../../
-      dockerfile: legacy_components/Dockerfile_skill_legacy
+    image: deeppavlov/agent:skill-legacy
     environment:
     - CONFIG=legacy_components/skills/ranking_chitchat/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
     ports:
@@ -39,10 +36,7 @@ services:
 
   chitchat_odqa:
     container_name: chitchat_odqa
-    #image: deeppavlov/agent:skill-legacy
-    build:
-      context: ../../
-      dockerfile: legacy_components/Dockerfile_skill_legacy
+    image: deeppavlov/agent:skill-legacy
     environment:
     - CONFIG=legacy_components/skill_selectors/chitchat_odqa_selector/sselector_chitchat_odqa.json
     ports:

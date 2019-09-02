@@ -21,8 +21,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_ner_stand'
       caller: 'default'
-      url: 'http://localhost:5003/answer'
-      #url: 'https://7004.lnsigo.mipt.ru/answer'
+      url: 'https://7004.lnsigo.mipt.ru/answer'
 
   chitchat:
     batch_size: 5
@@ -31,7 +30,7 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://127.0.0.1:5001/skill'
+      url: 'https://7030.lnsigo.mipt.ru/skill'
 
   odqa:
     batch_size: 1
@@ -40,8 +39,7 @@ services:
     connector_params:
       formatter: 'deeppavlov_odqa_stand'
       caller: 'default'
-      url: 'http://localhost:5004/answer'
-      #url: 'https://7012.lnsigo.mipt.ru/answer'
+      url: 'https://7012.lnsigo.mipt.ru/answer'
 
   chitchat_odqa:
     batch_size: 5
@@ -50,7 +48,7 @@ services:
     connector_params:
       formatter: 'agent_chitchat_odqa_selector'
       caller: 'default'
-      url: 'http://127.0.0.1:5002/skill'
+      url: 'https://7040.lnsigo.mipt.ru/skill'
 
   max_confidence:
     batch_size: 100
@@ -72,7 +70,6 @@ channels: {}
 
 database:
   host: '127.0.0.1'
-  #host: '10.11.1.251'
   port: 10001
 
 transport:
