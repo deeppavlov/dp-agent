@@ -3,6 +3,7 @@ import bisect
 import logging
 import statistics
 import random
+import requests
 from collections import defaultdict
 from datetime import datetime
 from logging import config as log_config
@@ -32,7 +33,7 @@ class StressTestConnector:
         self._responses_left = 0
         self._got_all_responses = asyncio.Event()
         self._gateway: TChannelGateway = gateway_cls(config=config, to_channel_callback=self.send_to_channel)
-        self._utterance_generator = UtteranceGenerator(test_config['dialogs_abs_path'])
+        self._utterance_generator = UtteranceGenerator(test_config['dialogs_url'])
 
     def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
         results = list()
@@ -79,9 +80,16 @@ class StressTestConnector:
 
 
 class UtteranceGenerator:
-    def __init__(self, dialogs_abs_path: str) -> None:
-        dialogs_abs_path = Path(dialogs_abs_path).resolve()
-        with dialogs_abs_path.open('r') as f:
+    def __init__(self, dialogs_url: str) -> None:
+        dialogs_file_path = Path(__file__).resolve().parent / Path(dialogs_url).name
+
+        if not dialogs_file_path.is_file():
+            dialogs = requests.get(dialogs_url)
+            dialogs.raise_for_status()
+            with dialogs_file_path.open('w') as dialogs_file:
+                dialogs_file.write(dialogs.text)
+
+        with dialogs_file_path.open('r') as f:
             dialogs_str: str = f.read()
             self._examples = defaultdict(set)
 
