@@ -20,67 +20,19 @@ from tests.stress_tests.test_config import test_config
 loop = asyncio.get_event_loop()
 
 
-class StressTestConnector:
-    def __init__(self, config: dict) -> None:
-        self._channel_id = 'tests'
-        self._infer_is_successful = True
-        self._user_ids = list()
-
-        config['channel'] = config['channels'][self._channel_id] = {'id': self._channel_id}
-        transport_type = config['transport']['type']
-        gateway_cls = transport_map[transport_type]['channel']
-
-        self._responses_left = 0
-        self._got_all_responses = asyncio.Event()
-        self._gateway: TChannelGateway = gateway_cls(config=config, to_channel_callback=self.send_to_channel)
-        self._utterance_generator = UtteranceGenerator(test_config['dialogs_url'])
-
-    def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
-        results = list()
-        for _ in range(infers_num):
-            utters_list = [self._utterance_generator(utt_length) for _ in range(batch_size)]
-            self._user_ids = [str(uuid4()) for _ in range(batch_size)]
-            self._responses_left = batch_size
-            self._got_all_responses.clear()
-            self._infer_is_successful = True
-            results.append(loop.run_until_complete(self._infer_data(utters_list)))
-
-        passed, await_times = list(zip(*results))
-        faults_num = passed.count(False)
-        await_times = [infer[1] for infer in results if infer[0] is True]
-
-        await_avg = statistics.mean(await_times) if await_times else 0
-        await_std = statistics.stdev(await_times) if len(await_times) >= 2 else 0
-
-        return faults_num, await_avg, await_std
-
-    async def _infer_data(self, utterances: List[str]) -> Tuple[bool, float]:
-        time_begin = loop.time()
-        for user_id, utterance in zip(self._user_ids, utterances):
-            loop.create_task(self._gateway.send_to_agent(utterance=utterance,
-                                                         channel_id=self._channel_id,
-                                                         user_id=user_id,
-                                                         reset_dialog=False))
-        try:
-            await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
-        except asyncio.TimeoutError:
-            self._infer_is_successful = False
-
-        return self._infer_is_successful, loop.time() - time_begin
-
-    async def send_to_channel(self, user_id: str, response: str) -> None:
-        if response == TIMEOUT_MESSAGE:
-            self._infer_is_successful = False
-
-        if user_id in self._user_ids:
-            self._responses_left -= 1
-
-        if self._responses_left == 0:
-            self._got_all_responses.set()
-
-
 class UtteranceGenerator:
+    """Generates utterances from convaid dialogue data."""
+
     def __init__(self, dialogs_url: str) -> None:
+        """Prepares data from convai dialogs for utterances generation.
+
+        Downloads .txt file with dialogs from github to stress test folder
+
+        Args:
+            dialogs_url: URL to .txt file with convai dialogs.
+
+
+        """
         dialogs_file_path = Path(__file__).resolve().parent / Path(dialogs_url).name
 
         if not dialogs_file_path.is_file():
@@ -128,7 +80,110 @@ class UtteranceGenerator:
         return result
 
 
-def main():
+class StressTestConnector:
+    """Provides sending infers to services and receiving responses from them."""
+
+    _channel_id: str
+    _infer_is_successful: bool
+    _user_ids: List[str]
+    _responses_left: int
+    _got_all_responses: asyncio.Event
+    _gateway: TChannelGateway
+    _utterance_generator: UtteranceGenerator
+
+    def __init__(self, config: dict) -> None:
+        self._channel_id = 'tests'
+        self._infer_is_successful = True
+        self._user_ids = list()
+
+        config['channel'] = config['channels'][self._channel_id] = {'id': self._channel_id}
+        transport_type = config['transport']['type']
+        gateway_cls = transport_map[transport_type]['channel']
+
+        self._responses_left = 0
+        self._got_all_responses = asyncio.Event()
+        self._gateway = gateway_cls(config=config, to_channel_callback=self._send_to_channel)
+        self._utterance_generator = UtteranceGenerator(test_config['dialogs_url'])
+
+    def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
+        """Initiates sending infers to models and measuring response time.
+
+        Args:
+            batch_size: Number of users that will be send requests to agent.
+            utt_length: Length of generated with _utterance_generator utterance that will be sent to agent.
+            infers_num: The number of infers by which average time and standard deviation are calculated.
+
+        Returns:
+            faults_num: Number of failed infers.
+            await_avg: Average infer processing time.
+            await_std: Standard deviation of infer processing time.
+
+        """
+        results = list()
+        for _ in range(infers_num):
+            utters_list = [self._utterance_generator(utt_length) for _ in range(batch_size)]
+            self._user_ids = [str(uuid4()) for _ in range(batch_size)]
+            self._responses_left = batch_size
+            self._got_all_responses.clear()
+            self._infer_is_successful = True
+            results.append(loop.run_until_complete(self._infer_data(utters_list)))
+
+        passed, await_times = list(zip(*results))
+        faults_num = passed.count(False)
+        await_times = [infer[1] for infer in results if infer[0] is True]
+
+        await_avg = statistics.mean(await_times) if await_times else 0
+        await_std = statistics.stdev(await_times) if len(await_times) >= 2 else 0
+
+        return faults_num, await_avg, await_std
+
+    async def _infer_data(self, utterances: List[str]) -> Tuple[bool, float]:
+        """Sends utterances to agent and measures response time for one infer.
+
+        Args:
+            utterances: List of utterances to send to agent.
+
+        Returns:
+            infer_status: True if agent returned responses to all utterances, False if at least once returned timeout
+                message of TimeoutError has raised.
+            response_time: Time in seconds that it took the agent respond to all utterances.
+
+        """
+        time_begin = loop.time()
+        for user_id, utterance in zip(self._user_ids, utterances):
+            loop.create_task(self._gateway.send_to_agent(utterance=utterance,
+                                                         channel_id=self._channel_id,
+                                                         user_id=user_id,
+                                                         reset_dialog=False))
+        try:
+            await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
+        except asyncio.TimeoutError:
+            self._infer_is_successful = False
+
+        return self._infer_is_successful, loop.time() - time_begin
+
+    async def _send_to_channel(self, user_id: str, response: str) -> None:
+        """Method handles response from agent.
+
+        Checks if timeout message returned, counts returned messages.
+
+        Args:
+            user_id: User ID whose utterance agent responded to.
+            response: Text of agent response.
+
+        """
+        if response == TIMEOUT_MESSAGE:
+            self._infer_is_successful = False
+
+        if user_id in self._user_ids:
+            self._responses_left -= 1
+
+        if self._responses_left == 0:
+            self._got_all_responses.set()
+
+
+def main() -> None:
+    """Function starts tests and writes test results to standard output and .log files"""
     root_dir = Path(__file__).resolve().parents[2]
 
     config = get_config(root_dir / test_config['config_path'])

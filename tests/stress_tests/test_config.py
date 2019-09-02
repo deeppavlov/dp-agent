@@ -49,7 +49,7 @@ tests = {
 test_config = {
   'config_path': 'deployment/ner_chitchat_local/run_config.yaml',
   'dialogs_url': 'https://raw.githubusercontent.com/deepmipt/agent_stress_test/dev/dialogs.txt',
-  'infer_timeout': 300,
+  'infer_timeout': 30,
   'logging': log_config,
   'tests': [tests['max_batch_size'],
             tests['max_string_length_batch_1']]
