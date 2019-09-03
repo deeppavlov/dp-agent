@@ -13,7 +13,7 @@ from connectors.formatters import formatters_map
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', help='select agent component type', type=str, choices={'agent', 'service', 'channel'})
-parser.add_argument('-c', '--channel', help='channel id', type=str, choices={'cmd_client'})
+parser.add_argument('-c', '--channel', help='channel id', type=str, choices={'cmd_client', 'telegram'})
 parser.add_argument('-n', '--service-name', help='service name', type=str)
 parser.add_argument('-i', '--instance-id', help='service instance id', type=str, default='')
 parser.add_argument('--config', help='path to config', type=str, default='')
@@ -108,6 +108,7 @@ def main():
     elif mode == 'channel':
         channel_id = args.channel
         config['channels']['cmd_client'] = {}
+        config['channels']['telegram'] = {}
 
         if channel_id in config['channels'].keys():
             channel_config = config['channels'][channel_id]
