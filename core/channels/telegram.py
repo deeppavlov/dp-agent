@@ -24,12 +24,17 @@ def worker():
     API_TOKEN = ''
     bot = telebot.TeleBot(API_TOKEN)
     bot.remove_webhook()
-
     # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
     @bot.message_handler(func=lambda message: True)
     def echo_message(message):
         tg_end.send((message.from_user.id, message.text))
 
+    def send_to_telegram():
+        while True:
+            user_id, msg = tg_end.recv()
+            bot.send_message(int(user_id), msg)
+    thr = threading.Thread(target=send_to_telegram)
+    thr.start()
     bot.polling()
 
 
@@ -44,9 +49,8 @@ class TelegramConnector(ChannelConnectorBase):
         self._loop = asyncio.get_event_loop()
         self._loop.create_task(self.send_to_agent())
 
-
     async def send_to_channel(self, user_id: str, response: str) -> None:
-        print(f'<< {response}')
+        connector_end.send((user_id, response))
 
     async def send_to_agent(self):
         while True:
