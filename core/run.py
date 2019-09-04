@@ -107,8 +107,6 @@ def main():
 
     elif mode == 'channel':
         channel_id = args.channel
-        config['channels']['cmd_client'] = {}
-        config['channels']['telegram'] = {}
 
         if channel_id in config['channels'].keys():
             channel_config = config['channels'][channel_id]

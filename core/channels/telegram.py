@@ -7,8 +7,6 @@ from aiotg import Bot, Chat
 from core.transport.base import ChannelConnectorBase
 
 logger = getLogger(__name__)
-# TODO: move api token to config
-API_TOKEN = ''
 
 
 class TelegramConnector(ChannelConnectorBase):
@@ -20,7 +18,11 @@ class TelegramConnector(ChannelConnectorBase):
         super(TelegramConnector, self).__init__(config=config, on_channel_callback=on_channel_callback)
         self._loop = asyncio.get_event_loop()
 
-        self._bot = Bot(API_TOKEN)
+        api_token = config['channel'].get('api_token')
+        if not api_token:
+            raise ValueError('Wrong API token for telegram bot')
+
+        self._bot = Bot(api_token)
 
         @self._bot.command(r'.+')
         async def send_to_agent(chat: Chat, match: Match) -> None:
