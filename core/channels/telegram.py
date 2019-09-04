@@ -15,7 +15,7 @@ API_TOKEN = ''
 
 def tg_bot(child_conn: connection.Connection) -> None:
     """Initiates Telegram bot and starts message polling from Telegram and TelegramConnector."""
-    bot = telebot.TeleBot(API_TOKEN)
+    bot = telebot.TeleBot(API_TOKEN, threaded=False)
     bot.remove_webhook()
 
     @bot.message_handler(func=lambda message: True)
