@@ -66,7 +66,10 @@ services:
       formatter: 'agent_test_response_formatter'
       caller: 'default'
 
-channels: {}
+channels:
+  cmd_client: {}
+  telegram:
+    api_token: ''
 
 database:
   host: 'mongodb'

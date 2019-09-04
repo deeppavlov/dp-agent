@@ -9,13 +9,11 @@ import telebot
 from core.transport.base import ChannelConnectorBase
 
 logger = getLogger(__name__)
-# TODO: move api token to config
-API_TOKEN = ''
 
 
-def tg_bot(child_conn: connection.Connection) -> None:
+def tg_bot(api_token: str, child_conn: connection.Connection) -> None:
     """Initiates Telegram bot and starts message polling from Telegram and TelegramConnector."""
-    bot = telebot.TeleBot(API_TOKEN, threaded=False)
+    bot = telebot.TeleBot(api_token, threaded=False)
     bot.remove_webhook()
 
     @bot.message_handler(func=lambda message: True)
@@ -43,7 +41,10 @@ class TelegramConnector(ChannelConnectorBase):
         super(TelegramConnector, self).__init__(config=config, on_channel_callback=on_channel_callback)
         self._parent_conn, child_conn = Pipe()
 
-        telegram_bot_proc = Process(target=tg_bot, args=(child_conn,))
+        api_token = config['channel'].get('api_token')
+        if not api_token:
+            raise ValueError('Wrong API token for telegram bot')
+        telegram_bot_proc = Process(target=tg_bot, args=(api_token, child_conn,))
         telegram_bot_proc.start()
         logger.info('Telegram bot is launched')
 
