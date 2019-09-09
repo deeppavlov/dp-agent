@@ -36,13 +36,13 @@ tests = {
         'test_name': 'max_batch_size',
         'batch_size': list(range(20, 201, 20)),
         'utt_length': 20,
-        'infers_num': 1
+        'infers_num': 5
     },
     'max_string_length_batch_1': {
         'test_name': 'max_string_length_batch_1',
         'batch_size': 1,
         'utt_length': list(range(50, 1001, 50)),
-        'infers_num': 1
+        'infers_num': 5
     }
 }
 
