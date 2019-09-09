@@ -24,7 +24,7 @@ log_config = {
     'loggers': {
         'stress_logger': {
             'propagate': False,
-            'level': 'DEBUG',
+            'level': 'INFO',
             'handlers': ['log_to_stderr',
                          'log_to_file']
         }

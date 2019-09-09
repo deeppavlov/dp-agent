@@ -18,10 +18,16 @@ from core.transport.base import TChannelGateway
 from tests.stress_tests.test_config import test_config
 
 loop = asyncio.get_event_loop()
+log: logging.Logger
+
+
+def init_logger(config_name: str) -> None:
+    global log
+    log = logging.getLogger(config_name)
 
 
 class UtteranceGenerator:
-    """Generates utterances from convaid dialogue data."""
+    """Generates utterances from convai dialogue data."""
 
     def __init__(self, dialogs_url: str) -> None:
         """Prepares data from convai dialogs for utterances generation.
@@ -29,7 +35,7 @@ class UtteranceGenerator:
         Downloads .txt file with dialogs from github to stress test folder
 
         Args:
-            dialogs_url: URL to .txt file with convai dialogs.
+            dialogs_url: URL of convai dialogs  .txt file.
 
 
         """
@@ -105,11 +111,11 @@ class StressTestConnector:
         self._gateway = gateway_cls(config=config, to_channel_callback=self._send_to_channel)
         self._utterance_generator = UtteranceGenerator(test_config['dialogs_url'])
 
-    def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
+    async def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
         """Initiates sending infers to models and measuring response time.
 
         Args:
-            batch_size: Number of users that will be send requests to agent.
+            batch_size: Number of users that will send requests to agent.
             utt_length: Length of generated with _utterance_generator utterance that will be sent to agent.
             infers_num: The number of infers by which average time and standard deviation are calculated.
 
@@ -121,12 +127,12 @@ class StressTestConnector:
         """
         results = list()
         for _ in range(infers_num):
-            utters_list = [self._utterance_generator(utt_length) for _ in range(batch_size)]
+            utts_list = [self._utterance_generator(utt_length) for _ in range(batch_size)]
             self._user_ids = [str(uuid4()) for _ in range(batch_size)]
             self._responses_left = batch_size
             self._got_all_responses.clear()
             self._infer_is_successful = True
-            results.append(loop.run_until_complete(self._infer_data(utters_list)))
+            results.append(await self._infer_data(utts_list))
 
         passed, await_times = list(zip(*results))
         faults_num = passed.count(False)
@@ -155,6 +161,7 @@ class StressTestConnector:
                                                          channel_id=self._channel_id,
                                                          user_id=user_id,
                                                          reset_dialog=False))
+            log.debug(f'Sent task with user id: {user_id}, utterance: {utterance}')
         try:
             await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
         except asyncio.TimeoutError:
@@ -172,11 +179,14 @@ class StressTestConnector:
             response: Text of agent response.
 
         """
+        log.debug(f'Received response with user id: {user_id}, response: {response}')
         if response == TIMEOUT_MESSAGE:
             self._infer_is_successful = False
 
         if user_id in self._user_ids:
             self._responses_left -= 1
+        else:
+            log.debug(f'{user_id} is not in IDs list')
 
         if self._responses_left == 0:
             self._got_all_responses.set()
@@ -193,7 +203,7 @@ def main() -> None:
 
     test_config['logging']['handlers']['log_to_file']['filename'] = logs_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')}_test.log"
     log_config.dictConfig(test_config["logging"])
-    log = logging.root.manager.loggerDict['stress_logger']
+    init_logger('stress_logger')
     channel_connector: StressTestConnector = StressTestConnector(config)
     for test in test_config['tests']:
         log.info(f'Starting {test["test_name"]}')
@@ -209,7 +219,7 @@ def main() -> None:
         test_grid = [(bs, ul, inum) for bs in batch_size for ul in utt_length for inum in infers_num]
 
         for bs, ul, inum in test_grid:
-            faults_num, await_avg, await_std = channel_connector.run_test(bs, ul, inum)
+            faults_num, await_avg, await_std = loop.run_until_complete(channel_connector.run_test(bs, ul, inum))
 
             log.info(f'batch_size: {bs}, utt_length: {ul}, infers_num: {inum}, '
                      f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
