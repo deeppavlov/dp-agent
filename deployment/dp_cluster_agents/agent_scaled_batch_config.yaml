@@ -1,7 +1,7 @@
-agent_namespace: 'deeppavlov_agent'
+agent_namespace: 'deeppavlov_agent_scaled_batch'
 
 agent:
-  name: 'ner_chitchat_agent'
+  name: 'dp_agent_scaled_batch'
   response_timeout_sec: 10
 
   pipeline: {
@@ -30,7 +30,7 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://chitchat:5000/skill'
+      url: 'https://7030.lnsigo.mipt.ru/answer'
 
   odqa:
     batch_size: 1
@@ -48,7 +48,7 @@ services:
     connector_params:
       formatter: 'agent_chitchat_odqa_selector'
       caller: 'default'
-      url: 'http://chitchat_odqa:5000/skill'
+      url: 'https://7040.lnsigo.mipt.ru/answer'
 
   max_confidence:
     batch_size: 100
@@ -69,14 +69,14 @@ services:
 channels: {}
 
 database:
-  host: 'mongodb'
-  port: 27017
+  host: '127.0.0.1'
+  port: 10001
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: 'rabbitmq'
+    host: 10.11.1.251
     port: 5672
     login: 'guest'
     password: 'guest'

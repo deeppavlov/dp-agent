@@ -1,7 +1,7 @@
 agent_namespace: 'deeppavlov_agent'
 
 agent:
-  name: 'dp_agent'
+  name: 'ner_chitchat_agent'
   response_timeout_sec: 10
 
   pipeline: {
@@ -69,15 +69,15 @@ services:
 channels: {}
 
 database:
-  host: '127.0.0.1'
-  port: 10001
+  host: 'mongodb'
+  port: 27017
 
 transport:
   type: 'rabbitmq'
 
   rabbitmq:
     host: '127.0.0.1'
-    port: 10000
+    port: 11011
     login: 'guest'
     password: 'guest'
     virtualhost: '/'

@@ -16,13 +16,13 @@ or `dp-agent/deployment/ner_chitchat_local` if you want to run all services loca
 1. `cd` to demo dir
 2. Run `docker-compose build`
 3. Run `docker-compose up`
-4. Wait until services initialisation (`chitchat` usually initialises last with this
+4. Wait until services initialisation (if run services locally, `chitchat` usually initialises last with this
 message: `chitchat| * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)`)
 
 In other terminal to interact with bot:
 
 5. `cd` to `dp-agent`
 6. Activate virtual environment: `source env/bin/activate`
-7. Run `python core/run.py channel -c cmd_client --config deployment/ner_chitchat/config.yaml`
+7. Run `python core/run.py channel -c cmd_client --config deployment/ner_chitchat/run_config.yaml`
 (or if running all services locally: `python core/run.py channel -c cmd_client --config deployment/ner_chitchat_local/run_config.yaml`)
 8. To turn off run `docker-compose down` from demo dir

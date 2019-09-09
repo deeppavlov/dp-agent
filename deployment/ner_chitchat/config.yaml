@@ -30,7 +30,7 @@ services:
     connector_params:
       formatter: 'agent_ranking_chitchat_prep'
       caller: 'default'
-      url: 'http://chitchat:5000/skill'
+      url: 'https://7030.lnsigo.mipt.ru/answer'
 
   odqa:
     batch_size: 1
@@ -48,7 +48,7 @@ services:
     connector_params:
       formatter: 'agent_chitchat_odqa_selector'
       caller: 'default'
-      url: 'http://chitchat_odqa:5000/skill'
+      url: 'https://7040.lnsigo.mipt.ru/answer'
 
   max_confidence:
     batch_size: 100
@@ -76,8 +76,8 @@ transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '127.0.0.1'
-    port: 11011
+    host: 'rabbitmq'
+    port: 5672
     login: 'guest'
     password: 'guest'
     virtualhost: '/'

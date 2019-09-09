@@ -1,4 +1,5 @@
 .gitignore
 .git/
 .idea/
+env/
 agent.egg-info

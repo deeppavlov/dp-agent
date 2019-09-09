@@ -1,7 +1,7 @@
-agent_namespace: 'deeppavlov_agent'
+agent_namespace: 'deeppavlov_agent_simple'
 
 agent:
-  name: 'dp_agent'
+  name: 'dp_agent_simple'
   response_timeout_sec: 10
 
   pipeline: {
@@ -76,8 +76,8 @@ transport:
   type: 'rabbitmq'
 
   rabbitmq:
-    host: '127.0.0.1'
-    port: 10000
+    host: 10.11.1.251
+    port: 5672
     login: 'guest'
     password: 'guest'
     virtualhost: '/'
