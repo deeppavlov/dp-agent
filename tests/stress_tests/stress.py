@@ -204,7 +204,7 @@ class StressTestConnector:
                 faults_num, await_avg, await_std = await self._run_test(bs, ul, inum)
 
                 self._log.info(f'batch_size: {bs}, utt_length: {ul}, infers_num: {inum}, '
-                               f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
+                               f'FAULTS: {faults_num}, AVG_TIME: {await_avg:.2f}, STD {await_std:.2f}')
 
 
 def main() -> None:
