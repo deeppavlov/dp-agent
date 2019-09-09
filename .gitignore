@@ -108,3 +108,6 @@ venv.bak/
 
 #GIT
 .git/
+
+# Project
+tests/stress_tests/dialogs.txt
