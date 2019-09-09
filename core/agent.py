@@ -76,6 +76,8 @@ class Agent:
             async with self._dialog_locks[channel_user_key]:
                 await self._add_service_responses(channel_user_key, partial_dialog_state)
                 await self._route_to_next_services(channel_user_key)
+        else:
+            logger.warning(f'Dialog id {dialog_id} was not found in _dialog_id_key_map')
 
     async def _add_service_responses(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
         last_received_utterance = partial_dialog_state['utterances'][0]
@@ -141,7 +143,12 @@ class Agent:
 
             if dialog:
                 await run_sync_in_executor(dialog.save)
-                self._dialog_id_key_map.pop(str(dialog.id), None)
+                dialog_id = str(dialog.id)
+                if self._dialog_id_key_map.pop(dialog_id, None):
+                    logger.debug(f'Dialog id {dialog_id} was removed from _dialog_id_key_map')
+                else:
+                    logger.warning(f'Dialog id {dialog_id} was not found in _dialog_id_key_map')
+
 
             dialog = dialogs[0]
             self._dialogs[channel_user_key] = dialogs[0]
