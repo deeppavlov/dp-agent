@@ -128,12 +128,12 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
         message_in: TMessageBase = get_transport_message(json.loads(message.body, encoding='utf-8'))
+        await message.ack()
 
         if isinstance(message_in, ServiceResponseMessage):
             logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
             partial_dialog_state = message_in.partial_dialog_state
             await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
-            await message.ack()
 
         elif isinstance(message_in, FromChannelMessage):
             utterance = message_in.utterance
@@ -145,8 +145,6 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                                    channel_id=channel_id,
                                                                    user_id=user_id,
                                                                    reset_dialog=reset_dialog))
-
-            await message.ack()
 
     async def send_to_service(self, service_name: str, dialog_state: dict) -> None:
         task_uuid = str(uuid4())
