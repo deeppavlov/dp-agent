@@ -17,8 +17,6 @@ from core.transport import transport_map
 from core.transport.base import TChannelGateway
 from tests.stress_tests.test_config import test_config
 
-loop = asyncio.get_event_loop()
-
 
 class UtteranceGenerator:
     """Generates utterances from convai dialogue data."""
@@ -30,7 +28,6 @@ class UtteranceGenerator:
 
         Args:
             dialogs_url: URL of convai dialogs  .txt file.
-
 
         """
         dialogs_file_path = Path(__file__).resolve().parent / Path(dialogs_url).name
@@ -88,6 +85,7 @@ class StressTestConnector:
     _got_all_responses: asyncio.Event
     _infer_is_successful: bool
     _log: logging.Logger
+    _loop: asyncio.AbstractEventLoop
     _responses_left: int
     _user_ids: List[str]
     _utterance_generator: UtteranceGenerator
@@ -97,6 +95,7 @@ class StressTestConnector:
         self._infer_is_successful = True
         self._user_ids = list()
         self._log = logging.getLogger('stress_logger')
+        self._loop = asyncio.get_event_loop()
 
         config['channel'] = config['channels'][self._channel_id] = {'id': self._channel_id}
         transport_type = config['transport']['type']
@@ -151,19 +150,19 @@ class StressTestConnector:
             response_time: Time in seconds that it took the agent respond to all utterances.
 
         """
-        time_begin = loop.time()
+        time_begin = self._loop.time()
         for user_id, utterance in zip(self._user_ids, utterances):
-            loop.create_task(self._gateway.send_to_agent(utterance=utterance,
-                                                         channel_id=self._channel_id,
-                                                         user_id=user_id,
-                                                         reset_dialog=False))
+            self._loop.create_task(self._gateway.send_to_agent(utterance=utterance,
+                                                               channel_id=self._channel_id,
+                                                               user_id=user_id,
+                                                               reset_dialog=False))
             self._log.debug(f'Sent task with user id: {user_id}, utterance: {utterance}')
         try:
             await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
         except asyncio.TimeoutError:
             self._infer_is_successful = False
 
-        return self._infer_is_successful, loop.time() - time_begin
+        return self._infer_is_successful, self._loop.time() - time_begin
 
     async def _send_to_channel(self, user_id: str, response: str) -> None:
         """Method handles response from agent.
@@ -205,11 +204,13 @@ class StressTestConnector:
                 faults_num, await_avg, await_std = await self._run_test(bs, ul, inum)
 
                 self._log.info(f'batch_size: {bs}, utt_length: {ul}, infers_num: {inum}, '
-                         f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
+                               f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
 
 
 def main() -> None:
     """Function starts tests and writes test results to standard output and .log files"""
+    loop = asyncio.get_event_loop()
+
     root_dir = Path(__file__).resolve().parents[2]
 
     config = get_config(root_dir / test_config['config_path'])
