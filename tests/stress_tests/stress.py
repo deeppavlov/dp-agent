@@ -181,7 +181,7 @@ class StressTestConnector:
         if user_id in self._user_ids:
             self._responses_left -= 1
         else:
-            self._log.debug(f'{user_id} is not in IDs list')
+            self._log.warning(f'{user_id} is not in IDs list')
 
         if self._responses_left == 0:
             self._got_all_responses.set()
