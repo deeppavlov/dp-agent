@@ -34,22 +34,22 @@ log_config = {
 tests = {
     'max_batch_size': {
         'test_name': 'max_batch_size',
-        'batch_size': list(range(10, 201, 10)),
+        'batch_size': list(range(20, 401, 20)),
         'utt_length': 20,
-        'infers_num': 1
+        'infers_num': 5
     },
     'max_string_length_batch_1': {
-        'test_name': 'max_string_length_batch_1',
-        'batch_size': 1,
-        'utt_length': list(range(50, 100, 50)),
-        'infers_num': 1
-    }
+         'test_name': 'max_string_length_batch_1',
+         'batch_size': 1,
+         'utt_length': list(range(50, 1001, 50)),
+         'infers_num': 5
+     }
 }
 
 test_config = {
-  'config_path': 'deployment/ner_chitchat_local/run_config.yaml',
+  'config_path': 'deployment/dp_cluster_agents/agent_scaled_batch_config.yaml',
   'dialogs_url': 'https://raw.githubusercontent.com/deepmipt/agent_stress_test/dev/dialogs.txt',
-  'infer_timeout': 30,
+  'infer_timeout': 1800,
   'logging': log_config,
   'tests': [tests['max_batch_size'],
             tests['max_string_length_batch_1']]

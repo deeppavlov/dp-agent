@@ -1,12 +1,12 @@
 import asyncio
 import bisect
-import logging
+#import logging
 import statistics
 import random
 import requests
 from collections import defaultdict
 from datetime import datetime
-from logging import config as log_config
+from logging import config as log_config, Logger, getLogger
 from pathlib import Path
 from typing import List, Tuple
 from uuid import uuid4
@@ -16,8 +16,6 @@ from core.config import get_config
 from core.transport import transport_map
 from core.transport.base import TChannelGateway
 from tests.stress_tests.test_config import test_config
-
-loop = asyncio.get_event_loop()
 
 
 class UtteranceGenerator:
@@ -83,6 +81,9 @@ class UtteranceGenerator:
 class StressTestConnector:
     """Provides sending infers to services and receiving responses from them."""
 
+    _config: dict
+    _loop: asyncio.AbstractEventLoop
+    _log: Logger
     _channel_id: str
     _infer_is_successful: bool
     _user_ids: List[str]
@@ -92,6 +93,12 @@ class StressTestConnector:
     _utterance_generator: UtteranceGenerator
 
     def __init__(self, config: dict) -> None:
+        self._config = config
+        self._loop = asyncio.get_event_loop()
+
+        log_config.dictConfig(test_config['logging'])
+        self._log = getLogger('stress_logger')
+
         self._channel_id = 'tests'
         self._infer_is_successful = True
         self._user_ids = list()
@@ -105,7 +112,31 @@ class StressTestConnector:
         self._gateway = gateway_cls(config=config, to_channel_callback=self._send_to_channel)
         self._utterance_generator = UtteranceGenerator(test_config['dialogs_url'])
 
-    def run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
+    async def start_testing(self) -> None:
+        for test in test_config['tests']:
+            self._log.info(f'Starting {test["test_name"]}')
+
+            batch_size = test['batch_size']
+            utt_length = test['utt_length']
+            infers_num = test['infers_num']
+
+            batch_size = list(range(batch_size, batch_size + 1, 1)) if isinstance(batch_size, int) else list(batch_size)
+            utt_length = list(range(utt_length, utt_length + 1, 1)) if isinstance(utt_length, int) else list(utt_length)
+            infers_num = list(range(infers_num, infers_num + 1, 1)) if isinstance(infers_num, int) else list(infers_num)
+
+            test_grid = [(bs, ul, inum) for bs in batch_size for ul in utt_length for inum in infers_num]
+
+            for bs, ul, inum in test_grid:
+                faults_num, await_avg, await_std = await self._run_test(bs, ul, inum)
+
+                self._log.info(f'batch_size: {bs}, utt_length: {ul}, infers_num: {inum}, '
+                               f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
+
+            self._log.info(f'Completed {test["test_name"]}')
+
+        self._log.info(f'All tests completed')
+
+    async def _run_test(self, batch_size: int, utt_length: int = 5, infers_num: int = 1) -> Tuple[int, float, float]:
         """Initiates sending infers to models and measuring response time.
 
         Args:
@@ -126,7 +157,7 @@ class StressTestConnector:
             self._responses_left = batch_size
             self._got_all_responses.clear()
             self._infer_is_successful = True
-            results.append(loop.run_until_complete(self._infer_data(utters_list)))
+            results.append(await self._infer_data(utters_list))
 
         passed, await_times = list(zip(*results))
         faults_num = passed.count(False)
@@ -149,18 +180,19 @@ class StressTestConnector:
             response_time: Time in seconds that it took the agent respond to all utterances.
 
         """
-        time_begin = loop.time()
+        time_begin = self._loop.time()
         for user_id, utterance in zip(self._user_ids, utterances):
-            loop.create_task(self._gateway.send_to_agent(utterance=utterance,
-                                                         channel_id=self._channel_id,
-                                                         user_id=user_id,
-                                                         reset_dialog=False))
+            await self._loop.create_task(self._gateway.send_to_agent(utterance=utterance,
+                                                                     channel_id=self._channel_id,
+                                                                     user_id=user_id,
+                                                                     reset_dialog=False))
+
         try:
             await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
         except asyncio.TimeoutError:
             self._infer_is_successful = False
 
-        return self._infer_is_successful, loop.time() - time_begin
+        return self._infer_is_successful, self._loop.time() - time_begin
 
     async def _send_to_channel(self, user_id: str, response: str) -> None:
         """Method handles response from agent.
@@ -172,6 +204,7 @@ class StressTestConnector:
             response: Text of agent response.
 
         """
+
         if response == TIMEOUT_MESSAGE:
             self._infer_is_successful = False
 
@@ -184,6 +217,8 @@ class StressTestConnector:
 
 def main() -> None:
     """Function starts tests and writes test results to standard output and .log files"""
+    loop = asyncio.get_event_loop()
+
     root_dir = Path(__file__).resolve().parents[2]
 
     config = get_config(root_dir / test_config['config_path'])
@@ -191,28 +226,13 @@ def main() -> None:
     logs_dir = Path(__file__).resolve().parent / 'logs'
     logs_dir.mkdir(exist_ok=True)
 
-    test_config['logging']['handlers']['log_to_file']['filename'] = logs_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')}_test.log"
-    log_config.dictConfig(test_config["logging"])
-    log = logging.root.manager.loggerDict['stress_logger']
+    test_config['logging']['handlers']['log_to_file']['filename'] = \
+        logs_dir / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')}_test.log"
+
     channel_connector: StressTestConnector = StressTestConnector(config)
-    for test in test_config['tests']:
-        log.info(f'Starting {test["test_name"]}')
 
-        batch_size = test['batch_size']
-        utt_length = test['utt_length']
-        infers_num = test['infers_num']
-
-        batch_size = list(range(batch_size, batch_size + 1, 1)) if isinstance(batch_size, int) else list(batch_size)
-        utt_length = list(range(utt_length, utt_length + 1, 1)) if isinstance(utt_length, int) else list(utt_length)
-        infers_num = list(range(infers_num, infers_num + 1, 1)) if isinstance(infers_num, int) else list(infers_num)
-
-        test_grid = [(bs, ul, inum) for bs in batch_size for ul in utt_length for inum in infers_num]
-
-        for bs, ul, inum in test_grid:
-            faults_num, await_avg, await_std = channel_connector.run_test(bs, ul, inum)
-
-            log.info(f'batch_size: {bs}, utt_length: {ul}, infers_num: {inum}, '
-                     f'FAULTS: {faults_num}, AVG_TIME: {await_avg}, STD {await_std}')
+    loop.create_task(channel_connector.start_testing())
+    loop.run_forever()
 
 
 if __name__ == '__main__':
