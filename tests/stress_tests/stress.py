@@ -186,6 +186,7 @@ class StressTestConnector:
                                                                      channel_id=self._channel_id,
                                                                      user_id=user_id,
                                                                      reset_dialog=False))
+            self._log.debug(f'Sent task with user id: {user_id}, utterance: {utterance}')
 
         try:
             await asyncio.wait_for(self._got_all_responses.wait(), timeout=test_config['infer_timeout'])
@@ -204,6 +205,7 @@ class StressTestConnector:
             response: Text of agent response.
 
         """
+        self._log.debug(f'Received response with user id: {user_id}, response: {response}')
 
         if response == TIMEOUT_MESSAGE:
             self._infer_is_successful = False
