@@ -8,14 +8,15 @@ import yaml
 
 from config import *
 
+ANNOTATORS = [ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3]
+
 # generate component url
-for service in chain(ANNOTATORS, SKILL_SELECTORS, SKILLS, RESPONSE_SELECTORS, POSTPROCESSORS):
+for service in chain(*ANNOTATORS, SKILL_SELECTORS, SKILLS, RESPONSE_SELECTORS,
+                     POSTPROCESSORS):
     host = service['name'] if getenv('DPA_LAUNCHING_ENV') == 'docker' else service['host']
     service['url'] = f"{service['protocol']}://{host}:{service['port']}/{service['endpoint']}"
 
-HOST = 'mongo' if getenv('DPA_LAUNCHING_ENV') == 'docker' else HOST
-TELEGRAM_TOKEN = TELEGRAM_TOKEN or getenv('TELEGRAM_TOKEN')
-TELEGRAM_PROXY = TELEGRAM_PROXY or getenv('TELEGRAM_PROXY')
+DB_HOST = 'mongo' if getenv('DPA_LAUNCHING_ENV') == 'docker' else DB_HOST
 
 
 def _get_config_path(component_config: dict) -> dict:
@@ -51,8 +52,8 @@ if _run_config_path.is_file():
         MAX_WORKERS = config.get('MAX_WORKERS', MAX_WORKERS)
 
         DB_NAME = config.get('DB_NAME', DB_NAME)
-        HOST = config.get('HOST', HOST)
-        PORT = config.get('PORT', PORT)
+        DB_HOST = config.get('HOST', DB_HOST)
+        DB_PORT = config.get('PORT', DB_PORT)
 
         for group in _component_groups:
             setattr(_module, group, list(map(_get_config_path, config.get(group, []))))

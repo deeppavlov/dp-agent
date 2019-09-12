@@ -8,7 +8,7 @@ so the platform should have the following characteristics:
     * be stable at highload environment
     * save and pass the chatbot state_ across all the connected models
 
-.. image:: ../_static/Agent_Pipeline.png
+.. image:: ../_static/Agent_Pipeline_v2.png
    :height: 600
    :align: center
    :alt: Architecture
@@ -22,7 +22,7 @@ so the platform should have the following characteristics:
   There are different types of services:
 
     * ``Annotator`` is a service for utterance preprocessing. It can be some basic text preprocessing like
-      coreference resolution, named entiry recognition, spell correction, etc.;
+      coreference resolution, named entity recognition, spell correction, etc.;
 
     * ``Skill`` is a service producing a bot reply to a user utterance;
 
@@ -34,7 +34,7 @@ so the platform should have the following characteristics:
     * ``Postprocessor`` is a service postprocessing a bot utterance. It can make some basic things
       like adding a user name to the reply, inserting emojis, etc.;
 
-    * ``Response`` is a final postprocessed bot utterance that is shown to the user.
+    * ``Postprocessed Response`` is a final postprocessed bot utterance that is shown to the user.
 
     * ``State`` is current dialogs between users and a bot serialized as **json**. State is used to pass information
       across the services and contains all possibly needed information about the current dialogs.
@@ -53,6 +53,25 @@ Services Configuration
 You can configure services at the Agent `config file`_.
 
 **Config Description**
+
+**Database**
+
+All default values are taken from `Mongo DB documentation <mongo-docs_>`__. Please refer to these docs if you need to
+change anything.
+
+* **DB_NAME**
+    * An name of the database. Default name is **"test"**
+* **DB_HOST**
+    * A database host, **"127.0.0.1"** by default
+* **DB_PORT**
+    * A database port, **"27017"** by default
+* **DB_PATH**
+    * A database data path. Default path is **"/data/db"**.
+
+    Please make sure that this path exists on your machine and has valid permissions.
+
+
+**Services**
 
 * **name**
     * An arbitrary and unique name of the service
@@ -109,7 +128,7 @@ Services Deployment
 
         EXTERNAL_FOLDER=<path to data directory>
 
-7. (optional) If you want to communicate with the bot via Telegram, setup the following environment variables:
+7. (optional) If you want to communicate with the Agent via Telegram, setup the following environment variables:
 
    .. code:: bash
 
@@ -123,11 +142,13 @@ Services Deployment
        TELEGRAM_TOKEN=123456789:AAGCiO0QFb_I-GXL-CbJDw7--JQbHkiQyYA
        TELEGRAM_PROXY=socks5://tgproxy:tgproxy_pwd@123.45.67.89:1447
 
-8. Configure all skills, skill selectors, response selectors, annotators and database connection in the `config file`_.
-   If you want a particular skill to use GPU, set its ``gpu`` value to ``True``.
+   If you run the Agent via docker, put this variables into a file and configure it's path under ``AGENT_ENV_FILE``
+   variable in the `config file`_. This file name is automatically picked up when the docker-compose file
+   is being generated.
 
-   If you want a minimal configuration, you need one skill and one skill selector.
-   Pick skill ``chitchat`` and  selector ``chitchat_odqa`` and comment out all other skills, selectors and annotators.
+8. Configure all skills, skill selectors, response selectors, annotators and database connection in the `config file`_.
+
+   If you want a minimal configuration, you need only one skill.
 
 9. Generate a `Docker environment configuration`_  by running the command:
 
@@ -249,6 +270,124 @@ Agent can run both from container and from a local machine. The default Agent po
 
     In case of wrong format, HTTP errors will be returned
 
+3. In addition to everything else the HTTP api server allows viewing dialogs in the database through GET requests.
+   The result is returned in json format which can be easily prettifyed with various browser extensions.
+
+    Three main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
+
+      * http://localhost:4242/dialogs - provides list of all dialogs (without utterances)
+      * http://localhost:4242/dialogs/all - provides list of all dialogs (with utterances)
+      * http://localhost:4242/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
+
+
+Analyzing the data
+==================
+
+All conversations with the Agent are stored to a Mongo DB. When they are dumped, they have
+the same format as the Agent's state_. Someone may need to dump and analyze the whole dialogs,
+or users, or annotations. For now, the following Mongo collections are available and can be
+dumped separately:
+
+    * Human
+    * Bot
+    * User (Human & Bot)
+    * HumanUtterance
+    * BotUtterance
+    * Utterance (HumanUtterance & BotUtterance)
+    * Dialog
+
+To dump a DB collection, make sure that ``mongoengine`` is installed:
+
+    .. code:: bash
+
+        pip install mongoengine==0.17.0
+
+Then run:
+
+    .. code:: bash
+
+         python -m utils.get_db_data [collections]
+
+For example:
+
+    .. code:: bash
+
+         python -m utils.get_db_data Dialog User
+
+Testing HTTP API and automatic processing of predefined dialogs
+=================================================================
+
+In order to process predefined dialogs or generate a random one from predefined list of phrases
+you can use `utils/http_api_script.py` script.
+
+Make sure that ``aiohttp`` is installed:
+
+    .. code:: bash
+
+        pip install aiohttp==3.5.4
+
+**Processing a predefined dialog**
+
+In this mode the script will pass predefined dialogs from the file ``-df`` to the agent's API.
+
+1. Create a JSON file with a dialog. You can find an example in ``utils/ru_test_dialogs.json``:
+    
+    .. code:: javascript
+
+          {
+              "uuid1": ["phrase1.1", "phrase1.2", "..."],
+              "uuid2": ["phrase2.1", "phrase2.2", "..."],
+              "uuid3": ["phrase3.1", "phrase3.2", "..."],
+          }
+
+2. Run:
+
+    .. code:: bash
+
+         python utils/http_api_test.py -u <api url> -df <dialogs file path>
+
+
+3. The command line arguments are:
+    
+    * -u --url - url address of the agent's API
+    * -df --datafile - path to a file with predefined dialogs
+
+**Processing a random dialog from predefined phrases**
+
+In this mode the script will generate ``-uc`` dialogs with ``-pc`` phrases in each. Phrases will be selected randomly from the phrase file ``-pf`` and passed to the agent's API.
+
+1. Create a file with sample phrases. This is a simple text file with one phrase per line.
+
+   You can find an example in ``utils/ru_test_phrases.txt``:
+
+2. Run:
+
+    .. code:: bash
+
+         python utils/http_api_test.py -u <api url> -pf <phrases file path> -uc <user count> -pc <phrase per dialog count>
+
+3. The command line arguments are:
+    
+    * -u --url - url address of the agent's API
+    * -pf --phrasefile - path to a file with predefined sample phrases
+    * -uc --usercount - number of users taking part in the dialogs
+    * -pc --phrasecount - number of phrases in each dialog
+
+
+
+Testing Agent in a batch mode
+=============================
+
+To test how the Agent replies if it receives a list of utterances, use ``utils/agent_test.py``. Pass a file with
+a list of utterances as input. Use the existing ``utils/ru_test_phrases.py`` or create your own file:
+
+
+    .. code:: bash
+
+         python utils/agent_batch_test.py utils/ru_test_phrases.py
+
+
+
 .. _config file: https://github.com/deepmipt/dp-agent/blob/master/config.py
 .. _DeepPavlov: https://github.com/deepmipt/DeepPavlov
 .. _Docker: https://docs.docker.com/install/
@@ -257,3 +396,4 @@ Agent can run both from container and from a local machine. The default Agent po
 .. _Docker environment configuration: https://github.com/deepmipt/dp-agent/blob/master/docker-compose.yml
 .. _docker-exec: https://docs.docker.com/engine/reference/commandline/exec/
 .. _state: https://deeppavlov-agent.readthedocs.io/en/latest/_static/api.html
+.. _mongo-docs: https://docs.mongodb.com/manual/tutorial/manage-mongodb-processes/

@@ -52,18 +52,26 @@ def last_utterances(payload, model_args_names):
 
 
 def base_skill_output_formatter(payload):
+    """Works with a single batch instance
+
+    Args:
+       payload: one batch instance
+
+    Returns: a formatted batch instance
+
+    """
     return {"text": payload[0],
             "confidence": payload[1]}
 
 
-def base_annotator_formatter(payload: Any, model_args_names=('context',), mode='in'):
+def base_annotator_formatter(payload: Any, model_args_names=('x',), mode='in'):
     if mode == 'in':
         return last_utterances(payload, model_args_names)
     elif mode == 'out':
         return payload
 
 
-def ner_formatter(payload: Any, model_args_names=('context',), mode='in'):
+def ner_formatter(payload: Any, model_args_names=('x',), mode='in'):
     if mode == 'in':
         return last_utterances(payload, model_args_names)
     elif mode == 'out':
@@ -71,14 +79,14 @@ def ner_formatter(payload: Any, model_args_names=('context',), mode='in'):
                 'tags': payload[1]}
 
 
-def sentiment_formatter(payload: Any, model_args_names=('context',), mode='in'):
+def sentiment_formatter(payload: Any, model_args_names=('x',), mode='in'):
     if mode == 'in':
         return last_utterances(payload, model_args_names)
     elif mode == 'out':
         return [el[0] for el in payload]
 
 
-def chitchat_odqa_formatter(payload: Any, model_args_names=('context',), mode='in'):
+def chitchat_odqa_formatter(payload: Any, model_args_names=('x',), mode='in'):
     if mode == 'in':
         return last_utterances(payload, model_args_names)
     elif mode == 'out':
@@ -92,16 +100,25 @@ def chitchat_odqa_formatter(payload: Any, model_args_names=('context',), mode='i
         return response
 
 
-def odqa_formatter(payload: Any, model_args_names=('context',), mode='in'):
+def odqa_formatter(payload: Any, model_args_names=('question_raw',), mode='in'):
     if mode == 'in':
         return last_utterances(payload, model_args_names)
     elif mode == 'out':
-        return base_skill_output_formatter(payload)
+        return {"text": payload[0],
+                "confidence": 0.5}
 
 
-def chitchat_formatter(payload: Any,
-                       model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs'),
-                       mode='in'):
+def chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
+    if mode == 'in':
+        return last_utterances(payload, model_args_names)
+    elif mode == 'out':
+        return {"text": payload[0],
+                "confidence": 0.5}
+
+
+def chitchat_example_formatter(payload: Any,
+                               model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs'),
+                               mode='in'):
     if mode == 'in':
         parsed = base_input_formatter(payload)
         return {model_args_names[0]: parsed['last_utterances'],

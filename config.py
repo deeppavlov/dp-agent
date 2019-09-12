@@ -1,13 +1,15 @@
+from functools import partial
+
 from state_formatters.dp_formatters import *
 
-TELEGRAM_TOKEN = ''
-TELEGRAM_PROXY = ''
-
 DB_NAME = 'test'
-HOST = '127.0.0.1'
-PORT = 27017
+DB_HOST = '127.0.0.1'
+DB_PORT = 27017
+DB_PATH = '/data/db'
 
 MAX_WORKERS = 4
+
+AGENT_ENV_FILE = "agent.env"
 
 SKILLS = [
     {
@@ -15,7 +17,7 @@ SKILLS = [
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2080,
-        "endpoint": "odqa",
+        "endpoint": "model",
         "path": "odqa/ru_odqa_infer_wiki",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
@@ -35,30 +37,33 @@ SKILLS = [
         },
         "profile_handler": True,
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter
+        "formatter": chitchat_formatter
     }
 ]
 
-ANNOTATORS = [
+ANNOTATORS_1 = [
     {
         "name": "ner",
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2083,
-        "endpoint": "ner",
+        "endpoint": "model",
         "path": "ner/ner_rus",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
         "formatter": ner_formatter
-    },
+    }
+]
+
+ANNOTATORS_2 = [
     {
         "name": "sentiment",
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2084,
-        "endpoint": "intents",
+        "endpoint": "model",
         "path": "classifiers/rusentiment_cnn",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
@@ -68,13 +73,15 @@ ANNOTATORS = [
     }
 ]
 
+ANNOTATORS_3 = []
+
 SKILL_SELECTORS = [
     {
         "name": "chitchat_odqa",
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2082,
-        "endpoint": "intents",
+        "endpoint": "model",
         "path": "classifiers/rusentiment_bigru_superconv",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""

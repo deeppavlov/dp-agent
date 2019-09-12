@@ -1,8 +1,10 @@
 import argparse
 import time
+from os import getenv
 
 from aiohttp import web
 from datetime import datetime
+from string import hexdigits
 from threading import Thread
 from multiprocessing import Process, Pipe
 from multiprocessing.connection import Connection
@@ -10,8 +12,6 @@ from typing import Callable, Optional, Collection, Hashable, List, Tuple
 
 import telebot
 from telebot.types import Message, Location, User
-
-from core.transform_config import TELEGRAM_TOKEN, TELEGRAM_PROXY
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
@@ -31,8 +31,10 @@ def _model_process(model_function: Callable, conn: Connection, batch_size: int =
 
     while True:
         batch: List[Tuple[str, Hashable]] = []
-        while conn.poll() and len(batch) < batch_size and time.time() - check_time <= poll_period:
+        while conn.poll() and len(batch) < batch_size:
             batch.append(conn.recv())
+            if time.time() - check_time >= poll_period:
+                break
 
         if not batch:
             continue
@@ -46,8 +48,8 @@ def _model_process(model_function: Callable, conn: Connection, batch_size: int =
 
 def experimental_bot(
         model_function: Callable[
-            ..., Callable[[Collection[Message], Collection[Hashable]], Collection[str]]],
-        token: str, proxy: Optional[str] = None, *, batch_size: int = -1, poll_period: float = 0.5):
+            ..., Callable[[Collection[Message], Collection[Hashable]], Collection[str]]], *,
+        batch_size: int = -1, poll_period: float = 0.5):
     """
 
     Args:
@@ -60,6 +62,10 @@ def experimental_bot(
     Returns: None
 
     """
+
+    token = getenv('TELEGRAM_TOKEN')
+    proxy = getenv('TELEGRAM_PROXY')
+
     if proxy is not None:
         telebot.apihelper.proxy = {'https': proxy}
 
@@ -92,7 +98,7 @@ def run():
     from core.rest_caller import RestCaller
     from models.postprocessor import DefaultPostprocessor
     from models.response_selector import ConfidenceResponseSelector
-    from core.transform_config import MAX_WORKERS, ANNOTATORS, SKILL_SELECTORS, SKILLS
+    from core.transform_config import MAX_WORKERS, ANNOTATORS, SKILL_SELECTORS, SKILLS, RESPONSE_SELECTORS
 
     import logging
 
@@ -100,26 +106,40 @@ def run():
 
     state_manager = StateManager()
 
-    anno_names, anno_urls, anno_formatters = zip(
-        *[(a['name'], a['url'], a['formatter']) for a in ANNOTATORS])
-    preprocessor = RestCaller(max_workers=MAX_WORKERS, names=anno_names, urls=anno_urls,
-                               formatters=anno_formatters)
+    preprocessors = []
+    for ants in ANNOTATORS:
+        if ants:
+            anno_names, anno_urls, anno_formatters = zip(
+                *[(a['name'], a['url'], a['formatter']) for a in ants])
+        else:
+            anno_names, anno_urls, anno_formatters = [], [], []
+        preprocessors.append(RestCaller(max_workers=MAX_WORKERS, names=anno_names, urls=anno_urls,
+                                        formatters=anno_formatters))
+
     postprocessor = DefaultPostprocessor()
     skill_caller = RestCaller(max_workers=MAX_WORKERS)
-    response_selector = ConfidenceResponseSelector()
+
+    if RESPONSE_SELECTORS:
+        rs_names, rs_urls, rs_formatters = zip(
+            *[(rs['name'], rs['url'], rs['formatter']) for rs in RESPONSE_SELECTORS])
+        response_selector = RestCaller(max_workers=MAX_WORKERS, names=rs_names, urls=rs_urls,
+                                       formatters=rs_formatters)
+    else:
+        response_selector = ConfidenceResponseSelector()
+
     skill_selector = None
     if SKILL_SELECTORS:
         ss_names, ss_urls, ss_formatters = zip(
-            *[(selector['name'], selector['url'], selector['formatter']) for selector in
-              SKILL_SELECTORS])
+            *[(ss['name'], ss['url'], ss['formatter']) for ss in SKILL_SELECTORS])
         skill_selector = RestCaller(max_workers=MAX_WORKERS, names=ss_names, urls=ss_urls,
-                                   formatters=ss_formatters)
+                                    formatters=ss_formatters)
+
     skill_manager = SkillManager(skill_selector=skill_selector, response_selector=response_selector,
                                  skill_caller=skill_caller,
                                  profile_handlers=[skill['name'] for skill in SKILLS
                                                    if skill.get('profile_handler')])
 
-    agent = Agent(state_manager, preprocessor, postprocessor, skill_manager)
+    agent = Agent(state_manager, preprocessors, postprocessor, skill_manager)
 
     def infer_telegram(messages: Collection[Message], dialog_ids):
         utterances: List[Optional[str]] = [message.text for message in messages]
@@ -167,6 +187,8 @@ async def init_app():
     app = web.Application()
     handle_func = await api_message_processor(run())
     app.router.add_post('/', handle_func)
+    app.router.add_get('/dialogs', users_dialogs)
+    app.router.add_get('/dialogs/{dialog_id}', dialog)
     return app
 
 
@@ -191,9 +213,35 @@ async def api_message_processor(message_processor):
     return api_handle
 
 
+async def users_dialogs(request):
+    from core.state_schema import Dialog
+    exist_dialogs = Dialog.objects()
+    result = list()
+    for i in exist_dialogs:
+        result.append(
+            {'id': str(i.id), 'location': i.location, 'channel_type': i.channel_type, 'user': i.user.to_dict()})
+    return web.json_response(result)
+
+
+async def dialog(request):
+    from core.state_schema import Dialog
+    dialog_id = request.match_info['dialog_id']
+    if dialog_id == 'all':
+        dialogs = Dialog.objects()
+        return web.json_response([i.to_dict() for i in dialogs])
+    elif len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
+        dialog = Dialog.objects(id__exact=dialog_id)
+        if not dialog:
+            raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} is not exist')
+        else:
+            return web.json_response(dialog[0].to_dict())
+    else:
+        raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
+
+
 def main():
     if CHANNEL == 'telegram':
-        experimental_bot(run, token=TELEGRAM_TOKEN, proxy=TELEGRAM_PROXY)
+        experimental_bot(run)
     elif CHANNEL == 'cmd_client':
         message_processor = run()
         user_id = input('Provide user id: ')

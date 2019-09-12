@@ -3,7 +3,8 @@ import argparse
 from copy import deepcopy
 from itertools import chain
 
-from core.transform_config import SKILLS, ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS, PORT
+from core.transform_config import SKILLS, ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS,\
+    POSTPROCESSORS, DB_PORT, DB_PATH, AGENT_ENV_FILE
 
 
 parser = argparse.ArgumentParser()
@@ -17,6 +18,7 @@ AGENT_BASIC = {
               'volumes': ['.:/dp-agent'],
               'ports': ['4242:4242'],
               'tty': True,
+              'env_file': AGENT_ENV_FILE,
               'depends_on': []}
 }
 
@@ -25,7 +27,7 @@ MONGO_BASIC = {
               'image': 'mongo:3.2.0',
               'ports': ['{}:27017'],
               # map port to none standard port, to avoid conflicts with locally installed mongodb.
-              'volumes': ['/var/run/docker.sock:/var/run/docker.sock']}
+              'volumes': ['/var/run/docker.sock:/var/run/docker.sock', f'{DB_PATH}:/root/data/db']}
 }
 
 SKILL_BASIC = {
@@ -142,7 +144,7 @@ class DockerComposeConfig:
 
     @property
     def config(self):
-        config_dict = {'version': '2.3', 'services': {}}
+        config_dict = {'version': '3.7', 'services': {}}
         self.add_dependencies_to_agent()
         for container in chain(self.skills, self.database):
             config_dict['services'].update(container.config)
@@ -157,10 +159,10 @@ if __name__ == '__main__':
 
     dcc = DockerComposeConfig(AgentConfig(), args.no_agent, args.no_db)
 
-    for conf in chain(SKILLS, ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
+    for conf in chain(SKILLS, *ANNOTATORS, SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
         dcc.add_skill(SkillConfig(conf))
 
-    dcc.add_db(DatabaseConfig(PORT))
+    dcc.add_db(DatabaseConfig(DB_PORT))
 
     with open(args.filename, 'w') as f:
         yaml.dump(dcc.config, f)

@@ -28,16 +28,22 @@ class SkillManager:
         self.skill_caller = skill_caller
         self.skills = SKILLS
         self.skill_names = [s['name'] for s in self.skills]
-        self.skill_responses = []
-
         self.profile_handlers = [name for name in reversed(profile_handlers) if name in self.skill_names]
         self.profile_fields = list(Human.profile.default.keys())
 
     def __call__(self, dialogs):
 
-        user_profiles = self._get_user_profiles(self.skill_responses)
-        selected_skill_names, utterances, confidences = self.response_selector(self.skill_responses)
-        utterances = [utt if utt else NOANSWER_UTT for utt in utterances]
+        skill_responses = [d.utterances[-1]['selected_skills'] for d in dialogs]
+        user_profiles = self._get_user_profiles(skill_responses)
+        rs_response = self.response_selector(get_state(dialogs))
+        # should be a flatten list because there is always only one ResponseSelector:
+        selected_skill_names = list(v for d in rs_response for _, v in d.items())
+        utterances = []
+        confidences = []
+        for responses, selected_name in zip(skill_responses, selected_skill_names):
+            selected_skill = responses[selected_name]
+            utterances.append(selected_skill['text'] or NOANSWER_UTT)
+            confidences.append(selected_skill['confidence'])
         return selected_skill_names, utterances, confidences, user_profiles
 
     def _get_user_profiles(self, skill_responses) -> Optional[List[Dict]]:
@@ -93,5 +99,4 @@ class SkillManager:
             payloads.append(s)
         skill_responses = self.skill_caller(payload=payloads, names=skill_names, urls=skill_urls,
                                             formatters=skill_formatters)
-        self.skill_responses = skill_responses
         return skill_responses
