@@ -156,11 +156,13 @@ class Agent:
 
             dialog = Dialog(user=user, bot=self._bot, channel_type=channel_type, location=None)
             self._dialog_uuid_key_map[dialog.uuid] = channel_user_key
+            self._dialogs[channel_user_key] = dialog
             logger.debug(f'Created dialog uuid: {dialog.uuid} key: {str(channel_user_key)}')
 
         if not dialog:
             dialog: Dialog = Dialog.get_or_create(user=user, bot=self._bot, channel_type=channel_type, location=None)
             self._dialog_uuid_key_map[dialog.uuid] = channel_user_key
+            self._dialogs[channel_user_key] = dialog
             logger.debug(f'Added dialog uuid: {dialog.uuid} key: {str(channel_user_key)}')
 
         human_utterance = await HumanUtterance.get_or_create(text=utterance, user=user, date_time=datetime.utcnow())
