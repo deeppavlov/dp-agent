@@ -1,112 +1,54 @@
+from uuid import uuid4
+
 from mongoengine import DynamicDocument, ReferenceField, ListField, StringField, DynamicField, \
-    DateTimeField, FloatField, DictField
+    DateTimeField, FloatField, DictField, UUIDField
 
 
-class User(DynamicDocument):
+class UserMongo(DynamicDocument):
+    uuid = UUIDField(required=True)
     persona = ListField(default=[])
 
     meta = {'allow_inheritance': True}
 
-    def to_dict(self):
-        raise NotImplementedError
+
+class BotMongo(UserMongo):
+    pass
 
 
-class Bot(User):
-    persona = ListField(default=['Мне нравится общаться с людьми.',
-                                 'Пару лет назад я окончила вуз с отличием.',
-                                 'Я работаю в банке.',
-                                 'В свободное время помогаю пожилым людям в благотворительном фонде',
-                                 'Люблю путешествовать'])
-
-    def to_dict(self):
-        return {'id': str(self.id),
-                'user_type': 'bot',
-                'persona': self.persona,
-                }
-
-
-class Human(User):
+class HumanMongo(UserMongo):
     user_telegram_id = StringField(required=True, unique=True, sparse=True)
     device_type = DynamicField()
-    profile = DictField(required=True, default={
-        "name": None,
-        "gender": None,
-        "birthdate": None,
-        "location": None,
-        "home_coordinates": None,
-        "work_coordinates": None,
-        "occupation": None,
-        "income_per_year": None
-    })
-
-    def to_dict(self):
-        return {'id': str(self.id),
-                'user_telegram_id': str(self.user_telegram_id),
-                'user_type': 'human',
-                'device_type': self.device_type,
-                'persona': self.persona,
-                'profile': self.profile}
+    profile = DictField(required=True)
 
 
-class Utterance(DynamicDocument):
+class UtteranceMongo(DynamicDocument):
+    uuid = UUIDField(required=True)
     text = StringField(required=True)
     service_responses = DictField(default={})
-    annotations = DictField(default={'ner': {}, 'coref': {}, 'sentiment': {}, 'obscenity': {}})
-    user = ReferenceField(User, required=True)
+    annotations = DictField(default={})
+    user = ReferenceField(UserMongo, required=True)
     date_time = DateTimeField(required=True)
 
     meta = {'allow_inheritance': True}
 
-    def to_dict(self):
-        raise NotImplementedError
 
-
-class HumanUtterance(Utterance):
+class HumanUtteranceMongo(UtteranceMongo):
     selected_skills = DynamicField(default=[])
 
-    def to_dict(self):
-        return {'id': str(self.id),
-                'text': self.text,
-                'user_id': str(self.user.id),
-                'service_responses': self.service_responses,
-                'annotations': self.annotations,
-                'date_time': str(self.date_time),
-                'selected_skills': self.selected_skills}
 
-
-class BotUtterance(Utterance):
+class BotUtteranceMongo(UtteranceMongo):
     orig_text = StringField()
     active_skill = StringField()
-    user = ReferenceField(Bot, required=True)
+    user = ReferenceField(BotMongo, required=True)
     confidence = FloatField()
 
-    def to_dict(self):
-        return {
-            'id': str(self.id),
-            'active_skill': self.active_skill,
-            'confidence': self.confidence,
-            'text': self.text,
-            'orig_text': self.orig_text,
-            'user_id': str(self.user.id),
-            'service_responses': self.service_responses,
-            'annotations': self.annotations,
-            'date_time': str(self.date_time)
-        }
 
-
-class Dialog(DynamicDocument):
+class DialogMongo(DynamicDocument):
+    uuid = UUIDField(required=True)
     location = DynamicField()
-    utterances = ListField(ReferenceField(Utterance), default=[])
-    user = ReferenceField(Human, required=True)
-    bot = ReferenceField(Bot, required=True)
-    channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client', 'tests'], default='telegram')
+    utterances = ListField(ReferenceField(UtteranceMongo), default=[])
+    user = ReferenceField(HumanMongo, required=True)
+    bot = ReferenceField(BotMongo, required=True)
+    channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client', 'tests'],
+                               default='telegram')
 
-    def to_dict(self):
-        return {
-            'id': str(self.id),
-            'location': self.location,
-            'utterances': [utt.to_dict() for utt in self.utterances],
-            'user': self.user.to_dict(),
-            'bot': self.bot.to_dict(),
-            'channel_type': self.channel_type,
-        }

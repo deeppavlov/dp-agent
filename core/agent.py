@@ -5,9 +5,9 @@ from datetime import datetime
 from collections import defaultdict, namedtuple
 from typing import Dict, List, Union, Callable, Awaitable
 
-from core.utils import run_sync_in_executor
-from core.state.manager import StateManager
-from core.state.schema import Dialog, HumanUtterance, BotUtterance
+from mongoengine import connection, connect
+
+from core.state.model import Bot, Dialog, Human, HumanUtterance, BotUtterance
 
 
 TIMEOUT_MESSAGE = 'Sorry, we could not answer your request'
@@ -20,10 +20,20 @@ ChannelUserKey = namedtuple('ChannelUserKey', ['channel_id', 'user_id'])
 IncomingUtterance = namedtuple('IncomingUtterance', ['utterance', 'reset_dialog'])
 
 
+def connect_mongo(config: dict) -> connection:
+    db_host = config['database']['host']
+    db_port = config['database']['port']
+    db_name = f'{config["agent_namespace"]}_{config["agent"]["name"]}'
+
+    return connect(host=db_host, port=db_port, db=db_name)
+
+
 class Agent:
     _config: Dict
     _loop: asyncio.AbstractEventLoop
-    _state_manager: StateManager
+    _connection: connection
+    _bot: Bot
+
     _pipeline: Dict[str, List[str]]
     _actual_stages = List[str]
 
@@ -34,7 +44,7 @@ class Agent:
     _dialogs: Dict[ChannelUserKey, Dialog]
     _dialogs_stages: Dict[ChannelUserKey, int]
     _pruned_services: Dict[ChannelUserKey, List[str]]
-    _dialog_id_key_map: Dict[str, ChannelUserKey]
+    _dialog_uuid_key_map: Dict[str, ChannelUserKey]
     _utterances_queue: Dict[ChannelUserKey, List[IncomingUtterance]]
     _utterances_locks: Dict[ChannelUserKey, asyncio.Lock]
     _responses_events: Dict[ChannelUserKey, asyncio.Event]
@@ -46,7 +56,8 @@ class Agent:
 
         self._config = config
         self._loop = asyncio.get_event_loop()
-        self._state_manager = StateManager(config)
+        self._connection = connect_mongo(config)
+        self._bot = self._loop.run_until_complete(Bot.get_or_create())
 
         self._pipeline = config['agent']['pipeline']
         self._actual_stages = [stage for stage in PIPELINE_ORDER if self._pipeline[stage]]
@@ -59,7 +70,7 @@ class Agent:
         self._dialogs = {}
         self._dialogs_stages = {}
         self._pruned_services = defaultdict(list)
-        self._dialog_id_key_map = {}
+        self._dialog_uuid_key_map = {}
         self._utterances_queue = defaultdict(list)
         self._utterances_locks = defaultdict(asyncio.Lock)
         self._responses_events = defaultdict(asyncio.Event)
@@ -68,30 +79,28 @@ class Agent:
         logger.info(f'Agent {self._config["agent"]["name"]} initiated')
 
     async def on_service_message(self, partial_dialog_state: dict) -> None:
-        dialog_id = partial_dialog_state['id']
-        logger.debug(f'Received from service partial state for dialog: {dialog_id}')
-        channel_user_key = self._dialog_id_key_map.get(dialog_id, None)
+        dialog_uuid = partial_dialog_state['uuid']
+        logger.debug(f'Received from service partial state for dialog: {dialog_uuid}')
+        channel_user_key = self._dialog_uuid_key_map.get(dialog_uuid, None)
 
         if channel_user_key:
             async with self._dialog_locks[channel_user_key]:
                 await self._add_service_responses(channel_user_key, partial_dialog_state)
                 await self._route_to_next_services(channel_user_key)
         else:
-            logger.warning(f'Dialog id {dialog_id} was not found in _dialog_id_key_map')
+            logger.warning(f'Dialog uuid {dialog_uuid} was not found in _dialog_uuid_key_map')
 
     async def _add_service_responses(self, channel_user_key: ChannelUserKey, partial_dialog_state: dict) -> None:
         last_received_utterance = partial_dialog_state['utterances'][0]
-        utterance_id: str = last_received_utterance['id']
+        utterance_uuid: str = last_received_utterance['uuid']
         service_responses: dict = last_received_utterance['service_responses']
         dialog = self._dialogs[channel_user_key]
 
         for utterance in reversed(dialog.utterances):
-            if str(utterance.id) == utterance_id:
-                current_responses = dict(**utterance.service_responses)
-                current_responses.update(service_responses)
-                utterance.service_responses = current_responses
-                await run_sync_in_executor(utterance.save)
-                logger.debug(f'Added to dialog {dialog.id} responses from partial state: {str(partial_dialog_state)}')
+            if str(utterance.uuid) == utterance_uuid:
+                for service_name, service_response in service_responses.items():
+                    utterance.add_service_response(service_name, service_response)
+                logger.debug(f'Added to dialog {dialog.uuid} responses from partial state: {str(partial_dialog_state)}')
                 break
 
     async def on_channel_message(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
@@ -124,53 +133,49 @@ class Agent:
                                                                    user_id=user_id,
                                                                    response=response))
 
+            await dialog.save()
+
     async def _process_next_utterance(self, channel_user_key: ChannelUserKey) -> None:
         incoming_utterance = self._utterances_queue[channel_user_key].pop(0)
         utterance = incoming_utterance.utterance
         reset_dialog = incoming_utterance.reset_dialog
+        channel_type = channel_user_key.channel_id
+
+        user = await Human.get_or_create(user_telegram_id=channel_user_key.user_id, device_type=None)
         dialog = self._dialogs.get(channel_user_key, None)
 
-        if reset_dialog or not dialog:
-            users = await run_sync_in_executor(self._state_manager.get_or_create_users,
-                                               user_telegram_ids=[channel_user_key.user_id],
-                                               user_device_types=[None])
-
-            dialogs = await run_sync_in_executor(self._state_manager.get_or_create_dialogs,
-                                                 users=[users[0]],
-                                                 locations=[None],
-                                                 channel_types=[channel_user_key.channel_id],
-                                                 should_reset=[reset_dialog])
-
+        if reset_dialog:
             if dialog:
-                await run_sync_in_executor(dialog.save)
-                dialog_id = str(dialog.id)
-                if self._dialog_id_key_map.pop(dialog_id, None):
-                    logger.debug(f'Dialog id {dialog_id} was removed from _dialog_id_key_map')
+                await dialog.save()
+                dialog_uuid = str(dialog.uuid)
+
+                if self._dialog_uuid_key_map.pop(dialog_uuid, None):
+                    logger.debug(f'Dialog uuid {dialog_uuid} was removed from _dialog_uuid_key_map')
                 else:
-                    logger.warning(f'Dialog id {dialog_id} was not found in _dialog_id_key_map')
+                    logger.warning(f'Dialog uuid {dialog_uuid} was not found in _dialog_uuid_key_map')
 
+            dialog = Dialog(user=user, bot=self._bot, channel_type=channel_type, location=None)
+            self._dialog_uuid_key_map[dialog.uuid] = channel_user_key
+            logger.debug(f'Created dialog uuid: {dialog.uuid} key: {str(channel_user_key)}')
 
-            dialog = dialogs[0]
-            self._dialogs[channel_user_key] = dialogs[0]
-            self._dialog_id_key_map[str(dialog.id)] = channel_user_key
-            logger.debug(f'Created dialog id: {dialog.id} key: {str(channel_user_key)}')
+        if not dialog:
+            dialog: Dialog = Dialog.get_or_create(user=user, bot=self._bot, channel_type=channel_type, location=None)
+            self._dialog_uuid_key_map[dialog.uuid] = channel_user_key
+            logger.debug(f'Added dialog uuid: {dialog.uuid} key: {str(channel_user_key)}')
 
-        await run_sync_in_executor(self._state_manager.add_human_utterances,
-                                   dialogs=[dialog],
-                                   texts=[utterance],
-                                   date_times=[datetime.utcnow()])
-
-        human_utt: HumanUtterance = dialog.utterances[-1]
-        logger.debug(f'Added human utterance: {utterance} utt_id: {human_utt.id} to dialog: {dialog.id}')
+        human_utterance = await HumanUtterance.get_or_create(text=utterance, user=user, date_time=datetime.utcnow())
+        dialog.add_utterance(human_utterance)
+        logger.debug(f'Added human utterance: {utterance} utt_uuid: {human_utterance.uuid} to dialog: {dialog.uuid}')
 
         await self._loop.create_task(self._route_to_next_services(channel_user_key))
 
     async def _route_to_next_services(self, channel_user_key: ChannelUserKey) -> None:
         dialog = self._dialogs[channel_user_key]
-        logger.debug(f'Routing to next service dialog: {dialog.id}')
+        dialog_uuid = dialog.uuid
+        logger.debug(f'Routing to next service dialog: {dialog_uuid}')
 
         if channel_user_key not in self._dialogs_stages.keys():
-            logger.debug(f'Beginning going through the pipeline for dialog {dialog.id}')
+            logger.debug(f'Beginning going through the pipeline for dialog {dialog_uuid}')
             self._dialogs_stages[channel_user_key] = 0
             first_stage_name = self._actual_stages[0]
             services = self._pipeline[first_stage_name]
@@ -205,7 +210,7 @@ class Agent:
 
         for service in services:
             await self._loop.create_task(self._to_service_callback(service_name=service, dialog_state=dialog_state))
-            logger.debug(f'Dialog {dialog.id} state was sent to services: {str(services)}')
+            logger.debug(f'Dialog {dialog.uuid} state was sent to services: {str(services)}')
 
     async def _process_pipeline_stage(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         if pipeline_stage in ['utterance_annotators', 'response_annotators']:
@@ -222,29 +227,20 @@ class Agent:
     async def _on_annotators(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
         last_utterance: Union[HumanUtterance, BotUtterance] = dialog.utterances[-1]
-        service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
-        annotations = dict(**last_utterance.annotations)
-
         for service in stage_services:
-            annotation = service_responses.pop(service, None)
+            annotation = last_utterance.pop_service_response(service_name=service)
             if annotation:
-                annotations[service] = annotation
-                logger.debug(f'Added annotation for utterance {last_utterance.id} in dialog {dialog.id}')
-
-        last_utterance.annotations = annotations
-        last_utterance.service_responses = service_responses
-        await run_sync_in_executor(last_utterance.save)
+                last_utterance.add_annotation(service_name=service, annotation=annotation)
+                logger.debug(f'Added annotation for utterance {last_utterance.uuid} in dialog {dialog.uuid}')
 
     async def _on_skill_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
         last_utterance: HumanUtterance = dialog.utterances[-1]
-        service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
-
         selector_service = stage_services[0]
-        selector_response = service_responses.pop(selector_service, None)
+        selector_response = last_utterance.pop_service_response(service_name=selector_service)
 
         if selector_response:
             skills = self._pipeline['skills']
@@ -252,29 +248,19 @@ class Agent:
             selected_skills = set(skills).intersection(set(response_skills))
             pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
             self._pruned_services[channel_user_key].extend(pruned_skills)
-            logger.debug(f'Pruned services {str(self._pruned_services[channel_user_key])} in dialog {dialog.id}')
-
-            last_utterance.service_responses = service_responses
-            await run_sync_in_executor(last_utterance.save)
+            logger.debug(f'Pruned services {str(self._pruned_services[channel_user_key])} in dialog {dialog.uuid}')
 
     async def _on_skills(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
         last_utterance: HumanUtterance = dialog.utterances[-1]
-        service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
-
         selected_skills = []
 
         for service in stage_services:
-            skill_response = service_responses.pop(service, None)
+            skill_response = last_utterance.pop_service_response(service_name=service)
             if skill_response:
-                selected_skills.append(skill_response)
-                logger.debug(f'Added skill response for utterance {last_utterance.id} in dialog {dialog.id}')
-
-        if selected_skills:
-            last_utterance.selected_skills = selected_skills
-            last_utterance.service_responses = service_responses
-            await run_sync_in_executor(last_utterance.save)
+                last_utterance.add_skill_response(skill_response=skill_response)
+                logger.debug(f'Added skill response for utterance {last_utterance.uuid} in dialog {dialog.uuid}')
 
         # adding BotUtterance if skill selector is not defined
         if not self._pipeline['response_selector'] and selected_skills:
@@ -283,57 +269,45 @@ class Agent:
             response_text = response['text']
             response_confidence = response['confidence']
 
-            await run_sync_in_executor(self._state_manager.add_bot_utterances,
-                                       dialogs=[dialog],
-                                       orig_texts=[response_text],
-                                       texts=[response_text],
-                                       date_times=[datetime.utcnow()],
-                                       active_skills=[response_skill],
-                                       confidences=[response_confidence])
+            bot_utterance = BotUtterance(user=self._bot,
+                                         date_time=datetime.utcnow(),
+                                         orig_text=response_text,
+                                         active_skill=response_skill,
+                                         confidence=response_confidence)
 
-            bot_utterance: BotUtterance = dialog.utterances[-1]
-            logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id} from random skill')
+            dialog.add_utterance(bot_utterance)
+            logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid} from random skill')
 
     async def _on_response_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
         last_utterance: HumanUtterance = dialog.utterances[-1]
-        service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
         selector_service = stage_services[0]
-        selector_response = service_responses.pop(selector_service, None)
+        selector_response = last_utterance.pop_service_response(service_name=selector_service)
 
         if selector_response:
             response_skill = selector_response['name']
             response_text = selector_response['text']
             response_confidence = selector_response['confidence']
 
-            await run_sync_in_executor(self._state_manager.add_bot_utterances,
-                                       dialogs=[dialog],
-                                       orig_texts=[response_text],
-                                       texts=[response_text],
-                                       date_times=[datetime.utcnow()],
-                                       active_skills=[response_skill],
-                                       confidences=[response_confidence])
+            bot_utterance = BotUtterance(user=self._bot,
+                                         date_time=datetime.utcnow(),
+                                         orig_text=response_text,
+                                         active_skill=response_skill,
+                                         confidence=response_confidence)
 
-            bot_utterance: BotUtterance = dialog.utterances[-1]
-            logger.debug(f'Added bot utterance {bot_utterance.id} to dialog {dialog.id}')
-
-            last_utterance.service_responses = service_responses
-            await run_sync_in_executor(last_utterance.save)
+            dialog.add_utterance(bot_utterance)
+            logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid}')
 
     async def _on_response_formatter(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
         last_utterance: BotUtterance = dialog.utterances[-1]
-        service_responses = dict(**last_utterance.service_responses)
         stage_services = self._pipeline[pipeline_stage]
 
         formatter_service = stage_services[0]
-        formatter_response = service_responses.pop(formatter_service, None)
+        formatter_response = last_utterance.pop_service_response(formatter_service)
 
         if formatter_response:
-            last_utterance.text = formatter_response['formatted_text']
-            logger.debug(f'Added formatted response to bot utterance {last_utterance.id} to dialog {dialog.id}')
-
-            last_utterance.service_responses = service_responses
-            await run_sync_in_executor(last_utterance.save)
+            last_utterance.set_text(formatter_response['formatted_text'])
+            logger.debug(f'Added formatted response to bot utterance {last_utterance.uuid} to dialog {dialog.uuid}')

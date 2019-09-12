@@ -5,12 +5,12 @@ agent:
   response_timeout_sec: 10
 
   pipeline: {
-    utterance_annotators: ['ner'],
-    skill_selector: ['chitchat_odqa'],
-    skills: ['chitchat', 'odqa'],
-    response_selector: ['max_confidence'],
-    response_annotators: ['ner'],
-    response_formatter: ['test_formatter'],
+    utterance_annotators: [], #['ner'],
+    skill_selector: [], #['chitchat_odqa'],
+    skills: ['odqa'], #['chitchat', 'odqa'],
+    response_selector: [], #['max_confidence'],
+    response_annotators: [], #['ner'],
+    response_formatter: [], #['test_formatter'],
   }
 
 services:

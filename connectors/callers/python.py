@@ -21,12 +21,12 @@ class TestPythonScriptCaller(ServiceCallerBase):
 
         for i, response in enumerate(responses_batch):
             partial_state = {}
-            partial_state['id'] = dialog_states_batch[i]['id']
+            partial_state['uuid'] = dialog_states_batch[i]['uuid']
             partial_state['utterances'] = []
 
-            last_utterance_id = dialog_states_batch[i]['utterances'][-1]['id']
+            last_utterance_uuid = dialog_states_batch[i]['utterances'][-1]['uuid']
             partial_last_utterance = {}
-            partial_last_utterance['id'] = last_utterance_id
+            partial_last_utterance['uuid'] = last_utterance_uuid
             partial_last_utterance['service_responses'] = {}
             partial_last_utterance['service_responses'][self._service_name] = response
 
