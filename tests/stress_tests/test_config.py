@@ -41,7 +41,7 @@ tests = {
     'max_string_length_batch_1': {
         'test_name': 'max_string_length_batch_1',
         'batch_size': 1,
-        'utt_length': list(range(50, 1001, 50)),
+        'utt_length': list(range(100, 1001, 100)),
         'infers_num': 5
     }
 }
