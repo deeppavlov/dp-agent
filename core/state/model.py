@@ -27,7 +27,10 @@ class ModelBase:
         self._save_lock = asyncio.Lock
         self._save_calls = 0
 
-    async def save(self) -> None:
+    async def save(self):
+        await self._loop.create_task(self._save())
+
+    async def _save(self) -> None:
         if not self.orm_instance:
             await self._create_orm_instance()
         else:
