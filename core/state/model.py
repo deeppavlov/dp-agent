@@ -91,6 +91,8 @@ class BotModel(UserModel):
 
     def to_dict(self) -> Dict:
         return {'uuid': str(self.uuid),
+                # TODO: for backwards compatibility with agent skills
+                'id': str(self.uuid),
                 'user_type': 'bot',
                 'persona': self.persona}
 
@@ -147,6 +149,8 @@ class HumanModel(UserModel):
 
     def to_dict(self) -> Dict:
         return {'uuid': str(self.uuid),
+                # TODO: for backwards compatibility with agent skills
+                'id': str(self.uuid),
                 'user_telegram_id': self.user_telegram_id,
                 'user_type': 'human',
                 'device_type': str(self.device_type),
@@ -200,7 +204,7 @@ class UtteranceModel(ModelBase):
         self.user = user
         self.date_time = date_time
         self.service_responses = {}
-        self.annotations = {}
+        self.annotations = {'coref': {}, 'ner': {}, 'obscenity': {}, 'sentiment': {}}
 
     def add_service_response(self, service_name: str, service_response: Any) -> None:
         self.service_responses[service_name] = service_response
@@ -254,6 +258,8 @@ class HumanUtteranceModel(UtteranceModel):
 
     def to_dict(self) -> Dict:
         return {'uuid': str(self.uuid),
+                # TODO: for backwards compatibility with agent skills
+                'id': str(self.uuid),
                 'text': self.text,
                 'user_uuid': str(self.user.uuid),
                 'service_responses': self.service_responses,
@@ -333,6 +339,8 @@ class BotUtteranceModel(UtteranceModel):
     def to_dict(self) -> Dict:
         return {
             'uuid': str(self.uuid),
+            # TODO: for backwards compatibility with agent skills
+            'id': str(self.uuid),
             'active_skill': self.active_skill,
             'confidence': self.confidence,
             'text': self.text,
@@ -429,6 +437,8 @@ class DialogModel(ModelBase):
     def to_dict(self) -> Dict:
         return {
             'uuid': str(self.uuid),
+            # TODO: for backwards compatibility with agent skills
+            'id': str(self.uuid),
             'location': str(self.location),
             'utterances': [utt.to_dict() for utt in self.utterances],
             'user': self.user.to_dict(),

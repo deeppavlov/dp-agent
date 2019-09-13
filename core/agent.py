@@ -215,8 +215,6 @@ class Agent:
             await self._process_pipeline_stage(channel_user_key, current_stage_name)
             stage_index += 1
 
-            logger.debug(f'DIALOG: {str(dialog.to_dict())}')
-
             if stage_index + 1 > len(self._actual_stages):
                 self._responses_events[channel_user_key].set()
             else:
