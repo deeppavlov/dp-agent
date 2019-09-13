@@ -172,7 +172,7 @@ class Agent:
 
         if not dialog:
             dialog: DialogModel = \
-                DialogModel.get_or_create(user=user, bot=self._bot, channel_type=channel_type, location=None)
+                await DialogModel.get_or_create(user=user, bot=self._bot, channel_type=channel_type, location=None)
 
             self._dialog_uuid_key_map[dialog.uuid] = channel_user_key
             self._dialogs[channel_user_key] = dialog
