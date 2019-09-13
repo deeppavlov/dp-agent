@@ -4,15 +4,15 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any, Union
 from uuid import uuid4
 
-from core.state.schema import HumanMongo, BotMongo, HumanUtteranceMongo, BotUtteranceMongo, DialogMongo
+from core.state.schema import Human, Bot, HumanUtterance, BotUtterance, Dialog
 
 
 logger = getLogger(__name__)
-TMongoSchemaTypes = Union[HumanMongo, BotMongo, HumanUtteranceMongo, BotUtteranceMongo, DialogMongo]
+TMongoSchemaTypes = Union[Human, Bot, HumanUtterance, BotUtterance, Dialog]
 
 
 # TODO completely refactor and simplify mongo classes wrapping or better think of appropriate memcache
-class SchemaBase:
+class ModelBase:
     # TODO: think of naming not like uuid library
     uuid: str
     orm_instance: Optional[TMongoSchemaTypes]
@@ -54,11 +54,11 @@ class SchemaBase:
         raise NotImplementedError
 
 
-class User(SchemaBase):
+class UserModel(ModelBase):
     persona: List[str]
 
     def __init__(self, persona: Optional[List[str]] = None, **kwargs) -> None:
-        super(User, self).__init__(**kwargs)
+        super(UserModel, self).__init__(**kwargs)
         self.persona = persona or []
 
     def to_dict(self) -> Dict:
@@ -71,7 +71,7 @@ class User(SchemaBase):
         raise NotImplementedError
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: Union[BotMongo, HumanMongo]):
+    async def create_from_orm(cls, orm_instance: Union[Bot, Human]):
         raise NotImplementedError
 
     @classmethod
@@ -79,15 +79,15 @@ class User(SchemaBase):
         raise NotImplementedError
 
 
-class Bot(User):
-    def __init__(self, uuid: Optional[str] = None, orm_instance: Optional[BotMongo] = None) -> None:
+class BotModel(UserModel):
+    def __init__(self, uuid: Optional[str] = None, orm_instance: Optional[Bot] = None) -> None:
         persona = ['Мне нравится общаться с людьми.',
                    'Пару лет назад я окончила вуз с отличием.',
                    'Я работаю в банке.',
                    'В свободное время помогаю пожилым людям в благотворительном фонде',
                    'Люблю путешествовать']
 
-        super(Bot, self).__init__(persona=persona, uuid=uuid, orm_instance=orm_instance)
+        super(BotModel, self).__init__(persona=persona, uuid=uuid, orm_instance=orm_instance)
 
     def to_dict(self) -> Dict:
         return {'uuid': str(self.uuid),
@@ -95,23 +95,22 @@ class Bot(User):
                 'persona': self.persona}
 
     async def _create_orm_instance(self) -> None:
-        self.orm_instance = BotMongo(uuid=self.uuid,
-                                     persona=self.persona)
+        self.orm_instance = Bot(uuid=self.uuid, persona=self.persona)
         logger.debug(f'Created ORM instance for bot {self.uuid}')
 
     async def _update_orm_instance(self) -> None:
         pass
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: BotMongo):
+    async def create_from_orm(cls, orm_instance: Bot):
         return cls(uuid=orm_instance.uuid, orm_instance=orm_instance)
 
     @classmethod
     async def get_or_create(cls):
-        bot_query = BotMongo.objects
+        bot_query = Bot.objects
 
         if bot_query:
-            orm_instance: BotMongo = bot_query[0]
+            orm_instance: Bot = bot_query[0]
             bot = await cls.create_from_orm(orm_instance=orm_instance)
             logger.debug(f'Loaded bot {bot.uuid}')
         else:
@@ -122,7 +121,7 @@ class Bot(User):
         return bot
 
 
-class Human(User):
+class HumanModel(UserModel):
     user_telegram_id: str
     device_type: Optional[str]
     profile: Dict
@@ -130,9 +129,9 @@ class Human(User):
     def __init__(self, user_telegram_id: str,
                  device_type: Optional[str],
                  uuid: Optional[str] = None,
-                 orm_instance: Optional[HumanMongo] = None) -> None:
+                 orm_instance: Optional[Human] = None) -> None:
 
-        super(Human, self).__init__(uuid=uuid, orm_instance=orm_instance)
+        super(HumanModel, self).__init__(uuid=uuid, orm_instance=orm_instance)
         self.user_telegram_id = user_telegram_id
         self.device_type = device_type
         self.profile = {
@@ -155,11 +154,11 @@ class Human(User):
                 'profile': self.profile}
 
     async def _create_orm_instance(self) -> None:
-        self.orm_instance = HumanMongo(uuid=self.uuid,
-                                       persona=self.persona,
-                                       user_telegram_id=self.user_telegram_id,
-                                       device_type=self.device_type,
-                                       profile=self.profile)
+        self.orm_instance = Human(uuid=self.uuid,
+                                  persona=self.persona,
+                                  user_telegram_id=self.user_telegram_id,
+                                  device_type=self.device_type,
+                                  profile=self.profile)
 
         logger.debug(f'Created ORM instance for user {self.uuid}')
 
@@ -167,7 +166,7 @@ class Human(User):
         pass
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: HumanMongo):
+    async def create_from_orm(cls, orm_instance: Human):
         return cls(user_telegram_id=orm_instance.user_telegram_id,
                    device_type=orm_instance.device_type,
                    uuid=orm_instance.uuid,
@@ -175,10 +174,10 @@ class Human(User):
 
     @classmethod
     async def get_or_create(cls, user_telegram_id: str, device_type: Optional[str]):
-        human_query = HumanMongo.objects(user_telegram_id__exact=user_telegram_id)
+        human_query = Human.objects(user_telegram_id__exact=user_telegram_id)
 
         if human_query:
-            orm_instance: HumanMongo = human_query[0]
+            orm_instance: Human = human_query[0]
             human = await cls.create_from_orm(orm_instance=orm_instance)
             logger.debug(f'Loaded human {human.uuid}')
         else:
@@ -188,15 +187,15 @@ class Human(User):
         return human
 
 
-class Utterance(SchemaBase):
+class UtteranceModel(ModelBase):
     text: str
     service_responses: Dict[str, Any]
     annotations: Dict[str, Any]
-    user: Union[Human, Bot]
+    user: Union[HumanModel, BotModel]
     date_time: datetime
 
-    def __init__(self, text: str, user: Union[Human, Bot], date_time: datetime, **kwargs) -> None:
-        super(Utterance, self).__init__(**kwargs)
+    def __init__(self, text: str, user: Union[HumanModel, BotModel], date_time: datetime, **kwargs) -> None:
+        super(UtteranceModel, self).__init__(**kwargs)
         self.text = text
         self.user = user
         self.date_time = date_time
@@ -225,7 +224,7 @@ class Utterance(SchemaBase):
         raise NotImplementedError
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: Union[HumanUtteranceMongo, BotUtteranceMongo]):
+    async def create_from_orm(cls, orm_instance: Union[HumanUtterance, BotUtterance]):
         raise NotImplementedError
 
     @classmethod
@@ -233,20 +232,20 @@ class Utterance(SchemaBase):
         raise NotImplementedError
 
 
-class HumanUtterance(Utterance):
+class HumanUtteranceModel(UtteranceModel):
     selected_skills: List[Dict]
 
     def __init__(self, text: str,
-                 user: Human,
+                 user: HumanModel,
                  date_time: datetime,
                  uuid: Optional[str] = None,
-                 orm_instance: Optional[HumanUtteranceMongo] = None) -> None:
+                 orm_instance: Optional[HumanUtterance] = None) -> None:
 
-        super(HumanUtterance, self).__init__(text=text,
-                                             user=user,
-                                             date_time=date_time,
-                                             uuid=uuid,
-                                             orm_instance=orm_instance)
+        super(HumanUtteranceModel, self).__init__(text=text,
+                                                  user=user,
+                                                  date_time=date_time,
+                                                  uuid=uuid,
+                                                  orm_instance=orm_instance)
 
         self.selected_skills = []
 
@@ -263,13 +262,13 @@ class HumanUtterance(Utterance):
                 'selected_skills': self.selected_skills}
 
     async def _create_orm_instance(self) -> None:
-        self.orm_instance = HumanUtteranceMongo(uuid=self.uuid,
-                                                text=self.text,
-                                                user=self.user.orm_instance,
-                                                date_time=self.date_time,
-                                                annotations=self.annotations,
-                                                service_responses=self.service_responses,
-                                                selected_skills=self.selected_skills)
+        self.orm_instance = HumanUtterance(uuid=self.uuid,
+                                           text=self.text,
+                                           user=self.user.orm_instance,
+                                           date_time=self.date_time,
+                                           annotations=self.annotations,
+                                           service_responses=self.service_responses,
+                                           selected_skills=self.selected_skills)
 
         logger.debug(f'Created ORM instance for human utterance {self.uuid}')
 
@@ -280,7 +279,7 @@ class HumanUtterance(Utterance):
         logger.debug(f'Updated ORM instance for human utterance {self.uuid}')
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: HumanUtteranceMongo):
+    async def create_from_orm(cls, orm_instance: HumanUtterance):
         human_utterance = cls(text=orm_instance.text,
                               user=orm_instance.user,
                               date_time=orm_instance.date_time,
@@ -299,30 +298,30 @@ class HumanUtterance(Utterance):
         return human_utterance
 
     @classmethod
-    async def get_or_create(cls, text: str, user: Human, date_time: datetime):
+    async def get_or_create(cls, text: str, user: HumanModel, date_time: datetime):
         human_utterance = cls(text=text, user=user, date_time=date_time)
         logger.debug(f'Created human utterance {human_utterance.uuid}')
         return human_utterance
 
 
-class BotUtterance(Utterance):
+class BotUtteranceModel(UtteranceModel):
     orig_text: str
     active_skill: str
     confidence: float
 
-    def __init__(self, user: Bot,
+    def __init__(self, user: BotModel,
                  date_time: datetime,
                  orig_text: str,
                  active_skill: str,
                  confidence: float,
                  uuid: Optional[str] = None,
-                 orm_instance: Optional[BotUtteranceMongo] = None) -> None:
+                 orm_instance: Optional[BotUtterance] = None) -> None:
 
-        super(BotUtterance, self).__init__(text=orig_text,
-                                           user=user,
-                                           date_time=date_time,
-                                           uuid=uuid,
-                                           orm_instance=orm_instance)
+        super(BotUtteranceModel, self).__init__(text=orig_text,
+                                                user=user,
+                                                date_time=date_time,
+                                                uuid=uuid,
+                                                orm_instance=orm_instance)
 
         self.orig_text = orig_text
         self.active_skill = active_skill
@@ -345,15 +344,15 @@ class BotUtterance(Utterance):
         }
 
     async def _create_orm_instance(self) -> None:
-        self.orm_instance = BotUtteranceMongo(uuid=self.uuid,
-                                              text=self.text,
-                                              user=self.user.orm_instance,
-                                              date_time=self.date_time,
-                                              annotations=self.annotations,
-                                              service_responses=self.service_responses,
-                                              orig_text=self.orig_text,
-                                              active_skill=self.active_skill,
-                                              confidence=self.confidence)
+        self.orm_instance = BotUtterance(uuid=self.uuid,
+                                         text=self.text,
+                                         user=self.user.orm_instance,
+                                         date_time=self.date_time,
+                                         annotations=self.annotations,
+                                         service_responses=self.service_responses,
+                                         orig_text=self.orig_text,
+                                         active_skill=self.active_skill,
+                                         confidence=self.confidence)
 
         logger.debug(f'Created ORM instance for bot utterance {self.uuid}')
 
@@ -362,7 +361,7 @@ class BotUtterance(Utterance):
         logger.debug(f'Updated ORM instance for bot utterance {self.uuid}')
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: BotUtteranceMongo):
+    async def create_from_orm(cls, orm_instance: BotUtterance):
         bot_utterance = cls(user=orm_instance.user,
                             date_time=orm_instance.date_time,
                             orig_text=orm_instance.orig_text,
@@ -382,7 +381,12 @@ class BotUtterance(Utterance):
         return bot_utterance
 
     @classmethod
-    async def get_or_create(cls, user: Bot, date_time: datetime, orig_text: str, active_skill: str, confidence: float):
+    async def get_or_create(cls, user: BotModel,
+                            date_time: datetime,
+                            orig_text: str,
+                            active_skill: str,
+                            confidence: float):
+
         bot_utterance = cls(user=user,
                             date_time=date_time,
                             orig_text=orig_text,
@@ -393,21 +397,21 @@ class BotUtterance(Utterance):
         return bot_utterance
 
 
-class Dialog(SchemaBase):
+class DialogModel(ModelBase):
     location: Any
-    utterances: List[Union[HumanUtterance, BotUtterance]]
-    user: Human
-    bot: Bot
+    utterances: List[Union[HumanUtteranceModel, BotUtteranceModel]]
+    user: HumanModel
+    bot: BotModel
     channel_type: str
 
     def __init__(self, location: Any,
-                 user: Human,
-                 bot: Bot,
+                 user: HumanModel,
+                 bot: BotModel,
                  channel_type: str,
                  uuid: Optional[str] = None,
-                 orm_instance: Optional[DialogMongo] = None) -> None:
+                 orm_instance: Optional[Dialog] = None) -> None:
 
-        super(Dialog, self).__init__(uuid=uuid, orm_instance=orm_instance)
+        super(DialogModel, self).__init__(uuid=uuid, orm_instance=orm_instance)
         self.location = location
         self.user = user
         self.bot = bot
@@ -419,7 +423,7 @@ class Dialog(SchemaBase):
 
         self.utterances = []
 
-    def add_utterance(self, utterance: Union[HumanUtterance, BotUtterance]) -> None:
+    def add_utterance(self, utterance: Union[HumanUtteranceModel, BotUtteranceModel]) -> None:
         self.utterances.append(utterance)
 
     def to_dict(self) -> Dict:
@@ -442,12 +446,12 @@ class Dialog(SchemaBase):
         bot_orm_instance = self.bot.orm_instance
         utt_orm_instances = [utterance.orm_instance for utterance in self.utterances]
 
-        self.orm_instance = DialogMongo(uuid=self.uuid,
-                                        location=self.location,
-                                        channel_type=self.channel_type,
-                                        user=user_orm_instance,
-                                        bot=bot_orm_instance,
-                                        utterances=utt_orm_instances)
+        self.orm_instance = Dialog(uuid=self.uuid,
+                                   location=self.location,
+                                   channel_type=self.channel_type,
+                                   user=user_orm_instance,
+                                   bot=bot_orm_instance,
+                                   utterances=utt_orm_instances)
 
         logger.debug(f'Created ORM instance for dialog {self.uuid}')
 
@@ -460,9 +464,9 @@ class Dialog(SchemaBase):
         logger.debug(f'Updated ORM instance for dialog {self.uuid}')
 
     @classmethod
-    async def create_from_orm(cls, orm_instance: DialogMongo):
-        user = await User.create_from_orm(orm_instance.user)
-        bot = await Bot.create_from_orm(orm_instance.bot)
+    async def create_from_orm(cls, orm_instance: Dialog):
+        user = await UserModel.create_from_orm(orm_instance.user)
+        bot = await BotModel.create_from_orm(orm_instance.bot)
 
         dialog = cls(location=orm_instance.location,
                      user=user,
@@ -472,19 +476,19 @@ class Dialog(SchemaBase):
                      orm_instance=orm_instance)
 
         for utterance_orm in orm_instance.utterances:
-            if isinstance(utterance_orm, HumanUtteranceMongo):
-                utterance = await HumanUtterance.create_from_orm(utterance_orm)
+            if isinstance(utterance_orm, HumanUtterance):
+                utterance = await HumanUtteranceModel.create_from_orm(utterance_orm)
             else:
-                utterance = await BotUtterance.create_from_orm(utterance_orm)
+                utterance = await BotUtteranceModel.create_from_orm(utterance_orm)
 
             dialog.add_utterance(utterance)
 
         return dialog
 
     @classmethod
-    async def get_or_create(cls, location: Any, user: Human, bot: Bot, channel_type: str):
+    async def get_or_create(cls, location: Any, user: HumanModel, bot: BotModel, channel_type: str):
         user_orm_instance = user.orm_instance
-        dialog_query = DialogMongo.objects(user__exact=user_orm_instance) if user_orm_instance else []
+        dialog_query = Dialog.objects(user__exact=user_orm_instance) if user_orm_instance else []
 
         if dialog_query:
             orm_instance = dialog_query[0]

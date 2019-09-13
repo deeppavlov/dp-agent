@@ -1,54 +1,52 @@
-from uuid import uuid4
-
 from mongoengine import DynamicDocument, ReferenceField, ListField, StringField, DynamicField, \
     DateTimeField, FloatField, DictField
 
 
-class UserMongo(DynamicDocument):
+class User(DynamicDocument):
     uuid = StringField(required=True)
     persona = ListField(default=[])
 
     meta = {'allow_inheritance': True}
 
 
-class BotMongo(UserMongo):
+class Bot(User):
     pass
 
 
-class HumanMongo(UserMongo):
+class Human(User):
     user_telegram_id = StringField(required=True, unique=True, sparse=True)
     device_type = DynamicField()
     profile = DictField(required=True)
 
 
-class UtteranceMongo(DynamicDocument):
+class Utterance(DynamicDocument):
     uuid = StringField(required=True)
     text = StringField(required=True)
     service_responses = DictField(default={})
     annotations = DictField(default={})
-    user = ReferenceField(UserMongo, required=True)
+    user = ReferenceField(User, required=True)
     date_time = DateTimeField(required=True)
 
     meta = {'allow_inheritance': True}
 
 
-class HumanUtteranceMongo(UtteranceMongo):
+class HumanUtterance(Utterance):
     selected_skills = DynamicField(default=[])
 
 
-class BotUtteranceMongo(UtteranceMongo):
+class BotUtterance(Utterance):
     orig_text = StringField()
     active_skill = StringField()
-    user = ReferenceField(BotMongo, required=True)
+    user = ReferenceField(Bot, required=True)
     confidence = FloatField()
 
 
-class DialogMongo(DynamicDocument):
+class Dialog(DynamicDocument):
     uuid = StringField(required=True)
     location = DynamicField()
-    utterances = ListField(ReferenceField(UtteranceMongo), default=[])
-    user = ReferenceField(HumanMongo, required=True)
-    bot = ReferenceField(BotMongo, required=True)
+    utterances = ListField(ReferenceField(Utterance), default=[])
+    user = ReferenceField(Human, required=True)
+    bot = ReferenceField(Bot, required=True)
     channel_type = StringField(choices=['telegram', 'vk', 'facebook', 'cmd_client', 'http_client', 'tests'],
                                default='telegram')
 
