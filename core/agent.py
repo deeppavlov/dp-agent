@@ -57,6 +57,7 @@ class Agent:
         self._config = config
         self._loop = asyncio.get_event_loop()
         self._connection = connect_mongo(config)
+
         self._bot = self._loop.run_until_complete(Bot.get_or_create())
 
         self._pipeline = config['agent']['pipeline']
@@ -125,8 +126,18 @@ class Agent:
             self._pruned_services.pop(channel_user_key, None)
 
             dialog = self._dialogs[channel_user_key]
+
+            if not isinstance(dialog.utterances[-1], BotUtterance):
+                timeout_utterance = await BotUtterance.get_or_create(user=self._bot,
+                                                                     date_time=datetime.utcnow(),
+                                                                     orig_text=TIMEOUT_MESSAGE,
+                                                                     active_skill='timeout',
+                                                                     confidence=1.0)
+
+                dialog.add_utterance(timeout_utterance)
+
             last_utterance: Union[BotUtterance, HumanUtterance] = dialog.utterances[-1]
-            response = last_utterance.text if isinstance(last_utterance, BotUtterance) else TIMEOUT_MESSAGE
+            response = last_utterance.text
             logger.debug(f'Sent response resp: {response}, usr: {user_id}, chnl: {channel_id}')
 
             await self._loop.create_task(self._to_channel_callback(channel_id=channel_id,
@@ -147,7 +158,7 @@ class Agent:
         if reset_dialog:
             if dialog:
                 await dialog.save()
-                dialog_uuid = str(dialog.uuid)
+                dialog_uuid = dialog.uuid
 
                 if self._dialog_uuid_key_map.pop(dialog_uuid, None):
                     logger.debug(f'Dialog uuid {dialog_uuid} was removed from _dialog_uuid_key_map')
@@ -190,12 +201,17 @@ class Agent:
 
         last_utterance: Union[BotUtterance, HumanUtterance] = dialog.utterances[-1]
         responded_services = list(last_utterance.service_responses.keys())
-        logger.debug(f'On stage {stage_index}, {current_stage_name}, responded services: {str(responded_services)}')
+
+        logger.debug(f'Dialog {dialog_uuid} on stage {stage_index}, {current_stage_name}, '
+                     f'responded services: {str(responded_services)}')
+
         pruned_services = self._pruned_services[channel_user_key]
 
         if set(current_stage_services).issubset(set(chain(responded_services, pruned_services))):
             await self._process_pipeline_stage(channel_user_key, current_stage_name)
             stage_index += 1
+
+            logger.debug(f'DIALOG: {str(dialog.to_dict())}')
 
             if stage_index + 1 > len(self._actual_stages):
                 self._responses_events[channel_user_key].set()
@@ -256,7 +272,6 @@ class Agent:
         dialog = self._dialogs[channel_user_key]
         last_utterance: HumanUtterance = dialog.utterances[-1]
         stage_services = self._pipeline[pipeline_stage]
-        selected_skills = []
 
         for service in stage_services:
             skill_response = last_utterance.pop_service_response(service_name=service)
@@ -265,17 +280,17 @@ class Agent:
                 logger.debug(f'Added skill response for utterance {last_utterance.uuid} in dialog {dialog.uuid}')
 
         # adding BotUtterance if skill selector is not defined
-        if not self._pipeline['response_selector'] and selected_skills:
-            response: dict = selected_skills[0]
+        if not self._pipeline['response_selector'] and last_utterance.selected_skills:
+            response: dict = last_utterance.selected_skills[0]
             response_skill = response['name']
             response_text = response['text']
             response_confidence = response['confidence']
 
-            bot_utterance = BotUtterance(user=self._bot,
-                                         date_time=datetime.utcnow(),
-                                         orig_text=response_text,
-                                         active_skill=response_skill,
-                                         confidence=response_confidence)
+            bot_utterance = await BotUtterance.get_or_create(user=self._bot,
+                                                             date_time=datetime.utcnow(),
+                                                             orig_text=response_text,
+                                                             active_skill=response_skill,
+                                                             confidence=response_confidence)
 
             dialog.add_utterance(bot_utterance)
             logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid} from random skill')
@@ -293,11 +308,11 @@ class Agent:
             response_text = selector_response['text']
             response_confidence = selector_response['confidence']
 
-            bot_utterance = BotUtterance(user=self._bot,
-                                         date_time=datetime.utcnow(),
-                                         orig_text=response_text,
-                                         active_skill=response_skill,
-                                         confidence=response_confidence)
+            bot_utterance = await BotUtterance.get_or_create(user=self._bot,
+                                                             date_time=datetime.utcnow(),
+                                                             orig_text=response_text,
+                                                             active_skill=response_skill,
+                                                             confidence=response_confidence)
 
             dialog.add_utterance(bot_utterance)
             logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid}')

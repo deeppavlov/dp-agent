@@ -1,11 +1,11 @@
 from uuid import uuid4
 
 from mongoengine import DynamicDocument, ReferenceField, ListField, StringField, DynamicField, \
-    DateTimeField, FloatField, DictField, UUIDField
+    DateTimeField, FloatField, DictField
 
 
 class UserMongo(DynamicDocument):
-    uuid = UUIDField(required=True)
+    uuid = StringField(required=True)
     persona = ListField(default=[])
 
     meta = {'allow_inheritance': True}
@@ -22,7 +22,7 @@ class HumanMongo(UserMongo):
 
 
 class UtteranceMongo(DynamicDocument):
-    uuid = UUIDField(required=True)
+    uuid = StringField(required=True)
     text = StringField(required=True)
     service_responses = DictField(default={})
     annotations = DictField(default={})
@@ -44,7 +44,7 @@ class BotUtteranceMongo(UtteranceMongo):
 
 
 class DialogMongo(DynamicDocument):
-    uuid = UUIDField(required=True)
+    uuid = StringField(required=True)
     location = DynamicField()
     utterances = ListField(ReferenceField(UtteranceMongo), default=[])
     user = ReferenceField(HumanMongo, required=True)
