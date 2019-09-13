@@ -34,7 +34,7 @@ log_config = {
 tests = {
     'max_batch_size': {
         'test_name': 'max_batch_size',
-        'batch_size': list(range(20, 401, 20)),
+        'batch_size': list(range(1, 11, 1)),
         'utt_length': 20,
         'infers_num': 5
     },
@@ -47,9 +47,9 @@ tests = {
 }
 
 test_config = {
-  'config_path': 'deployment/dp_cluster_agents/agent_scaled_batch_config.yaml',
+  'config_path': 'core/config.yaml',
   'dialogs_url': 'https://raw.githubusercontent.com/deepmipt/agent_stress_test/dev/dialogs.txt',
-  'infer_timeout': 300,
+  'infer_timeout': 30,
   'logging': log_config,
   'tests': [tests['max_batch_size'],
             tests['max_string_length_batch_1']]
