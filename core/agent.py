@@ -144,7 +144,7 @@ class Agent:
                                                                    user_id=user_id,
                                                                    response=response))
 
-            await dialog.save()
+            await self._loop.create_task(dialog.save())
 
     async def _process_next_utterance(self, channel_user_key: ChannelUserKey) -> None:
         incoming_utterance = self._utterances_queue[channel_user_key].pop(0)

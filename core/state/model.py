@@ -16,21 +16,16 @@ class ModelBase:
     # TODO: think of naming not like uuid library
     uuid: str
     orm_instance: Optional[TMongoSchemaTypes]
-    _loop: asyncio.AbstractEventLoop
     _save_lock: asyncio.Lock
     _save_calls: int
 
     def __init__(self, uuid: Optional[str] = None, orm_instance: Optional[TMongoSchemaTypes] = None) -> None:
         self.uuid = uuid or str(uuid4())
         self.orm_instance = orm_instance
-        self._loop = asyncio.get_event_loop()
         self._save_lock = asyncio.Lock
         self._save_calls = 0
 
-    async def save(self):
-        await self._loop.create_task(self._save())
-
-    async def _save(self) -> None:
+    async def save(self) -> None:
         if not self.orm_instance:
             await self._create_orm_instance()
         else:
