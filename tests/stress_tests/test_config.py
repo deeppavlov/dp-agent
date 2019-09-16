@@ -24,7 +24,7 @@ log_config = {
     'loggers': {
         'stress_logger': {
             'propagate': False,
-            'level': 'DEBUG',
+            'level': 'INFO',
             'handlers': ['log_to_stderr',
                          'log_to_file']
         }
@@ -34,23 +34,23 @@ log_config = {
 tests = {
     'max_batch_size': {
         'test_name': 'max_batch_size',
-        'batch_size': list(range(1, 11, 1)),
+        'batch_size': list(range(1, 21, 1)),
         'utt_length': 20,
         'infers_num': 5
     },
     'max_string_length_batch_1': {
         'test_name': 'max_string_length_batch_1',
         'batch_size': 1,
-        'utt_length': list(range(100, 1001, 100)),
+        'utt_length': list(range(1000, 4001, 100)),
         'infers_num': 5
     }
 }
 
 test_config = {
-  'config_path': 'core/config.yaml',
-  'dialogs_url': 'https://raw.githubusercontent.com/deepmipt/agent_stress_test/dev/dialogs.txt',
-  'infer_timeout': 30,
-  'logging': log_config,
-  'tests': [tests['max_batch_size'],
-            tests['max_string_length_batch_1']]
+    'config_path': 'core/config.yaml',
+    'dialogs_url': 'https://raw.githubusercontent.com/deepmipt/agent_stress_test/dev/dialogs.txt',
+    'infer_timeout': 120,
+    'logging': log_config,
+    'tests': [tests['max_batch_size'],
+              tests['max_string_length_batch_1']]
 }
