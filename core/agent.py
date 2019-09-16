@@ -257,76 +257,93 @@ class Agent:
 
     async def _on_skill_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: HumanUtteranceModel = dialog.utterances[-1]
-        stage_services = self._pipeline[pipeline_stage]
-        selector_service = stage_services[0]
-        selector_response = last_utterance.pop_service_response(service_name=selector_service)
+        last_utterance = dialog.utterances[-1]
 
-        if selector_response:
-            skills = self._pipeline['skills']
-            response_skills = selector_response['skill_names'] if selector_response else []
-            selected_skills = set(skills).intersection(set(response_skills))
-            pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
-            self._pruned_services[channel_user_key].extend(pruned_skills)
-            logger.debug(f'Pruned services {str(self._pruned_services[channel_user_key])} in dialog {dialog.uuid}')
+        if isinstance(last_utterance, HumanUtteranceModel):
+            stage_services = self._pipeline[pipeline_stage]
+            selector_service = stage_services[0]
+            selector_response = last_utterance.pop_service_response(service_name=selector_service)
+
+            if selector_response:
+                skills = self._pipeline['skills']
+                response_skills = selector_response['skill_names'] if selector_response else []
+                selected_skills = set(skills).intersection(set(response_skills))
+                pruned_skills = list(set(skills) - selected_skills) if selected_skills else []
+                self._pruned_services[channel_user_key].extend(pruned_skills)
+                logger.debug(f'Pruned services {str(self._pruned_services[channel_user_key])} in dialog {dialog.uuid}')
+
+        else:
+            logger.error(f'Last dialog utterance is not human utterance')
 
     async def _on_skills(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: HumanUtteranceModel = dialog.utterances[-1]
         stage_services = self._pipeline[pipeline_stage]
+        last_utterance = dialog.utterances[-1]
 
-        for service in stage_services:
-            skill_response = last_utterance.pop_service_response(service_name=service)
-            if skill_response:
-                last_utterance.add_skill_response(skill_response=skill_response)
-                logger.debug(f'Added skill response for utterance {last_utterance.uuid} in dialog {dialog.uuid}')
+        if isinstance(last_utterance, HumanUtteranceModel):
+            for service in stage_services:
+                skill_response = last_utterance.pop_service_response(service_name=service)
+                if skill_response:
+                    last_utterance.add_skill_response(skill_response=skill_response)
+                    logger.debug(f'Added skill response for utterance {last_utterance.uuid} in dialog {dialog.uuid}')
 
-        # adding BotUtterance if skill selector is not defined
-        if not self._pipeline['response_selector'] and last_utterance.selected_skills:
-            response: dict = last_utterance.selected_skills[0]
-            response_skill = response['name']
-            response_text = response['text']
-            response_confidence = response['confidence']
+            # adding BotUtterance if skill selector is not defined
+            if not self._pipeline['response_selector'] and last_utterance.selected_skills:
+                response: dict = last_utterance.selected_skills[0]
+                response_skill = response['name']
+                response_text = response['text']
+                response_confidence = response['confidence']
 
-            bot_utterance = await BotUtteranceModel.get_or_create(user=self._bot,
-                                                                  date_time=datetime.utcnow(),
-                                                                  orig_text=response_text,
-                                                                  active_skill=response_skill,
-                                                                  confidence=response_confidence)
+                bot_utterance = await BotUtteranceModel.get_or_create(user=self._bot,
+                                                                      date_time=datetime.utcnow(),
+                                                                      orig_text=response_text,
+                                                                      active_skill=response_skill,
+                                                                      confidence=response_confidence)
 
-            dialog.add_utterance(bot_utterance)
-            logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid} from random skill')
+                dialog.add_utterance(bot_utterance)
+                logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid} from random skill')
+
+        else:
+            logger.error(f'Last dialog utterance is not human utterance')
 
     async def _on_response_selector(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: HumanUtteranceModel = dialog.utterances[-1]
         stage_services = self._pipeline[pipeline_stage]
+        last_utterance = dialog.utterances[-1]
 
-        selector_service = stage_services[0]
-        selector_response = last_utterance.pop_service_response(service_name=selector_service)
+        if isinstance(last_utterance, HumanUtteranceModel):
+            selector_service = stage_services[0]
+            selector_response = last_utterance.pop_service_response(service_name=selector_service)
 
-        if selector_response:
-            response_skill = selector_response['name']
-            response_text = selector_response['text']
-            response_confidence = selector_response['confidence']
+            if selector_response:
+                response_skill = selector_response['name']
+                response_text = selector_response['text']
+                response_confidence = selector_response['confidence']
 
-            bot_utterance = await BotUtteranceModel.get_or_create(user=self._bot,
-                                                                  date_time=datetime.utcnow(),
-                                                                  orig_text=response_text,
-                                                                  active_skill=response_skill,
-                                                                  confidence=response_confidence)
+                bot_utterance = await BotUtteranceModel.get_or_create(user=self._bot,
+                                                                      date_time=datetime.utcnow(),
+                                                                      orig_text=response_text,
+                                                                      active_skill=response_skill,
+                                                                      confidence=response_confidence)
 
-            dialog.add_utterance(bot_utterance)
-            logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid}')
+                dialog.add_utterance(bot_utterance)
+                logger.debug(f'Added bot utterance {bot_utterance.uuid} to dialog {dialog.uuid}')
+
+        else:
+            logger.error(f'Last dialog utterance is not human utterance')
 
     async def _on_response_formatter(self, channel_user_key: ChannelUserKey, pipeline_stage: str) -> None:
         dialog = self._dialogs[channel_user_key]
-        last_utterance: BotUtteranceModel = dialog.utterances[-1]
         stage_services = self._pipeline[pipeline_stage]
+        last_utterance = dialog.utterances[-1]
 
-        formatter_service = stage_services[0]
-        formatter_response = last_utterance.pop_service_response(formatter_service)
+        if isinstance(last_utterance, BotUtteranceModel):
+            formatter_service = stage_services[0]
+            formatter_response = last_utterance.pop_service_response(formatter_service)
 
-        if formatter_response:
-            last_utterance.set_text(formatter_response['formatted_text'])
-            logger.debug(f'Added formatted response to bot utterance {last_utterance.uuid} to dialog {dialog.uuid}')
+            if formatter_response:
+                last_utterance.set_text(formatter_response['formatted_text'])
+                logger.debug(f'Added formatted response to bot utterance {last_utterance.uuid} to dialog {dialog.uuid}')
+
+        else:
+            logger.error(f'Last dialog utterance is not bot utterance')
