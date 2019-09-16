@@ -2,7 +2,7 @@ agent_namespace: 'deeppavlov_agent'
 
 agent:
   name: 'dp_agent'
-  response_timeout_sec: 20
+  response_timeout_sec: 120
 
   pipeline: {
     utterance_annotators: ['ner'],
