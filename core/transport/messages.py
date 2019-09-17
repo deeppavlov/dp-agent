@@ -1,12 +1,9 @@
 from typing import TypeVar
 
 
-TMessageBase = TypeVar('TMessageBase', bound='TaskBase')
-
-
 class MessageBase:
     @classmethod
-    def from_json(cls, message_json) -> TMessageBase:
+    def from_json(cls, message_json):
         message_type = message_json.pop('type', None)
         if message_type != cls.type:
             raise ValueError(f'Message type is not [{cls.type}]')
@@ -17,7 +14,9 @@ class MessageBase:
         return self.__dict__
 
 
-# TODO: Think if we can get rid of task uuid
+TMessageBase = TypeVar('TMessageBase', bound=MessageBase)
+
+
 class ServiceTaskMessage(MessageBase):
     type = 'service_task'
     agent_name: str
@@ -41,7 +40,6 @@ class ServiceResponseMessage(MessageBase):
 
     def __init__(self, agent_name: str, task_uuid: str, service_name: str, service_instance_id: str,
                  partial_dialog_state: dict) -> None:
-
         self.type = self.__class__.type
         self.agent_name = agent_name
         self.task_uuid = task_uuid
@@ -83,16 +81,20 @@ class FromChannelMessage(MessageBase):
         self.reset_dialog = reset_dialog
 
 
+_message_wrappers_map = {
+    'service_task': ServiceTaskMessage,
+    'service_response': ServiceResponseMessage,
+    'to_channel_message': ToChannelMessage,
+    'from_channel_message': FromChannelMessage
+}
+
+
 def get_transport_message(message_json: dict) -> TMessageBase:
     message_type = message_json['type']
 
-    if message_type == 'service_task':
-        return ServiceTaskMessage.from_json(message_json)
-    elif message_type == 'service_response':
-        return ServiceResponseMessage.from_json(message_json)
-    elif message_type == 'to_channel_message':
-        return ToChannelMessage.from_json(message_json)
-    elif message_type == 'from_channel_message':
-        return FromChannelMessage.from_json(message_json)
-    else:
+    if message_type not in _message_wrappers_map:
         raise ValueError(f'Unknown transport message type: {message_type}')
+
+    message_wrapper_class: TMessageBase = _message_wrappers_map[message_type]
+
+    return message_wrapper_class.from_json(message_json)
