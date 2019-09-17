@@ -4,11 +4,8 @@ from typing import TypeVar
 class MessageBase:
     @classmethod
     def from_json(cls, message_json):
-        message_type = message_json.pop('msg_type', None)
-        if message_type != cls.msg_type:
-            raise ValueError(f'Message type is not [{cls.msg_type}]')
-        else:
-            return cls(**message_json)
+        message_json.pop('msg_type')
+        return cls(**message_json)
 
     def to_json(self) -> dict:
         return self.__dict__
