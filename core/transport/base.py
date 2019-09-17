@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable, Optional
 
 
@@ -21,13 +20,11 @@ class AgentGatewayBase:
         self._on_service_callback = on_service_callback
         self._on_channel_callback = on_channel_callback
 
-    @abstractmethod
     async def send_to_service(self, service: str, dialog_state: dict) -> None:
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     async def send_to_channel(self, channel_id: str, user_id: str, response: str) -> None:
-        pass
+        raise NotImplementedError
 
 
 class ServiceCallerBase:
@@ -43,9 +40,8 @@ class ServiceCallerBase:
         self._service_name = config['service']['name']
         self._formatter = formatter
 
-    @abstractmethod
     def infer(self, dialog_states_batch: List[dict]) -> Optional[List[dict]]:
-        pass
+        raise NotImplementedError
 
 
 class ServiceGatewayBase:
@@ -69,9 +65,8 @@ class ChannelConnectorBase:
         self._channel_id = self._config['channel']['id']
         self._on_channel_callback = on_channel_callback
 
-    @abstractmethod
     async def send_to_channel(self, user_id: str, response: str) -> None:
-        pass
+        raise NotImplementedError
 
 
 class ChannelGatewayBase:
@@ -81,6 +76,5 @@ class ChannelGatewayBase:
         super(ChannelGatewayBase, self).__init__(*args, **kwargs)
         self._to_channel_callback = to_channel_callback
 
-    @abstractmethod
     async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
-        pass
+        raise NotImplementedError

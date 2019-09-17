@@ -2,7 +2,6 @@ import asyncio
 import json
 import functools
 import time
-from abc import abstractmethod
 from uuid import uuid4
 from typing import Dict, List, Optional, Callable, Awaitable
 from logging import getLogger
@@ -31,7 +30,6 @@ CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_id}.any'
 logger = getLogger(__name__)
 
 
-# TODO: add handling of: Server connection probably hang, last heartbeat received 1067.857 seconds ago
 # TODO: add proper RabbitMQ SSL authentication
 # TODO: add load balancing for stateful skills
 class RabbitMQTransportBase:
@@ -86,13 +84,11 @@ class RabbitMQTransportBase:
                                                                                  type=aio_pika.ExchangeType.TOPIC)
         logger.info(f'Declared agent out exchange: {agent_out_exchange_name}')
 
-    @abstractmethod
     async def _setup_queues(self) -> None:
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     async def _on_message_callback(self, message: IncomingMessage) -> None:
-        pass
+        raise NotImplementedError
 
 
 class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
