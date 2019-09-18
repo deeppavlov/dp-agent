@@ -5,6 +5,25 @@ DB_HOST = '127.0.0.1'
 DB_PORT = 27017
 DB_PATH = '/data/db'
 
+HIGHLOAD_SETTINGS = {
+    'agent_namespace': 'deeppavlov_agent',
+    'agent': {
+        'agent_name': 'dp_agent',
+        'response_timeout': 120
+    },
+    'channels': {},
+    'transport': {
+        'type': 'rabbitmq',
+        'rabbitmq': {
+            'host': '127.0.0.1',
+            'port': 5672,
+            'login': 'guest',
+            'password': 'guest',
+            'virtualhost': '/'
+        }
+    }
+}
+
 MAX_WORKERS = 4
 
 AGENT_ENV_FILE = "agent.env"
@@ -21,7 +40,8 @@ SKILLS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter
+        "formatter": odqa_formatter,
+        "highload": False
     },
     {
         "name": "chitchat",
@@ -35,7 +55,8 @@ SKILLS = [
         },
         "profile_handler": True,
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter
+        "formatter": odqa_formatter,
+        "highload": False
     }
 ]
 
@@ -51,7 +72,8 @@ ANNOTATORS_1 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": ner_formatter
+        "formatter": ner_formatter,
+        "highload": False
     }
 ]
 
@@ -67,7 +89,8 @@ ANNOTATORS_2 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": sentiment_formatter
+        "formatter": sentiment_formatter,
+        "highload": False
     }
 ]
 
@@ -85,7 +108,8 @@ SKILL_SELECTORS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": chitchat_odqa_formatter
+        "formatter": chitchat_odqa_formatter,
+        "highload": False
     }
 ]
 
