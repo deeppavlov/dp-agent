@@ -15,8 +15,11 @@ from core.state_manager import StateManager
 from core.transform_config import DEBUG
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
+parser.add_argument('mode', help='run agent default mode ore one of the agent highload components', type=str,
+                    choices=['default', 'agent', 'service', 'channel'], default='default')
+parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client'], default='cmd_client')
+parser.add_argument('-sn', '--service-name', help='service name in highload service mode', type=str)
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
 args = parser.parse_args()
@@ -40,6 +43,7 @@ async def run(register_msg):
                                           date_time=datetime.now(), location='lab', channel_type=CHANNEL,
                                           deadline_timestamp=None, require_response=True)
             print('Bot: ', response['dialog'].utterances[-1].text)
+
 
 async def on_shutdown(app):
     await app['client_session'].close()
