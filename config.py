@@ -40,8 +40,7 @@ SKILLS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter,
-        "highload": False
+        "formatter": odqa_formatter
     },
     {
         "name": "chitchat",
@@ -55,8 +54,7 @@ SKILLS = [
         },
         "profile_handler": True,
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter,
-        "highload": False
+        "formatter": odqa_formatter
     }
 ]
 
@@ -72,8 +70,7 @@ ANNOTATORS_1 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": ner_formatter,
-        "highload": False
+        "formatter": ner_formatter
     }
 ]
 
@@ -89,8 +86,7 @@ ANNOTATORS_2 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": sentiment_formatter,
-        "highload": False
+        "formatter": sentiment_formatter
     }
 ]
 
@@ -108,8 +104,7 @@ SKILL_SELECTORS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "dockerfile": "dockerfile_skill_cpu",
-        "formatter": chitchat_odqa_formatter,
-        "highload": False
+        "formatter": chitchat_odqa_formatter
     }
 ]
 
