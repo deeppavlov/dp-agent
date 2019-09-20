@@ -19,27 +19,32 @@ parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client 
                     choices=['cmd_client', 'http_client'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
+parser.add_argument('-nd', '--newdialog', help='run in debug mode', action='store_true')
 args = parser.parse_args()
 CHANNEL = args.channel
 
 
-def prepare_agent(services, endpoint: Service):
+def prepare_agent(services, endpoint: Service, input: Service):
     pipeline = Pipeline(services)
     pipeline.add_responder_service(endpoint)
+    pipeline.add_input_service(input)
     agent = Agent(pipeline, StateManager())
 
     return agent.register_msg, agent.process
 
 
 async def run(register_msg):
-    user_id = input('Provide user id: ')
+    if args.newdialog:
+        user_id = uuid.uuid4().hex
+    else:
+        user_id = input('Provide user id: ')
     while True:
         msg = input(f'You ({user_id}): ').strip()
         if msg:
             response = await register_msg(utterance=msg, user_telegram_id=user_id, user_device_type='cmd',
                                           date_time=datetime.now(), location='lab', channel_type=CHANNEL,
                                           deadline_timestamp=None, require_response=True)
-            print('Bot: ', response['dialog'].utterances[-1].text)
+            print('Bot: ', response['dialog']['utterances'][-1]['text'])
 
 async def on_shutdown(app):
     await app['client_session'].close()
@@ -129,10 +134,12 @@ def main():
     services, workers, session = parse_old_config()
 
     if CHANNEL == 'cmd_client':
-        endpoint = Service('cmd_responder', EventSetOutputConnector(), None, 1, ['responder'], set())
+        endpoint = Service('cmd_responder', EventSetOutputConnector().send,
+                           StateManager.save_dialog_dict, 1, ['responder'])
+        input = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        register_msg, process = prepare_agent(services, endpoint)
+        register_msg, process = prepare_agent(services, endpoint, input)
         future = asyncio.ensure_future(run(register_msg))
         for i in workers:
             loop.create_task(i.call_service(process))
@@ -149,8 +156,10 @@ def main():
             loop.close()
     elif CHANNEL == 'http_client':
         intermediate_storage = {}
-        endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage), None, 1, ['responder'])
-        register_msg, process_callable = prepare_agent(services, endpoint)
+        endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage).send,
+                           StateManager.save_dialog_dict, 1, ['responder'])
+        input = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
+        register_msg, process_callable = prepare_agent(services, endpoint, input)
         app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
                        on_shutdown)
 

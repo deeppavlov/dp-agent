@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Hashable, Any, Optional, Dict
+from typing import Sequence, Hashable, Any, Optional, Dict
 
+from core.state_schema import Human, Bot, Utterance, HumanUtterance, BotUtterance, Dialog, HUMAN_UTTERANCE_SCHEMA, BOT_UTTERANCE_SCHEMA
+from core.connection import state_storage
 from core.bot import BOT
-from core.state_schema import Human, Bot, HumanUtterance, BotUtterance, Dialog
+from core import VERSION
 
 
 class StateManager:
@@ -55,7 +57,6 @@ class StateManager:
         me_user.profile.update(**profile)
         me_user.save()
 
-    # non batch shit
 
     @classmethod
     def get_or_create_user(cls, user_telegram_id=Hashable, user_device_type=Any):
@@ -133,3 +134,66 @@ class StateManager:
     @staticmethod
     def do_nothing(*args, **kwargs):  # exclusive workaround for skill selector
         pass
+
+    @classmethod
+    def add_human_utterance_dict(cls, dialog: Dict, text: str, date_time: datetime,
+                                 annotation: Optional[dict] = None,
+                                 selected_skill: Optional[dict] = None, **kwargs) -> None:
+        utterance = HUMAN_UTTERANCE_SCHEMA
+        utterance['text'] = text
+        utterance['date_time'] = date_time
+        dialog['utterances'].append(utterance)
+
+    @classmethod
+    def add_human_utterance_simple_dict(cls, dialog: Dict, dialog_object: Dialog, payload: Dict, **kwargs) -> None:
+        utterance = HUMAN_UTTERANCE_SCHEMA
+        utterance['text'] = payload
+        utterance['date_time'] = str(datetime.now())
+        utterance['user_id'] = str(dialog_object.user.id)
+        dialog['utterances'].append(utterance)
+
+    @classmethod
+    def add_bot_utterance_simple_dict(cls, dialog: Dict, dialog_object: Dialog, payload: Dict, **kwargs) -> None:
+        active_skill_name = list(payload.values())[0]
+        active_skill = dialog['utterances'][-1]['selected_skills'].get(active_skill_name, None)
+        if not active_skill:
+            raise ValueError(f'provided {payload} is not valid')
+
+        utterance = BOT_UTTERANCE_SCHEMA
+        utterance['text'] = active_skill['text']
+        utterance['orig_text'] = active_skill['text']
+        utterance['date_time'] = str(datetime.now())
+        utterance['active_skill'] = active_skill_name
+        utterance['confidence'] = active_skill['confidence']
+        utterance['user_id'] = str(BOT.id)
+        dialog['utterances'].append(utterance)
+
+    @staticmethod
+    def add_annotation_dict(dialog: Dict, dialog_object: Dialog, payload: Dict, **kwargs):
+        dialog['utterances'][-1]['annotations'].update(payload)
+
+    @staticmethod
+    def add_selected_skill_dict(dialog: Dict, dialog_object: Dialog, payload: Dict, **kwargs):
+        dialog['utterances'][-1]['selected_skills'].update(payload)
+
+    @staticmethod
+    def add_text(dialog: Dict, payload: str):
+        dialog['utterances'][-1]['text'] = payload
+
+    @staticmethod
+    def save_dialog_dict(dialog: Dict, dialog_object: Dialog, payload=None):
+        utt_objects = []
+        for utt in dialog['utterances'][::-1]:
+            if not utt['id']:
+                if utt['type'] == 'human':
+                    utt_objects.append(HumanUtterance.from_dict(utt))
+                elif utt['type'] == 'bot':
+                    utt_objects.append(BotUtterance.from_dict(utt))
+                else:
+                    raise ValueError('utterance of unknown type')
+            else:
+                break
+        for utt in utt_objects[::-1]:
+            dialog_object.utterances.append(utt)
+
+        dialog_object.save()

@@ -23,10 +23,11 @@ class Agent:
     def add_workflow_record(self, dialog: Dialog, deadline_timestamp: Optional[float] = None, **kwargs):
         if str(dialog.id) in self.workflow.keys():
             raise ValueError(f'dialog with id {dialog.id} is already in workflow')
-        workflow_record = {'dialog': dialog, 'services': defaultdict(dict)}
+        workflow_record = {'dialog_object': dialog, 'dialog': dialog.to_dict(), 'services': defaultdict(dict)}
         if deadline_timestamp:
             workflow_record['deadline_timestamp'] = deadline_timestamp
-
+        if 'dialog_object' in kwargs:
+            raise ValueError("'dialog_object' is system reserved workflow record field")
         workflow_record.update(kwargs)
         self.workflow[str(dialog.id)] = workflow_record
 
@@ -64,17 +65,18 @@ class Agent:
         1. Updates workflow dict with completed service
         2. Updates dialog within workflow dict, using service update callable
         3. Asks pipeline for next services which became available on current stage workflow
-        4. Modifies next services when processed responce is received from a selector service
+        4. Modifies next services when processed response is received from a selector service
         5. Returns next services in list form
         '''
         workflow_record = self.get_workflow_record(dialog_id)
-
         # Updating workflow with service response
         service = self.pipeline.get_service_by_name(service_name)
         if service:
             self.workflow[dialog_id]['services'][service_name]['done'] = time()
             if response and service.state_processor_method:
-                service.state_processor_method(workflow_record['dialog'], response)
+                service.state_processor_method(dialog=workflow_record['dialog'],
+                                               dialog_object=workflow_record['dialog_object'],
+                                               payload=response)
 
         # Calculating next steps
         done, waiting = self.get_services_status(dialog_id)
@@ -99,19 +101,18 @@ class Agent:
                            user_device_type: Any,
                            date_time: datetime, location=Any,
                            channel_type=str, deadline_timestamp=None,
-                           require_response = False, **kwargs):
-        event = None
+                           require_response=False, should_reset=False, **kwargs):
         message_uuid = None
         hold_flush = False
         user = self.state_manager.get_or_create_user(user_telegram_id, user_device_type)
         dialog = self.state_manager.get_or_create_dialog(user, location, channel_type)
-        self.state_manager.add_human_utterance(dialog, utterance, date_time)
         if require_response:
             event = asyncio.Event()
+            kwargs['event'] = event
             hold_flush = True
         self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp,
-                                 event=event, hold_flush=hold_flush, **kwargs)
-        await self.process(str(dialog.id))
+                                 hold_flush=hold_flush, **kwargs)
+        await self.process(str(dialog.id), 'input', utterance)
         if require_response:
             await event.wait()
             workflow_record = self.get_workflow_record(str(dialog.id))
@@ -124,16 +125,15 @@ class Agent:
         next_services = self.process_service_response(dialog_id, service_name, response)
 
         service_requests = []
-        has_responder = False
+        has_responder = []
         for service in next_services:
             self.register_service_request(dialog_id, service.name)
             payload = service.apply_workflow_formatter(workflow_record)
-            service_requests.append(service.connector_callable(payload))
+            service_requests.append(service.connector_func(payload))
             if service.is_responder():
-                has_responder = True
+                has_responder.append(service)
 
         responses = await asyncio.gather(*service_requests, return_exceptions=True)
-
         tasks = []
         for service, response in zip(next_services, responses):
             if response is not None:
@@ -141,6 +141,8 @@ class Agent:
                     raise response
                 tasks.append(self.process(dialog_id, service.name, response))
         await asyncio.gather(*tasks)
-
-        if has_responder and not workflow_record.get('hold_flush', False):
-            self.flush_record(dialog_id)
+        if has_responder:
+            for i in has_responder:
+                i.state_processor_method(workflow_record['dialog'], workflow_record['dialog_object'], None)
+            if not workflow_record.get('hold_flush', False):
+                self.flush_record(dialog_id)

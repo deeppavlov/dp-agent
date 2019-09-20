@@ -1,6 +1,28 @@
 from mongoengine import DynamicDocument, ReferenceField, ListField, StringField, DynamicField, \
     DateTimeField, FloatField, DictField
+from datetime import datetime
 
+HUMAN_UTTERANCE_SCHEMA = {
+    'id': None,
+    'text': None,
+    'user_id': None,
+    'annotations': {},
+    'date_time': None,
+    'selected_skills': {},
+    'type': 'human'
+}
+
+BOT_UTTERANCE_SCHEMA = {
+    'id': None,
+    'active_skill': None,
+    'confidence': None,
+    'text': None,
+    'orig_text': None,
+    'user_id': None,
+    'annotations': {},
+    'date_time': None,
+    'type': 'bot'
+}
 
 class User(DynamicDocument):
     persona = ListField(default=[])
@@ -61,7 +83,7 @@ class Utterance(DynamicDocument):
 
 
 class HumanUtterance(Utterance):
-    selected_skills = DynamicField(default=[])
+    selected_skills = DictField(default={})
 
     def to_dict(self):
         return {'id': str(self.id),
@@ -69,7 +91,20 @@ class HumanUtterance(Utterance):
                 'user_id': str(self.user.id),
                 'annotations': self.annotations,
                 'date_time': str(self.date_time),
-                'selected_skills': self.selected_skills}
+                'selected_skills': self.selected_skills,
+                'type': 'human'}
+
+    @classmethod
+    def from_dict(cls, payload):
+        utterance = cls()
+        utterance.id = payload['id']
+        utterance.text = payload['text']
+        utterance.annotations = payload['annotations']
+        utterance.date_time = payload['date_time']
+        utterance.selected_skills = payload['selected_skills']
+        utterance.user = User.objects(id__exact=payload['user_id'])[0]
+        utterance.save()
+        return utterance
 
 
 class BotUtterance(Utterance):
@@ -87,9 +122,22 @@ class BotUtterance(Utterance):
             'orig_text': self.orig_text,
             'user_id': str(self.user.id),
             'annotations': self.annotations,
-            'date_time': str(self.date_time)
-        }
+            'date_time': str(self.date_time),
+            'type': 'bot'}
 
+    @classmethod
+    def from_dict(cls, payload):
+        utterance = cls()
+        utterance.id = payload['id']
+        utterance.text = payload['text']
+        utterance.orig_text = payload['orig_text']
+        utterance.annotations = payload['annotations']
+        utterance.date_time = payload['date_time']
+        utterance.active_skill = payload['active_skill']
+        utterance.confidence = payload['confidence']
+        utterance.user = User.objects(id__exact=payload['user_id'])[0]
+        utterance.save()
+        return utterance
 
 class Dialog(DynamicDocument):
     location = DynamicField()

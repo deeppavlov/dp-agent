@@ -24,15 +24,15 @@ def parse_old_config():
         url2 = conf_record.get('url2', None)
         if conf_record['protocol'] == 'http':
             if batch_size == 1 and not url2:
-                connector = HTTPConnector(session, url, formatter, conf_record['name'])
+                connector_func = HTTPConnector(session, url, formatter, conf_record['name']).send
             else:
                 queue = asyncio.Queue()
-                connector = AioQueueConnector(queue)  # worker task and queue connector
+                connector_func = AioQueueConnector(queue)  # worker task and queue connector
                 worker_tasks.append(QueueListenerBatchifyer(session, url, formatter, name, queue, batch_size))
                 if url2:
                     worker_tasks.append(QueueListenerBatchifyer(session, url2, formatter, name, queue, batch_size))
 
-        service = Service(name, connector, state_processor_method, batch_size,
+        service = Service(name, connector_func, state_processor_method, batch_size,
                           tags, names_previous_services, simple_workflow_formatter)
 
         return service, worker_tasks
@@ -41,7 +41,7 @@ def parse_old_config():
         return f'bot_{name}'
 
     for anno in ANNOTATORS_1:
-        service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation,
+        service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict,
                                                         ['ANNOTATORS_1'], set())
         services.append(service)
         worker_tasks.extend(workers)
@@ -50,7 +50,7 @@ def parse_old_config():
 
     if ANNOTATORS_2:
         for anno in ANNOTATORS_2:
-            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation,
+            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict,
                                                             ['ANNOTATORS_2'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
@@ -59,7 +59,7 @@ def parse_old_config():
 
     if ANNOTATORS_3:
         for anno in ANNOTATORS_3:
-            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation,
+            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict,
                                                                 ['ANNOTATORS_3'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
@@ -77,7 +77,7 @@ def parse_old_config():
 
     if SKILLS:
         for s in SKILLS:
-            service, workers = make_service_from_config_rec(s, session, StateManager.add_selected_skill,
+            service, workers = make_service_from_config_rec(s, session, StateManager.add_selected_skill_dict,
                                                             ['SKILLS'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
@@ -85,12 +85,12 @@ def parse_old_config():
         previous_services = {i.name for i in services if 'SKILLS' in i.tags}
 
     if not RESPONSE_SELECTORS:
-        services.append(Service('confidence_response_selector', ConfidenceResponseSelectorConnector(),
-                                StateManager.add_bot_utterance_simple,
+        services.append(Service('confidence_response_selector', ConfidenceResponseSelectorConnector().send,
+                                StateManager.add_bot_utterance_simple_dict,
                                 1, ['RESPONSE_SELECTORS'], previous_services, simple_workflow_formatter))
     else:
         for r in RESPONSE_SELECTORS:
-            service, workers = make_service_from_config_rec(r, session, StateManager.add_bot_utterance_simple,
+            service, workers = make_service_from_config_rec(r, session, StateManager.add_bot_utterance_simple_dict,
                                                             ['RESPONSE_SELECTORS'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
@@ -99,7 +99,7 @@ def parse_old_config():
 
     if POSTPROCESSORS:
         for p in POSTPROCESSORS:
-            service, workers = make_service_from_config_rec(p, session, StateManager.add_text,
+            service, workers = make_service_from_config_rec(p, session, StateManager.add_text_dict,
                                                             ['POSTPROCESSORS'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
@@ -108,7 +108,7 @@ def parse_old_config():
 
     if ANNOTATORS_1:
         for anno in ANNOTATORS_1:
-            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation,
+            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict,
                                                             ['POST_ANNOTATORS_1'], previous_services, add_bot_to_name)
             services.append(service)
             worker_tasks.extend(workers)
@@ -117,7 +117,7 @@ def parse_old_config():
 
     if ANNOTATORS_2:
         for anno in ANNOTATORS_2:
-            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation,
+            service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict,
                                                             ['POST_ANNOTATORS_2'], previous_services, add_bot_to_name)
             services.append(service)
             worker_tasks.extend(workers)
@@ -125,7 +125,7 @@ def parse_old_config():
         previous_services = {i.name for i in services if 'POST_ANNOTATORS_2' in i.tags}
 
     for anno in ANNOTATORS_3:
-        service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation, ['POST_ANNOTATORS_3'],
+        service, workers = make_service_from_config_rec(anno, session, StateManager.add_annotation_dict, ['POST_ANNOTATORS_3'],
                                                         previous_services, add_bot_to_name)
         services.append(service)
         worker_tasks.extend(workers)
