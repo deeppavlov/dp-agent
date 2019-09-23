@@ -111,13 +111,16 @@ def parse_old_config(on_channel_callback, on_service_callback):
         previous_services = {i.name for i in services if 'SKILLS' in i.tags}
 
     if not RESPONSE_SELECTORS:
-        services.append(Service('confidence_response_selector', ConfidenceResponseSelectorConnector(),
-                                StateManager.add_bot_utterance_simple,
-                                1, ['RESPONSE_SELECTORS'], previous_services, _agent_gateway, simple_workflow_formatter))
+        services.append(Service('confidence_response_selector',
+                                ConfidenceResponseSelectorConnector(),
+                                StateManager.add_bot_response, 1,
+                                ['RESPONSE_SELECTORS'],
+                                previous_services,
+                                simple_workflow_formatter))
     else:
         for r in RESPONSE_SELECTORS:
             service, workers, _session, _agent_gateway = \
-                make_service_from_config_rec(r, _session, StateManager.add_bot_utterance_simple,
+                make_service_from_config_rec(r, _session, StateManager.add_bot_response,
                                              ['RESPONSE_SELECTORS'], previous_services, _agent_gateway)
             services.append(service)
             worker_tasks.extend(workers)
