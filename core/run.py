@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import uuid
+from typing import Any, Hashable
 
 from aiohttp import web
 from datetime import datetime
@@ -130,13 +131,26 @@ async def dialog(request):
 
 
 def main():
-    services, workers, session = parse_old_config()
+    async def register_msg(utterance: str, user_telegram_id: Hashable,
+                           user_device_type: Any, date_time: datetime,
+                           location=Any, channel_type=str,
+                           deadline_timestamp=None, require_response=False, **kwargs):
+
+        return await _register_msg(utterance, user_telegram_id,
+                                   user_device_type, date_time,
+                                   location, channel_type,
+                                   deadline_timestamp, require_response, **kwargs)
+
+    async def process(dialog_id, service_name=None, response=None):
+        return await _process(dialog_id, service_name, response)
+
+    services, workers, session, gateway = parse_old_config(register_msg, process)
 
     if CHANNEL == 'cmd_client':
         endpoint = Service('cmd_responder', EventSetOutputConnector(), None, 1, ['responder'], set())
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        register_msg, process = prepare_agent(services, endpoint)
+        _register_msg, _process = prepare_agent(services, endpoint)
         future = asyncio.ensure_future(run(register_msg))
         for i in workers:
             loop.create_task(i.call_service(process))
@@ -154,8 +168,8 @@ def main():
     elif CHANNEL == 'http_client':
         intermediate_storage = {}
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage), None, 1, ['responder'])
-        register_msg, process_callable = prepare_agent(services, endpoint)
-        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
+        _register_msg, _process = prepare_agent(services, endpoint)
+        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process, session),
                        on_shutdown)
 
         web.run_app(app, port=args.port)

@@ -9,7 +9,7 @@ from core.state_manager import StateManager
 from core.transport import transport_map
 
 
-def parse_old_config(on_service_callback, on_channel_callback):
+def parse_old_config(on_channel_callback, on_service_callback):
     services = []
     worker_tasks = []
     _session = None
