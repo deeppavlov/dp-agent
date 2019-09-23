@@ -16,7 +16,7 @@ from core.state_manager import StateManager
 from core.transform_config import DEBUG
 
 parser = argparse.ArgumentParser()
-parser.add_argument('mode', help='run agent default mode ore one of the agent highload components', type=str,
+parser.add_argument('-m', '--mode', help='run agent default mode ore one of the agent highload components', type=str,
                     choices=['default', 'agent', 'service', 'channel'], default='default')
 parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client'], default='cmd_client')
