@@ -190,7 +190,7 @@ class DialogObject(MongoObject):
 async def get_utterances_from_db(dialog_id):
     collection = db.utterance
     utterances = []
-    async for document in db.utterance.find({'dialog_id': dialog_id}).sort('in_dialog_id'):
+    async for document in collection.find({'dialog_id': dialog_id}).sort('in_dialog_id'):
         if document['_class'] == 'human_utterance':
             utterances.append(HumanUtteranceObject(**document))
         elif document['_class'] == 'bot_utterance':
