@@ -72,6 +72,7 @@ class ConfidenceResponseSelectorConnector:
         self.service_name = service_name
 
     async def send(self, payload: Dict, callback: Callable):
+        service_send_time = time.time()
         response = payload['utterances'][-1]['selected_skills']
         best_skill = sorted(response.items(), key=lambda x: x[1]['confidence'], reverse=True)[0]
         response_time = time.time()
@@ -84,7 +85,8 @@ class ConfidenceResponseSelectorConnector:
                     'confidence': best_skill[1]['confidence']
                 }
             },
-            response_time=response_time)
+            service_send_time=service_send_time,
+            service_response_time=response_time)
 
 
 class HttpOutputConnector:
@@ -96,11 +98,13 @@ class HttpOutputConnector:
         message_uuid = payload['message_uuid']
         event = payload['event']
         response_text = payload['dialog']['utterances'][-1]['text']
+        service_send_time = time.time()
         self.intermediate_storage[message_uuid] = response_text
         event.set()
         await callback(dialog_id=payload['dialog']['id'],
                        service_name=self.service_name,
                        response=response_text,
+                       service_send_time=service_send_time,
                        service_response_time=time.time())
 
 
@@ -110,9 +114,12 @@ class EventSetOutputConnector:
 
     async def send(self, payload: Dict, callback: Callable):
         event = payload.get('event', None)
+        service_send_time = time.time()
         if not event or not isinstance(event, asyncio.Event):
             raise ValueError("'event' key is not presented in payload")
         event.set()
         await callback(dialog_id=payload['dialog']['id'],
                        service_name=self.service_name,
-                       response=" ", service_response_time=time.time())
+                       response=" ",
+                       service_send_time=service_send_time,
+                       service_response_time=time.time())
