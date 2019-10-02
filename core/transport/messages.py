@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Any
 
 
 class MessageBase:
@@ -18,13 +18,13 @@ class ServiceTaskMessage(MessageBase):
     msg_type = 'service_task'
     agent_name: str
     task_uuid: str
-    dialog_state: dict
+    dialog: dict
 
-    def __init__(self, agent_name: str, task_uuid: str, dialog_state: dict) -> None:
+    def __init__(self, agent_name: str, task_uuid: str, dialog: dict) -> None:
         self.msg_type = self.__class__.msg_type
         self.agent_name = agent_name
         self.task_uuid = task_uuid
-        self.dialog_state = dialog_state
+        self.dialog = dialog
 
 
 class ServiceResponseMessage(MessageBase):
@@ -33,16 +33,19 @@ class ServiceResponseMessage(MessageBase):
     task_uuid: str
     service_name: str
     service_instance_id: str
-    partial_dialog_state: dict
+    dialog_id: str
+    response: Any
 
-    def __init__(self, agent_name: str, task_uuid: str, service_name: str, service_instance_id: str,
-                 partial_dialog_state: dict) -> None:
+    def __init__(self, agent_name: str, task_uuid: str, service_name: str, service_instance_id: str, dialog_id: str,
+                 response: Any) -> None:
+
         self.msg_type = self.__class__.msg_type
         self.agent_name = agent_name
         self.task_uuid = task_uuid
         self.service_name = service_name
         self.service_instance_id = service_instance_id
-        self.partial_dialog_state = partial_dialog_state
+        self.dialog_id = dialog_id
+        self.response = response
 
 
 class ToChannelMessage(MessageBase):
