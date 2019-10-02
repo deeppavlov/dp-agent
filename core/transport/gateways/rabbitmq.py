@@ -1,6 +1,5 @@
 import asyncio
 import json
-import functools
 import time
 from uuid import uuid4
 from typing import Dict, List, Optional, Callable, Awaitable
@@ -10,7 +9,6 @@ import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
 from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ChannelGatewayBase
-from core.transport.base import TServiceCaller
 from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
 from core.transport.messages import TMessageBase, get_transport_message
 
@@ -128,8 +126,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         if isinstance(message_in, ServiceResponseMessage):
             logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
-            partial_dialog_state = message_in.partial_dialog_state
-            await self._loop.create_task(self._on_service_callback(partial_dialog_state=partial_dialog_state))
+            response = message_in.response
+            await self._loop.create_task(self._on_service_callback(partial_dialog_state=response))
 
         elif isinstance(message_in, FromChannelMessage):
             utterance = message_in.utterance
@@ -142,10 +140,10 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                                    user_id=user_id,
                                                                    reset_dialog=reset_dialog))
 
-    async def send_to_service(self, service_name: str, dialog_state: dict) -> None:
+    async def send_to_service(self, service_name: str, dialog: dict) -> None:
         task_uuid = str(uuid4())
-        task = ServiceTaskMessage(agent_name=self._agent_name, task_uuid=task_uuid, dialog_state=dialog_state)
-        logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog_state)}')
+        task = ServiceTaskMessage(agent_name=self._agent_name, task_uuid=task_uuid, dialog=dialog)
+        logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog)}')
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
@@ -171,8 +169,9 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         logger.debug(f'Published channel message: {str(channel_message_json)}')
 
 
+# TODO: add separate service infer timeouts
 class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
-    _service_caller: TServiceCaller
+    _to_service_callback: Callable
     _service_name: str
     _instance_id: str
     _batch_size: int
@@ -180,8 +179,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
     _add_to_buffer_lock: asyncio.Lock
     _infer_lock: asyncio.Lock
 
-    def __init__(self, config: dict, service_caller: TServiceCaller) -> None:
-        super(RabbitMQServiceGateway, self).__init__(config=config, service_caller=service_caller)
+    def __init__(self, config: dict, to_service_callback: Callable) -> None:
+        super(RabbitMQServiceGateway, self).__init__(config=config, to_service_callback=to_service_callback)
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
         self._instance_id = self._config['service']['instance_id'] or f'{self._service_name}{str(uuid4())}'
@@ -238,6 +237,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
                 tasks_batch = [ServiceTaskMessage.from_json(json.loads(message.body, encoding='utf-8'))
                                for message in messages_batch]
 
+                # TODO: Think about proper infer errors and aknowledge handling
                 processed_ok = await self._process_tasks(tasks_batch)
 
                 if processed_ok:
@@ -253,34 +253,33 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             self._infer_lock.release()
 
     async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> bool:
-        task_agent_names_batch, task_uuids_batch, dialog_states_batch = \
-            zip(*[(task.agent_name, task.task_uuid, task.dialog_state) for task in tasks_batch])
+        task_agent_names_batch, task_uuids_batch, dialogs_batch = \
+            zip(*[(task.agent_name, task.task_uuid, task.dialog) for task in tasks_batch])
 
         logger.debug(f'Prepared for infering tasks {str(task_uuids_batch)}')
 
-        # TODO: Think about proper infer errors and aknowledge handling
         try:
-            inferer = functools.partial(self._infer, dialog_states_batch)
-            infer_timeout = self._config['service']['infer_timeout_sec']
-            responses_batch = await asyncio.wait_for(self._loop.run_in_executor(executor=None, func=inferer),
-                                                     infer_timeout)
-            logger.debug(f'Processed tasks {str(task_uuids_batch)}')
-        except asyncio.TimeoutError:
-            responses_batch = None
+            responses_batch = await asyncio.wait_for(self._to_service_callback(dialogs_batch),
+                                                     self._response_timeout_sec)
 
-        if responses_batch:
-            await asyncio.wait([self._send_results(task_agent_names_batch[i], task_uuids_batch[i], partial_state)
-                                for i, partial_state in enumerate(responses_batch)])
+            for i, response in enumerate(responses_batch):
+                await self._loop.create_task(self._send_results(task_agent_names_batch[i],
+                                                                task_uuids_batch[i],
+                                                                dialogs_batch[i]['id'],
+                                                                response))
+
+            logger.debug(f'Processed tasks {str(task_uuids_batch)}')
             return True
-        else:
+        except asyncio.TimeoutError:
             return False
 
-    async def _send_results(self, agent_name: str, task_uuid: str, partial_dialog_state: dict) -> None:
+    async def _send_results(self, agent_name: str, task_uuid: str, dialog_id: str, response: dict) -> None:
         result = ServiceResponseMessage(agent_name=agent_name,
                                         task_uuid=task_uuid,
                                         service_name=self._service_name,
                                         service_instance_id=self._instance_id,
-                                        partial_dialog_state=partial_dialog_state)
+                                        dialog_id=dialog_id,
+                                        response=response)
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
