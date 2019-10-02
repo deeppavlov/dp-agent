@@ -12,7 +12,6 @@ from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ChannelGat
 from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
 from core.transport.messages import TMessageBase, get_transport_message
 
-
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'
 AGENT_OUT_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_out'
 AGENT_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_agent_{agent_name}'
@@ -262,12 +261,14 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             responses_batch = await asyncio.wait_for(self._to_service_callback(dialogs_batch),
                                                      self._response_timeout_sec)
 
-            for i, response in enumerate(responses_batch):
-                await self._loop.create_task(self._send_results(task_agent_names_batch[i],
-                                                                task_uuids_batch[i],
-                                                                dialogs_batch[i]['id'],
-                                                                response))
+            results_replies = []
 
+            for i, response in enumerate(responses_batch):
+                results_replies.append(
+                    self._send_results(task_agent_names_batch[i], task_uuids_batch[i], dialogs_batch[i]['id'], response)
+                )
+
+            await asyncio.gather(*results_replies)
             logger.debug(f'Processed tasks {str(task_uuids_batch)}')
             return True
         except asyncio.TimeoutError:
