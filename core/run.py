@@ -147,8 +147,8 @@ async def dialog(request):
 
 def main():
     async def register_msg(utterance: str, user_telegram_id: Hashable,
-                           user_device_type: Any, location=Any,
-                           channel_type=str, deadline_timestamp=None,
+                           user_device_type: Any, location: Any,
+                           channel_type: str, deadline_timestamp=None,
                            require_response=False, **kwargs):
 
         return await _register_msg(utterance, user_telegram_id,
@@ -156,8 +156,8 @@ def main():
                                    channel_type, deadline_timestamp,
                                    require_response, **kwargs)
 
-    async def process(dialog_id, service_name=None, response=None):
-        return await _process(dialog_id, service_name, response)
+    async def process(dialog_id, service_name=None, response=None, response_time: float = None):
+        return await _process(dialog_id, service_name, response, response_time)
 
     services, workers, session, gateway = parse_old_config(register_msg, process)
 
