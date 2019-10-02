@@ -1,66 +1,57 @@
-from typing import List, Callable, TypeVar, Union, Dict, Any, Awaitable, Optional
-
-
-TAgentGateway = TypeVar('TAgentGateway', bound='AgentGatewayBase')
-TServiceCaller = TypeVar('TServiceCaller', bound='ServiceCallerBase')
-TServiceGateway = TypeVar('TServiceGateway', bound='ServiceGatewayBase')
-TChannelConnector = TypeVar('TChannelConnector', bound='ChannelConnectorBase')
-TChannelGateway = TypeVar('TChannelGateway', bound='ChannelGatewayBase')
+from typing import List, Callable, TypeVar, Dict, Any
 
 
 class AgentGatewayBase:
-    _on_service_callback: Callable[[Dict], Awaitable]
-    _on_channel_callback: Callable[[str, str, str, bool], Awaitable]
+    _on_service_callback: Callable
+    _on_channel_callback: Callable
 
-    def __init__(self, on_service_callback: Callable[[Dict], Awaitable],
-                 on_channel_callback: Callable[[str, str, str, bool], Awaitable],
-                 *args, **kwargs):
-
+    def __init__(self, on_service_callback: Callable, on_channel_callback: Callable, *args, **kwargs):
         super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
         self._on_channel_callback = on_channel_callback
 
-    async def send_to_service(self, service: str, dialog_state: dict) -> None:
+    async def send_to_service(self, service: str, dialog: Dict) -> None:
         raise NotImplementedError
 
     async def send_to_channel(self, channel_id: str, user_id: str, response: str) -> None:
         raise NotImplementedError
 
 
-class ServiceCallerBase:
+TAgentGateway = TypeVar('TAgentGateway', bound=AgentGatewayBase)
+
+
+class ServiceGatewayConnectorBase:
     _config: dict
-    _service_name: str
-    _formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Any]]]
+    _formatter: Callable
 
-    def __init__(self,
-                 config: dict,
-                 formatter: Callable[[Union[List[Dict], Any], bool], Union[Any, List[Any]]]) -> None:
-
+    def __init__(self, config: dict, formatter: Callable) -> None:
         self._config = config
-        self._service_name = config['service']['name']
         self._formatter = formatter
 
-    def infer(self, dialog_states_batch: List[dict]) -> Optional[List[dict]]:
+    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
         raise NotImplementedError
 
 
+TServiceGatewayConnectorBase = TypeVar('TServiceGatewayConnectorBase', bound=ServiceGatewayConnectorBase)
+
+
 class ServiceGatewayBase:
-    _service_caller: TServiceCaller
+    _to_service_callback: Callable
 
-    def __init__(self, service_caller: ServiceCallerBase, *args, **kwargs) -> None:
+    def __init__(self, to_service_callback: Callable, *args, **kwargs) -> None:
         super(ServiceGatewayBase, self).__init__(*args, **kwargs)
-        self._service_caller = service_caller
-
-    def _infer(self, dialog_states_batch: List[dict]) -> List[dict]:
-        return self._service_caller.infer(dialog_states_batch)
+        self._to_service_callback = to_service_callback
 
 
-class ChannelConnectorBase:
+TServiceGateway = TypeVar('TServiceGateway', bound=ServiceGatewayBase)
+
+
+class ChannelGatewayConnectorBase:
     _config: dict
     _channel_id: str
-    _on_channel_callback: Callable[[str, str, str, bool], Awaitable]
+    _on_channel_callback: Callable
 
-    def __init__(self, config: dict, on_channel_callback: Callable[[str, str, str, bool], Awaitable]) -> None:
+    def __init__(self, config: Dict, on_channel_callback: Callable) -> None:
         self._config = config
         self._channel_id = self._config['channel']['id']
         self._on_channel_callback = on_channel_callback
@@ -69,12 +60,18 @@ class ChannelConnectorBase:
         raise NotImplementedError
 
 
-class ChannelGatewayBase:
-    _to_channel_callback: Callable[[str, str], Awaitable]
+TChannelGatewayConnectorBase = TypeVar('TChannelGatewayConnectorBase', bound=ChannelGatewayConnectorBase)
 
-    def __init__(self, to_channel_callback: Callable[[str, str], Awaitable], *args, **kwargs) -> None:
+
+class ChannelGatewayBase:
+    _to_channel_callback: Callable
+
+    def __init__(self, to_channel_callback: Callable, *args, **kwargs) -> None:
         super(ChannelGatewayBase, self).__init__(*args, **kwargs)
         self._to_channel_callback = to_channel_callback
 
     async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
         raise NotImplementedError
+
+
+TChannelGateway = TypeVar('TChannelGateway', bound=ChannelGatewayBase)
