@@ -1,7 +1,9 @@
 import asyncio
 import aiohttp
 import time
-from typing import Dict, Callable
+from typing import Dict, Callable, List, Any
+
+from core.transport.base import ServiceGatewayConnectorBase
 
 
 class HTTPConnector:
@@ -20,6 +22,22 @@ class HTTPConnector:
                 response={self.service_name: self.formatter(response[0], mode='out')},
                 response_time=response_time
             )
+
+
+class GatewayHTTPConnector(ServiceGatewayConnectorBase):
+    _session: aiohttp.ClientSession
+    _url: str
+
+    def __init__(self, config: dict, formatter: Callable) -> None:
+        super(GatewayHTTPConnector, self).__init__(config, formatter)
+        self._session = aiohttp.ClientSession()
+        self._url = config['url']
+
+    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
+        with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+            responses_batch = await resp.json()
+
+        return [self._formatter(response, mode='out') for response in responses_batch]
 
 
 class AioQueueConnector:
