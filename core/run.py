@@ -2,6 +2,7 @@ import asyncio
 import argparse
 import uuid
 import logging
+from typing import Any, Hashable
 
 from aiohttp import web
 from datetime import datetime
@@ -18,7 +19,6 @@ logger.setLevel(logging.INFO)
 fh = logging.FileHandler('../service.log')
 fh.setLevel(logging.INFO)
 logger.addHandler(fh)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
@@ -146,7 +146,20 @@ async def dialog(request):
 
 
 def main():
-    services, workers, session = parse_old_config()
+    async def register_msg(utterance: str, user_telegram_id: Hashable,
+                           user_device_type: Any, location=Any,
+                           channel_type=str, deadline_timestamp=None,
+                           require_response=False, **kwargs):
+
+        return await _register_msg(utterance, user_telegram_id,
+                                   user_device_type, location,
+                                   channel_type, deadline_timestamp,
+                                   require_response, **kwargs)
+
+    async def process(dialog_id, service_name=None, response=None):
+        return await _process(dialog_id, service_name, response)
+
+    services, workers, session, gateway = parse_old_config(register_msg, process)
 
     if CHANNEL == 'cmd_client':
         endpoint = Service('cmd_responder', EventSetOutputConnector().send,
@@ -154,7 +167,8 @@ def main():
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        register_msg, process = prepare_agent(services, endpoint, input_srv, use_response_logger=args.response_logger)
+        _register_msg, _process = prepare_agent(services, endpoint, input_srv,
+                                                use_response_logger=args.response_logger)
         future = asyncio.ensure_future(run(register_msg))
         for i in workers:
             loop.create_task(i.call_service(process))
@@ -175,8 +189,8 @@ def main():
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage).send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
-        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
+        _register_msg, _process = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process, session),
                        on_shutdown)
 
         web.run_app(app, port=args.port)
