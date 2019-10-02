@@ -32,9 +32,9 @@ CHANNEL = args.channel
 
 def response_logger(workflow_record):
     for service_name, service_data in workflow_record['services'].items():
-        done = service_data['done']
-        send = service_data['send']
-        if send is None or done is None:
+        done = service_data['done_time']
+        send = service_data['send_time']
+        if not send or not done:
             continue
         logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
 
@@ -162,7 +162,7 @@ def main():
     services, workers, session, gateway = parse_old_config(register_msg, process)
 
     if CHANNEL == 'cmd_client':
-        endpoint = Service('cmd_responder', EventSetOutputConnector().send,
+        endpoint = Service('cmd_responder', EventSetOutputConnector('cmd_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         loop = asyncio.get_event_loop()
@@ -186,7 +186,7 @@ def main():
             logging.shutdown()
     elif CHANNEL == 'http_client':
         intermediate_storage = {}
-        endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage).send,
+        endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         _register_msg, _process = prepare_agent(services, endpoint, input_srv, args.response_logger)
