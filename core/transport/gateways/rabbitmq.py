@@ -126,19 +126,18 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         if isinstance(message_in, ServiceResponseMessage):
             logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
-            response = message_in.response
-            await self._loop.create_task(self._on_service_callback(partial_dialog_state=response))
+            response_time = time.time()
+            await self._loop.create_task(self._on_service_callback(dialog_id=message_in.dialog_id,
+                                                                   service_name=message_in.service_name,
+                                                                   response=message_in.response,
+                                                                   response_time=response_time))
 
         elif isinstance(message_in, FromChannelMessage):
-            utterance = message_in.utterance
-            channel_id = message_in.channel_id
-            user_id = message_in.user_id
-            reset_dialog = message_in.reset_dialog
-            logger.debug(f'Received message from channel {channel_id}, user {user_id}')
-            await self._loop.create_task(self._on_channel_callback(utterance=utterance,
-                                                                   channel_id=channel_id,
-                                                                   user_id=user_id,
-                                                                   reset_dialog=reset_dialog))
+            logger.debug(f'Received message from channel {message_in.channel_id}, user {message_in.user_id}')
+            await self._loop.create_task(self._on_channel_callback(utterance=message_in.utterance,
+                                                                   channel_id=message_in.channel_id,
+                                                                   user_id=message_in.user_id,
+                                                                   reset_dialog=message_in.reset_dialog))
 
     async def send_to_service(self, service_name: str, dialog: dict) -> None:
         task_uuid = str(uuid4())
