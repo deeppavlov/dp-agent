@@ -114,7 +114,7 @@ class EventSetOutputConnector:
 class AgentGatewayOutputConnector:
     _to_channel_callback: Callable
 
-    def __init__(self, to_channel_callback: callable()):
+    def __init__(self, to_channel_callback: Callable):
         self._to_channel_callback = to_channel_callback
 
     async def send(self, payload: Dict, **kwargs):
