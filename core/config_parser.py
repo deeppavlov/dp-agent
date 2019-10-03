@@ -11,12 +11,12 @@ from core.connectors import HTTPConnector, ConfidenceResponseSelectorConnector, 
     QueueListenerBatchifyer
 from core.pipeline import Service, simple_workflow_formatter
 from core.state_manager import StateManager
-from core.transport import transport_map
+from core import gateways_map
 
 
 def prepare_agent_gateway(on_channel_callback, on_service_callback):
     transport_type = HIGHLOAD_SETTINGS['transport']['type']
-    gateway_cls = transport_map[transport_type]['agent']
+    gateway_cls = gateways_map[transport_type]['agent']
     return gateway_cls(config=HIGHLOAD_SETTINGS,
                        on_service_callback=on_service_callback,
                        on_channel_callback=on_channel_callback)

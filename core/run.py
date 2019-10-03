@@ -13,7 +13,7 @@ from core.pipeline import Pipeline, Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
-from core.transport import gateways_map, connectors_map
+from core import gateways_map, connectors_map
 
 # TODO move service logging configuration to log_config.yml
 service_logger = logging.getLogger('service_logger')
@@ -222,7 +222,7 @@ def run_service():
 
     transport_type = gateway_config['transport']['type']
     gateway_cls = gateways_map[transport_type]['service']
-    _gateway = gateway_cls(config=gateway_config, service_caller=connector.send_to_service)
+    _gateway = gateway_cls(config=gateway_config, to_service_callback=connector.send_to_service)
 
     loop = asyncio.get_event_loop()
     loop.run_forever()
