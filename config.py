@@ -34,6 +34,7 @@ SKILLS = [
     {
         "name": "odqa",
         "highload": False,
+        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2080,
@@ -48,6 +49,7 @@ SKILLS = [
     {
         "name": "chitchat",
         "highload": False,
+        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2081,
@@ -66,6 +68,7 @@ ANNOTATORS_1 = [
     {
         "name": "ner",
         "highload": False,
+        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2083,
@@ -83,6 +86,7 @@ ANNOTATORS_2 = [
     {
         "name": "sentiment",
         "highload": False,
+        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2084,
@@ -102,6 +106,7 @@ SKILL_SELECTORS = [
     {
         "name": "chitchat_odqa",
         "highload": False,
+        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2082,
