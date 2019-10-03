@@ -24,7 +24,7 @@ service_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
-                    choices=['default', 'agent', 'service', 'channel'])
+                    default='default', choices=['default', 'agent', 'service', 'channel'])
 parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)
 parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client'], default='cmd_client')
