@@ -14,6 +14,7 @@ from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config
 from core.state_manager import StateManager
 
+# TODO move service logging configuration to log_config.yml
 service_logger = logging.getLogger('service_logger')
 service_logger.setLevel(logging.INFO)
 fh = logging.FileHandler('../service.log')
