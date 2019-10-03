@@ -181,7 +181,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         super(RabbitMQServiceGateway, self).__init__(config=config, to_service_callback=to_service_callback)
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
-        self._instance_id = self._config['service']['instance_id'] or f'{self._service_name}{str(uuid4())}'
+        self._instance_id = self._config['service'].get('instance_id', None) or f'{self._service_name}{str(uuid4())}'
         self._batch_size = self._config['service']['batch_size']
 
         self._incoming_messages_buffer = []
