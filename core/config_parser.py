@@ -198,7 +198,7 @@ def get_service_gateway_config(service_name):
     if not matching_config:
         raise ValueError(f'Config for service {service_name} was not found')
 
-    service_config = deepcopy(HIGHLOAD_SETTINGS)
-    service_config['service'] = matching_config
+    gateway_config = deepcopy(HIGHLOAD_SETTINGS)
+    gateway_config['service'] = matching_config
 
-    return service_config
+    return gateway_config
