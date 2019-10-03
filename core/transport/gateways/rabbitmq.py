@@ -29,6 +29,7 @@ logger = getLogger(__name__)
 
 # TODO: add proper RabbitMQ SSL authentication
 # TODO: add load balancing for stateful skills
+# TODO: add graceful connection close
 class RabbitMQTransportBase:
     _config: dict
     _loop: asyncio.AbstractEventLoop

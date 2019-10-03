@@ -4,7 +4,7 @@ import uuid
 import logging
 from typing import Any, Hashable
 
-from aiohttp import web
+from aiohttp import web, ClientSession
 from datetime import datetime
 from string import hexdigits
 
@@ -14,19 +14,23 @@ from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config
 from core.state_manager import StateManager
 
-logger = logging.getLogger('service_logger')
-logger.setLevel(logging.INFO)
+service_logger = logging.getLogger('service_logger')
+service_logger.setLevel(logging.INFO)
 fh = logging.FileHandler('../service.log')
 fh.setLevel(logging.INFO)
-logger.addHandler(fh)
+service_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
+parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
+                    choices=['default', 'agent', 'service', 'channel'])
+parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
 parser.add_argument('-rl', '--response-logger', help='run agent with services response logging', action='store_true')
+
 args = parser.parse_args()
+MODE = args.mode
 CHANNEL = args.channel
 
 
@@ -36,7 +40,7 @@ def response_logger(workflow_record):
         send = service_data['send_time']
         if not send or not done:
             continue
-        logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
+        service_logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
 
 
 def prepare_agent(services, endpoint: Service, input_serv: Service, use_response_logger: bool):
@@ -145,7 +149,7 @@ async def dialog(request):
         raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
 
 
-def main():
+def run_default():
     async def register_msg(utterance: str, user_telegram_id: Hashable,
                            user_device_type: Any, location: Any,
                            channel_type: str, deadline_timestamp=None,
@@ -180,11 +184,14 @@ def main():
             raise e
         finally:
             future.cancel()
-            loop.run_until_complete(session.close())
+            if session:
+                loop.run_until_complete(session.close())
             loop.stop()
             loop.close()
             logging.shutdown()
     elif CHANNEL == 'http_client':
+        if not session:
+            session = ClientSession()
         intermediate_storage = {}
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
@@ -194,6 +201,29 @@ def main():
                        on_shutdown)
 
         web.run_app(app, port=args.port)
+
+
+def run_agent():
+    raise NotImplementedError
+
+
+def run_service():
+    raise NotImplementedError
+
+
+def run_channel():
+    raise NotImplementedError
+
+
+def main():
+    if MODE == 'default':
+        run_default()
+    elif MODE == 'agent':
+        run_agent()
+    elif MODE == 'service':
+        run_service()
+    elif MODE == 'channel':
+        run_channel()
 
 
 if __name__ == '__main__':
