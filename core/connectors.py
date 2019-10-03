@@ -125,10 +125,10 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _session: aiohttp.ClientSession
     _url: str
 
-    def __init__(self, config: dict, formatter: Callable) -> None:
-        super(ServiceGatewayHTTPConnector, self).__init__(config, formatter)
+    def __init__(self, service_config: dict, formatter: Callable) -> None:
+        super(ServiceGatewayHTTPConnector, self).__init__(service_config, formatter)
         self._session = aiohttp.ClientSession()
-        self._url = config['url']
+        self._url = service_config['url']
 
     async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
         with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:

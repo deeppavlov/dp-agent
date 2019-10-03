@@ -21,11 +21,11 @@ TAgentGateway = TypeVar('TAgentGateway', bound=AgentGatewayBase)
 
 
 class ServiceGatewayConnectorBase:
-    _config: dict
+    _service_config: dict
     _formatter: Callable
 
-    def __init__(self, config: dict, formatter: Callable) -> None:
-        self._config = config
+    def __init__(self, service_config: dict, formatter: Callable) -> None:
+        self._service_config = service_config
         self._formatter = formatter
 
     async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
