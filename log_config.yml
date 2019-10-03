@@ -5,7 +5,6 @@ loggers:
     level: 'DEBUG'
     propagate: true
     handlers: ['stderr']
-  service_logger:
 formatters:
   default:
     format: "%(asctime)s.%(msecs)d %(levelname)s in '%(name)s'['%(module)s'] at line %(lineno)d: %(message)s"
