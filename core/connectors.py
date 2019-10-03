@@ -24,22 +24,6 @@ class HTTPConnector:
             )
 
 
-class GatewayHTTPConnector(ServiceGatewayConnectorBase):
-    _session: aiohttp.ClientSession
-    _url: str
-
-    def __init__(self, config: dict, formatter: Callable) -> None:
-        super(GatewayHTTPConnector, self).__init__(config, formatter)
-        self._session = aiohttp.ClientSession()
-        self._url = config['url']
-
-    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
-        with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
-            responses_batch = await resp.json()
-
-        return [self._formatter(response, mode='out') for response in responses_batch]
-
-
 class AioQueueConnector:
     def __init__(self, queue):
         self.queue = queue
@@ -125,3 +109,32 @@ class EventSetOutputConnector:
         response_time = time.time()
         await callback(payload['dialog']['id'], self.service_name,
                        " ", response_time)
+
+
+class AgentGatewayOutputConnector:
+    _to_channel_callback: Callable
+
+    def __init__(self, to_channel_callback: callable()):
+        self._to_channel_callback = to_channel_callback
+
+    async def send(self, payload: Dict, **kwargs):
+        await self._to_channel_callback(payload)
+
+
+class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
+    _session: aiohttp.ClientSession
+    _url: str
+
+    def __init__(self, config: dict, formatter: Callable) -> None:
+        super(ServiceGatewayHTTPConnector, self).__init__(config, formatter)
+        self._session = aiohttp.ClientSession()
+        self._url = config['url']
+
+    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
+        with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+            responses_batch = await resp.json()
+
+        return [self._formatter(response, mode='out') for response in responses_batch]
+
+
+
