@@ -12,6 +12,14 @@ from core.state_manager import StateManager
 from core.transport import transport_map
 
 
+def prepare_agent_gateway(on_channel_callback, on_service_callback):
+    transport_type = HIGHLOAD_SETTINGS['transport']['type']
+    gateway_cls = transport_map[transport_type]['agent']
+    return gateway_cls(config=HIGHLOAD_SETTINGS,
+                       on_service_callback=on_service_callback,
+                       on_channel_callback=on_channel_callback)
+
+
 def parse_old_config(on_channel_callback, on_service_callback):
     services = []
     worker_tasks = []
@@ -46,13 +54,7 @@ def parse_old_config(on_channel_callback, on_service_callback):
                     _worker_tasks.append(QueueListenerBatchifyer(sess, u, formatter,
                                                                  name, queue, batch_size))
         elif conf_record['protocol'] == 'highload':
-            if not gate:
-                transport_type = HIGHLOAD_SETTINGS['transport']['type']
-                gateway_cls = transport_map[transport_type]['agent']
-                gate = gateway_cls(config=HIGHLOAD_SETTINGS,
-                                   on_service_callback=on_service_callback,
-                                   on_channel_callback=on_channel_callback)
-
+            gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
             connector_func = partial(gate.send_to_service, service=name)
 
         if connector_func is None:
