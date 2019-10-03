@@ -7,7 +7,7 @@ import yaml
 
 def init_logger():
     agent_path = Path(__file__).resolve().parent.parent
-    log_config_path = agent_path / 'log_config.yaml'
+    log_config_path = agent_path / 'log_config.yml'
 
     with log_config_path.open('r') as f:
         log_config = yaml.safe_load(f)
