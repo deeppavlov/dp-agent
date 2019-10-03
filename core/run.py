@@ -11,8 +11,9 @@ from string import hexdigits
 from core.agent import Agent
 from core.pipeline import Pipeline, Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
-from core.config_parser import parse_old_config
+from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
+from core.transport import gateways_map, connectors_map
 
 # TODO move service logging configuration to log_config.yml
 service_logger = logging.getLogger('service_logger')
@@ -24,6 +25,7 @@ service_logger.addHandler(fh)
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
                     choices=['default', 'agent', 'service', 'channel'])
+parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)
 parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
@@ -209,7 +211,21 @@ def run_agent():
 
 
 def run_service():
-    raise NotImplementedError
+    service_name = args.service_name
+    gateway_config = get_service_gateway_config(service_name)
+    service_config = gateway_config['service']
+
+    formatter = service_config['formatter']
+    connector_type = service_config['protocol']
+    connector_cls = connectors_map[connector_type]
+    connector = connector_cls(service_config=service_config, formatter=formatter)
+
+    transport_type = gateway_config['transport']['type']
+    gateway_cls = gateways_map[transport_type]['service']
+    _gateway = gateway_cls(config=gateway_config, service_caller=connector.send_to_service)
+
+    loop = asyncio.get_event_loop()
+    loop.run_forever()
 
 
 def run_channel():
