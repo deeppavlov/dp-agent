@@ -170,7 +170,6 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
 # TODO: add separate service infer timeouts
 class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
-    _to_service_callback: Callable
     _service_name: str
     _instance_id: str
     _batch_size: int
