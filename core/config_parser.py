@@ -1,4 +1,6 @@
 from functools import partial
+from itertools import chain
+from copy import deepcopy
 
 import aiohttp
 import asyncio
@@ -39,7 +41,10 @@ def parse_old_config(on_channel_callback, on_service_callback):
 
         connector_func = None
 
-        if conf_record['protocol'] == 'http':
+        if conf_record['highload']:
+            gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
+            connector_func = partial(gate.send_to_service, service=name)
+        elif conf_record['protocol'] == 'http':
             sess = sess or aiohttp.ClientSession()
             if batch_size == 1 and isinstance(url, str):
                 connector_func = HTTPConnector(sess, url, formatter, name).send
@@ -53,9 +58,6 @@ def parse_old_config(on_channel_callback, on_service_callback):
                 for u in urls:
                     _worker_tasks.append(QueueListenerBatchifyer(sess, u, formatter,
                                                                  name, queue, batch_size))
-        elif conf_record['protocol'] == 'highload':
-            gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
-            connector_func = partial(gate.send_to_service, service=name)
 
         if connector_func is None:
             raise ValueError(f'No connector function is defined while making a service {name}.')
@@ -180,3 +182,23 @@ def parse_old_config(on_channel_callback, on_service_callback):
         worker_tasks.extend(workers)
 
     return services, worker_tasks, session, gateway
+
+
+def get_service_gateway_config(service_name):
+    matching_config = None
+
+    for config in chain(SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3,
+                        SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
+        config_name = config['name']
+
+        if config_name == service_name:
+            matching_config = config
+            break
+
+    if not matching_config:
+        raise ValueError(f'Config for service {service_name} was not found')
+
+    service_config = deepcopy(HIGHLOAD_SETTINGS)
+    service_config['service'] = matching_config
+
+    return service_config
