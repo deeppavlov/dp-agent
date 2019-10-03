@@ -43,7 +43,7 @@ def parse_old_config(on_channel_callback, on_service_callback):
 
         if conf_record['highload']:
             gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
-            connector_func = partial(gate.send_to_service, service=name)
+            connector_func = partial(gate.send_to_service, service_name=name)
         elif conf_record['protocol'] == 'http':
             sess = sess or aiohttp.ClientSession()
             if batch_size == 1 and isinstance(url, str):
