@@ -107,7 +107,7 @@ Also you can include in the Agent configuration any external service running on 
 
 Services Deployment
 ===================
-1. Create a new **Python 3.6.7** virtual environment.
+1. Create a new **Python 3.7.4** virtual environment.
 
 2. Install requirements for Docker config generator:
 
@@ -192,7 +192,7 @@ Agent can run both from container and from a local machine. The default Agent po
 
     .. code:: bash
 
-        python3 -m core.run
+        python -m core.run
 
 **Local machine**
 
@@ -221,13 +221,13 @@ Agent can run both from container and from a local machine. The default Agent po
 
     .. code:: bash
 
-        python3 -m core.run
+        python -m core.run
 
     or via the Telegram:
 
     .. code:: bash
 
-        python3 -m core.run -ch telegram
+        python -m core.run -ch telegram
 
 **HTTP api server**
 
@@ -235,7 +235,7 @@ Agent can run both from container and from a local machine. The default Agent po
 
     .. code:: bash
 
-        python3 -m core.run -ch http_client [-p 4242]
+        python -m core.run -ch http_client [-p 4242]
 
     In both cases api will be accessible on your localhost
 
