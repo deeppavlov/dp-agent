@@ -20,7 +20,6 @@ from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
 from core import gateways_map, connectors_map
 
-
 # TODO move service logging configuration to log_config.yml
 service_logger = logging.getLogger('service_logger')
 service_logger.setLevel(logging.INFO)
@@ -175,20 +174,7 @@ async def dialog(request):
 
 
 def run_default():
-    async def register_msg(utterance: str, user_telegram_id: Hashable,
-                           user_device_type: Any, location: Any,
-                           channel_type: str, deadline_timestamp=None,
-                           require_response=False, **kwargs):
-
-        return await _register_msg(utterance, user_telegram_id,
-                                   user_device_type, location,
-                                   channel_type, deadline_timestamp,
-                                   require_response, **kwargs)
-
-    async def process(dialog_id, service_name=None, response=None, response_time: float = None):
-        return await _process(dialog_id, service_name, response, response_time)
-
-    services, workers, session, gateway = parse_old_config(register_msg, process)
+    services, workers, session, gateway = parse_old_config()
 
     if CHANNEL == 'cmd_client':
         endpoint = Service('cmd_responder', EventSetOutputConnector('cmd_responder').send,
@@ -196,8 +182,10 @@ def run_default():
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        _register_msg, _process = prepare_agent(services, endpoint, input_srv,
-                                                use_response_logger=args.response_logger)
+        register_msg, process = prepare_agent(services, endpoint, input_srv, use_response_logger=args.response_logger)
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process
         future = asyncio.ensure_future(run(register_msg))
         for i in workers:
             loop.create_task(i.call_service(process))
@@ -221,7 +209,10 @@ def run_default():
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        _register_msg, _process = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        register_msg, process = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process
         app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process, session),
                        on_shutdown)
 
@@ -238,9 +229,11 @@ def run_default():
         endpoint = Service('telegram_responder', EventSetOutputConnector('telegram_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        _register_msg, _process = prepare_agent(
+        register_msg, process = prepare_agent(
             services, endpoint, input_srv, use_response_logger=args.response_logger)
-
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process
         for i in workers:
             loop.create_task(i.call_service(process))
         tg_msg_processor = TelegramMessageProcessor(register_msg)

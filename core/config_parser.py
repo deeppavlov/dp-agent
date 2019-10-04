@@ -13,7 +13,7 @@ from core.state_manager import StateManager
 from core import gateways_map
 
 
-def prepare_agent_gateway(on_channel_callback, on_service_callback):
+def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
     transport_type = HIGHLOAD_SETTINGS['transport']['type']
     gateway_cls = gateways_map[transport_type]['agent']
     return gateway_cls(config=HIGHLOAD_SETTINGS,
@@ -21,7 +21,7 @@ def prepare_agent_gateway(on_channel_callback, on_service_callback):
                        on_channel_callback=on_channel_callback)
 
 
-def parse_old_config(on_channel_callback, on_service_callback):
+def parse_old_config():
     services = []
     worker_tasks = []
     session = None
@@ -41,7 +41,7 @@ def parse_old_config(on_channel_callback, on_service_callback):
         connector_func = None
 
         if conf_record['highload']:
-            gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
+            gate = gate or prepare_agent_gateway()
             connector_func = AgentGatewayToServiceConnector(to_service_callback=gate.send_to_service,
                                                             service_name=name).send
         elif conf_record['protocol'] == 'http':

@@ -8,6 +8,7 @@ DB_PORT = getenv('DB_PORT', 27017)
 DB_PATH = getenv('DB_PATH', '/data/db')
 
 # TODO: move response timeout to transport settings
+# TODO: change naming to transport settings
 HIGHLOAD_SETTINGS = {
     'agent_namespace': 'deeppavlov_agent',
     'agent': {

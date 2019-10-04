@@ -1,14 +1,32 @@
-from typing import List, Callable, TypeVar, Dict, Any
+from typing import List, Callable, TypeVar, Dict, Any, Optional
 
 
 class AgentGatewayBase:
-    _on_service_callback: Callable
-    _on_channel_callback: Callable
+    _on_service_callback: Optional[Callable]
+    _on_channel_callback: Optional[Callable]
 
-    def __init__(self, on_service_callback: Callable, on_channel_callback: Callable, *args, **kwargs):
+    def __init__(self, on_service_callback: Optional[Callable] = None,
+                 on_channel_callback: Optional[Callable] = None, *args, **kwargs):
+
         super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
         self._on_channel_callback = on_channel_callback
+
+    @property
+    def on_service_callback(self):
+        return self._on_service_callback
+
+    @on_service_callback.setter
+    def on_service_callback(self, callback: Callable):
+        self._on_service_callback = callback
+
+    @property
+    def on_channel_callback(self):
+        return self._on_channel_callback
+
+    @on_channel_callback.setter
+    def on_channel_callback(self, callback: Callable):
+        self._on_channel_callback = callback
 
     async def send_to_service(self, service: str, dialog: Dict) -> None:
         raise NotImplementedError

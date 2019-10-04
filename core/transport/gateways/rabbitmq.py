@@ -95,8 +95,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
     _service_responses: Dict[str, dict]
 
     def __init__(self, config: dict,
-                 on_service_callback: Callable[[Dict], Awaitable],
-                 on_channel_callback: Callable[[str, str, str, bool], Awaitable]) -> None:
+                 on_service_callback: Optional[Callable] = None,
+                 on_channel_callback: Optional[Callable] = None) -> None:
 
         super(RabbitMQAgentGateway, self).__init__(config=config,
                                                    on_service_callback=on_service_callback,
@@ -294,7 +294,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
     _agent_name: str
     _channel_id: str
 
-    def __init__(self, config: dict, to_channel_callback: Callable[[str, str], Awaitable]) -> None:
+    def __init__(self, config: dict, to_channel_callback: Callable) -> None:
         super(RabbitMQChannelGateway, self).__init__(config=config, to_channel_callback=to_channel_callback)
         self._loop = asyncio.get_event_loop()
         self._agent_name = self._config['agent']['name']
