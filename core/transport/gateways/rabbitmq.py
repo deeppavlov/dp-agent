@@ -125,7 +125,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         await message.ack()
 
         if isinstance(message_in, ServiceResponseMessage):
-            logger.debug(f'Received service response message with task uuid {message_in.task_uuid}')
+            logger.debug(f'Received service response message {str(message_in.to_json())}')
             response_time = time.time()
             await self._loop.create_task(self._on_service_callback(dialog_id=message_in.dialog_id,
                                                                    service_name=message_in.service_name,
@@ -133,7 +133,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                                    response_time=response_time))
 
         elif isinstance(message_in, FromChannelMessage):
-            logger.debug(f'Received message from channel {message_in.channel_id}, user {message_in.user_id}')
+            logger.debug(f'Received message from channel {str(message_in.to_json())}')
             await self._loop.create_task(self._on_channel_callback(utterance=message_in.utterance,
                                                                    channel_id=message_in.channel_id,
                                                                    user_id=message_in.user_id,
