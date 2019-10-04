@@ -7,6 +7,11 @@ from typing import Any, Hashable
 from aiohttp import web, ClientSession
 from datetime import datetime
 from string import hexdigits
+from os import getenv
+
+from aiogram import Bot
+from aiogram.utils import executor
+from aiogram.dispatcher import Dispatcher
 
 from core.agent import Agent
 from core.pipeline import Pipeline, Service
@@ -14,6 +19,7 @@ from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
 from core import gateways_map, connectors_map
+
 
 # TODO move service logging configuration to log_config.yml
 service_logger = logging.getLogger('service_logger')
@@ -23,11 +29,12 @@ fh.setLevel(logging.INFO)
 service_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
                     default='default', choices=['default', 'agent', 'service', 'channel'])
 parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)
-parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
-                    choices=['cmd_client', 'http_client'], default='cmd_client')
+parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
+                    choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
 parser.add_argument('-rl', '--response-logger', help='run agent with services response logging', action='store_true')
@@ -67,6 +74,21 @@ async def run(register_msg):
                                           location='lab', channel_type=CHANNEL,
                                           deadline_timestamp=None, require_response=True)
             print('Bot: ', response['dialog']['utterances'][-1]['text'])
+
+
+class TelegramMessageProcessor:
+    def __init__(self, register_msg):
+        self.register_msg = register_msg
+
+    async def handle_message(self, message):
+        response = await self.register_msg(
+            utterance=message.text,
+            user_telegram_id=str(message.from_user.id),
+            user_device_type='telegram',
+            date_time=datetime.now(), location='', channel_type='telegram',
+            require_response=True
+        )
+        await message.answer(response['dialog']['utterances'][-1]['text'])
 
 
 async def on_shutdown(app):
@@ -204,6 +226,28 @@ def run_default():
                        on_shutdown)
 
         web.run_app(app, port=args.port)
+
+    elif CHANNEL == 'telegram':
+        token = getenv('TELEGRAM_TOKEN')
+        proxy = getenv('TELEGRAM_PROXY')
+
+        loop = asyncio.get_event_loop()
+
+        bot = Bot(token=token, loop=loop, proxy=proxy)
+        dp = Dispatcher(bot)
+        endpoint = Service('telegram_responder', EventSetOutputConnector('telegram_responder').send,
+                           StateManager.save_dialog_dict, 1, ['responder'])
+        input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
+        _register_msg, _process = prepare_agent(
+            services, endpoint, input_srv, use_response_logger=args.response_logger)
+
+        for i in workers:
+            loop.create_task(i.call_service(process))
+        tg_msg_processor = TelegramMessageProcessor(register_msg)
+
+        dp.message_handler()(tg_msg_processor.handle_message)
+
+        executor.start_polling(dp, skip_updates=True)
 
 
 def run_agent():
