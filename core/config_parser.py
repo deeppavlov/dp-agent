@@ -1,4 +1,3 @@
-from functools import partial
 from itertools import chain
 from copy import deepcopy
 
@@ -8,7 +7,7 @@ import asyncio
 from core.transform_config import SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3, SKILL_SELECTORS, \
     RESPONSE_SELECTORS, POSTPROCESSORS, HIGHLOAD_SETTINGS
 from core.connectors import HTTPConnector, ConfidenceResponseSelectorConnector, AioQueueConnector, \
-    QueueListenerBatchifyer
+    QueueListenerBatchifyer, AgentGatewayToServiceConnector
 from core.pipeline import Service, simple_workflow_formatter
 from core.state_manager import StateManager
 from core import gateways_map
@@ -43,7 +42,8 @@ def parse_old_config(on_channel_callback, on_service_callback):
 
         if conf_record['highload']:
             gate = gate or prepare_agent_gateway(on_channel_callback, on_service_callback)
-            connector_func = partial(gate.send_to_service, service_name=name)
+            connector_func = AgentGatewayToServiceConnector(to_service_callback=gate.send_to_service,
+                                                            service_name=name).send
         elif conf_record['protocol'] == 'http':
             sess = sess or aiohttp.ClientSession()
             if batch_size == 1 and isinstance(url, str):

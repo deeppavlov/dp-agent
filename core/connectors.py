@@ -111,30 +111,35 @@ class EventSetOutputConnector:
                        " ", response_time)
 
 
-class AgentGatewayOutputConnector:
-    _to_channel_callback: Callable
+class AgentGatewayToChannelConnector:
+    pass
 
-    def __init__(self, to_channel_callback: Callable):
-        self._to_channel_callback = to_channel_callback
 
-    async def send(self, payload: Dict, **kwargs):
-        await self._to_channel_callback(payload)
+class AgentGatewayToServiceConnector:
+    _to_service_callback: Callable
+    _service_name: str
+
+    def __init__(self, to_service_callback: Callable, service_name: str):
+        self._to_service_callback = to_service_callback
+        self._service_name = service_name
+
+    async def send(self, payload: Dict, **_kwargs):
+        await self._to_service_callback(dialog=payload, service_name=self._service_name)
 
 
 class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _session: aiohttp.ClientSession
     _url: str
+    _service_name: str
 
     def __init__(self, service_config: dict, formatter: Callable) -> None:
         super(ServiceGatewayHTTPConnector, self).__init__(service_config, formatter)
         self._session = aiohttp.ClientSession()
         self._url = service_config['url']
+        self._service_name = service_config['name']
 
     async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
-        with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+        async with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
             responses_batch = await resp.json()
 
-        return [self._formatter(response, mode='out') for response in responses_batch]
-
-
-
+        return [{self._service_name: self._formatter(response, mode='out')} for response in responses_batch]
