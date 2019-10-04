@@ -1,4 +1,3 @@
-pytelegrambotapi==3.5.2
 mongoengine==0.17.0
 aiogram==2.3
 aiohttp==3.6.1
