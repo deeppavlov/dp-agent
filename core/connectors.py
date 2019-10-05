@@ -136,8 +136,10 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     def __init__(self, service_config: dict, formatter: Callable) -> None:
         super(ServiceGatewayHTTPConnector, self).__init__(service_config, formatter)
         self._session = aiohttp.ClientSession()
-        self._url = service_config['url']
         self._service_name = service_config['name']
+
+        default_infer_url = 'http://127.0.0.1:5000/model'
+        self._url = service_config.get('infer_url', default_infer_url)
 
     async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
         async with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
