@@ -32,6 +32,11 @@ MAX_WORKERS = 4
 
 AGENT_ENV_FILE = "agent.env"
 
+# TODO: may be we should move default values setting for service config params from code to special config section
+# Implicit service default params:
+# batch_size = 1
+# infer_url = http://127.0.0.1:5000/model
+
 SKILLS = [
     {
         "name": "odqa",

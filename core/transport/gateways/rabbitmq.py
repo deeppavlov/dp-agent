@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from uuid import uuid4
-from typing import Dict, List, Optional, Callable, Awaitable
+from typing import Dict, List, Optional, Callable
 from logging import getLogger
 
 import aio_pika
@@ -182,7 +182,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
         self._instance_id = self._config['service'].get('instance_id', None) or f'{self._service_name}{str(uuid4())}'
-        self._batch_size = self._config['service']['batch_size']
+        self._batch_size = self._config['service'].get('batch_size', 1)
 
         self._incoming_messages_buffer = []
         self._add_to_buffer_lock = asyncio.Lock()
