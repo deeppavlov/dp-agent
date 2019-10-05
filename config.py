@@ -36,7 +36,6 @@ AGENT_ENV_FILE = "agent.env"
 SKILLS = [
     {
         "name": "odqa",
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2080,
@@ -50,7 +49,6 @@ SKILLS = [
     },
     {
         "name": "chitchat",
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2081,
@@ -68,7 +66,6 @@ SKILLS = [
 ANNOTATORS_1 = [
     {
         "name": "ner",
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2083,
@@ -85,7 +82,6 @@ ANNOTATORS_1 = [
 ANNOTATORS_2 = [
     {
         "name": "sentiment",
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2084,
@@ -104,7 +100,6 @@ ANNOTATORS_3 = []
 SKILL_SELECTORS = [
     {
         "name": "chitchat_odqa",
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2082,
