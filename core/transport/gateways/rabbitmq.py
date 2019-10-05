@@ -39,13 +39,13 @@ class RabbitMQTransportBase:
     _agent_in_channel: Channel
     _agent_out_channel: Channel
     _in_queue: Optional[Queue]
-    _response_timeout_sec: int
+    _utterance_lifetime_sec: int
 
     def __init__(self, config: dict, *args, **kwargs):
         super(RabbitMQTransportBase, self).__init__(*args, **kwargs)
         self._config = config
         self._in_queue = None
-        self._response_timeout_sec = config['agent']['response_timeout_sec']
+        self._utterance_lifetime_sec = config['utterance_lifetime_sec']
 
     async def _connect(self) -> None:
         agent_namespace = self._config['agent_namespace']
@@ -146,7 +146,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -161,7 +161,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         channel_message_json = channel_message.to_json()
         message = Message(body=json.dumps(channel_message_json).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = CHANNEL_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name, channel_id=channel_id)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -258,7 +258,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
         try:
             responses_batch = await asyncio.wait_for(self._to_service_callback(dialogs_batch),
-                                                     self._response_timeout_sec)
+                                                     self._utterance_lifetime_sec)
 
             results_replies = []
 
@@ -283,7 +283,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
@@ -336,7 +336,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
         message_json = message_from_channel.to_json()
         message = Message(body=json.dumps(message_json).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
