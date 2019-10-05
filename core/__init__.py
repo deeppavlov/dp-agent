@@ -16,5 +16,5 @@ gateways_map = {
 }
 
 connectors_map = {
-    'http': ServiceGatewayHTTPConnector
+    'AMQP': ServiceGatewayHTTPConnector
 }
