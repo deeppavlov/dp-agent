@@ -7,12 +7,9 @@ DB_HOST = getenv('DB_HOST', '127.0.0.1')
 DB_PORT = getenv('DB_PORT', 27017)
 DB_PATH = getenv('DB_PATH', '/data/db')
 
-# TODO: move response timeout to transport settings
 TRANSPORT_SETTINGS = {
     'agent_namespace': 'deeppavlov_agent',
-    'agent': {
-        'name': 'dp_agent',
-    },
+    'agent_name': 'dp_agent',
     'utterance_lifetime_sec': 120,
     'channels': {},
     'transport': {

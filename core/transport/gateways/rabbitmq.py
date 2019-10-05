@@ -103,7 +103,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                    on_channel_callback=on_channel_callback)
 
         self._loop = asyncio.get_event_loop()
-        self._agent_name = self._config['agent']['name']
+        self._agent_name = self._config['agent_name']
 
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
@@ -297,7 +297,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
     def __init__(self, config: dict, to_channel_callback: Callable) -> None:
         super(RabbitMQChannelGateway, self).__init__(config=config, to_channel_callback=to_channel_callback)
         self._loop = asyncio.get_event_loop()
-        self._agent_name = self._config['agent']['name']
+        self._agent_name = self._config['agent_name']
         self._channel_id = self._config['channel']['id']
 
         self._loop.run_until_complete(self._connect())
