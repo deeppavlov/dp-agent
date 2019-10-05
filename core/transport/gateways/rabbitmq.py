@@ -28,7 +28,7 @@ logger = getLogger(__name__)
 
 
 # TODO: add proper RabbitMQ SSL authentication
-# TODO: add load balancing for stateful skills
+# TODO: add load balancing for stateful skills or remove SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE
 # TODO: add graceful connection close
 class RabbitMQTransportBase:
     _config: dict
@@ -50,11 +50,11 @@ class RabbitMQTransportBase:
     async def _connect(self) -> None:
         agent_namespace = self._config['agent_namespace']
 
-        host = self._config['transport']['rabbitmq']['host']
-        port = self._config['transport']['rabbitmq']['port']
-        login = self._config['transport']['rabbitmq']['login']
-        password = self._config['transport']['rabbitmq']['password']
-        virtualhost = self._config['transport']['rabbitmq']['virtualhost']
+        host = self._config['transport']['AMQP']['host']
+        port = self._config['transport']['AMQP']['port']
+        login = self._config['transport']['AMQP']['login']
+        password = self._config['transport']['AMQP']['password']
+        virtualhost = self._config['transport']['AMQP']['virtualhost']
 
         logger.info('Starting RabbitMQ connection...')
 

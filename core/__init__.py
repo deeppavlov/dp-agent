@@ -8,7 +8,7 @@ STATE_API_VERSION = "0.12"
 init_logger()
 
 gateways_map = {
-    'rabbitmq': {
+    'AMQP': {
         'agent': RabbitMQAgentGateway,
         'service': RabbitMQServiceGateway,
         'channel': RabbitMQChannelGateway

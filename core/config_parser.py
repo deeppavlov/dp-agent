@@ -40,11 +40,7 @@ def parse_old_config():
 
         connector_func = None
 
-        if conf_record['highload']:
-            gate = gate or prepare_agent_gateway()
-            connector_func = AgentGatewayToServiceConnector(to_service_callback=gate.send_to_service,
-                                                            service_name=name).send
-        elif conf_record['protocol'] == 'http':
+        if conf_record['protocol'] == 'http':
             sess = sess or aiohttp.ClientSession()
             if batch_size == 1 and isinstance(url, str):
                 connector_func = HTTPConnector(sess, url, formatter, name).send
@@ -58,6 +54,11 @@ def parse_old_config():
                 for u in urls:
                     _worker_tasks.append(QueueListenerBatchifyer(sess, u, formatter,
                                                                  name, queue, batch_size))
+
+        elif conf_record['protocol'] == 'AMQP':
+            gate = gate or prepare_agent_gateway()
+            connector_func = AgentGatewayToServiceConnector(to_service_callback=gate.send_to_service,
+                                                            service_name=name).send
 
         if connector_func is None:
             raise ValueError(f'No connector function is defined while making a service {name}.')

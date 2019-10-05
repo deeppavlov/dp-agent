@@ -17,8 +17,8 @@ HIGHLOAD_SETTINGS = {
     },
     'channels': {},
     'transport': {
-        'type': 'rabbitmq',
-        'rabbitmq': {
+        'type': 'AMQP',
+        'AMQP': {
             'host': '127.0.0.1',
             'port': 5672,
             'login': 'guest',
@@ -35,7 +35,6 @@ AGENT_ENV_FILE = "agent.env"
 SKILLS = [
     {
         "name": "odqa",
-        "highload": False,
         "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
@@ -50,7 +49,6 @@ SKILLS = [
     },
     {
         "name": "chitchat",
-        "highload": False,
         "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
@@ -69,7 +67,6 @@ SKILLS = [
 ANNOTATORS_1 = [
     {
         "name": "ner",
-        "highload": False,
         "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
@@ -87,7 +84,6 @@ ANNOTATORS_1 = [
 ANNOTATORS_2 = [
     {
         "name": "sentiment",
-        "highload": False,
         "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
@@ -107,7 +103,6 @@ ANNOTATORS_3 = []
 SKILL_SELECTORS = [
     {
         "name": "chitchat_odqa",
-        "highload": False,
         "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
