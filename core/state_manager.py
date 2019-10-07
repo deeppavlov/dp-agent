@@ -123,10 +123,9 @@ class StateManager:
 
     @staticmethod
     def add_hypothesis(dialog: Dialog, payload: Dict):
-        # TODO remove the next 2 lines?
-        if not dialog.utterances[-1].hypotheses:
-            dialog.utterances[-1].hypotheses = []
-        dialog.utterances[-1].hypotheses.append(payload)
+        hypothesis = {'skill_name': list(payload.keys())[0]}
+        for h in list(payload.values())[0]:
+            dialog.utterances[-1].hypotheses.append({**hypothesis, **h})
         dialog.utterances[-1].save()
 
     @staticmethod
@@ -135,16 +134,12 @@ class StateManager:
         dialog.utterances[-1].save()
 
     @classmethod
-    def add_bot_response(cls, dialog: Dialog, payload: Dict):
-        active_skill_name = list(payload.values())[0]
+    def add_bot_response(cls, dialog: Dialog, payload: Dict, **kwargs):
+        active_skill = list(payload.values())[0]
         human_utterance = dialog.utterances[-1]
-        active_skill = [h for h in human_utterance.hypotheses if h['skill_name'] == active_skill_name][0]  # take first
-        if not active_skill:
-            raise ValueError(f'provided {payload} is not valid')
-
+        active_skill_name = active_skill['skill_name']
         text = active_skill['text']
         confidence = active_skill['confidence']
-
         cls.add_bot_utterance(dialog, text, datetime.now(), active_skill_name, confidence)
         cls.update_human(human_utterance.user, active_skill)
         cls.update_bot(dialog.utterances[-1].user, active_skill)
@@ -214,21 +209,14 @@ class StateManager:
     def add_bot_utterance_simple_dict(cls, dialog: Dict, dialog_object: Dialog, payload: Dict,
                                       **kwargs) -> None:
         rselector_data = list(payload.values())[0]
-        active_skill_name = rselector_data['skill_name']
         new_text = rselector_data['text']
         new_confidence = rselector_data['confidence']
-        hypotheses = dialog['utterances'][-1]['hypotheses']
-        active_skill = [h for h in hypotheses if h['skill_name'] == active_skill_name][0]  # take first
-        if not active_skill:
-            raise ValueError(f'provided {payload} is not valid')
-        cls.update_human_dict(dialog['human'], active_skill)
-        cls.update_bot_dict(dialog['bot'], active_skill)
-
+        cls.update_human_dict(dialog['human'], rselector_data)
+        cls.update_bot_dict(dialog['bot'], rselector_data)
         utterance = deepcopy(BOT_UTTERANCE_SCHEMA)
         utterance['text'] = new_text
-        utterance['orig_text'] = active_skill['text']
         utterance['date_time'] = str(datetime.now())
-        utterance['active_skill'] = active_skill_name
+        utterance['active_skill'] = rselector_data['skill_name']
         utterance['confidence'] = new_confidence
         utterance['user'] = dialog['bot']
         dialog['utterances'].append(utterance)
@@ -240,8 +228,8 @@ class StateManager:
     @staticmethod
     def add_hypothesis_dict(dialog: Dict, dialog_object: Dialog, payload: Dict, **kwargs):
         hypothesis = {'skill_name': list(payload.keys())[0]}
-        hypothesis = {**hypothesis, **list(payload.values())[0]}
-        dialog['utterances'][-1]['hypotheses'].append(hypothesis)
+        for h in list(payload.values())[0]:
+            dialog['utterances'][-1]['hypotheses'].append({**hypothesis, **h})
 
     @staticmethod
     def add_text_dict(dialog: Dict, payload: str):
