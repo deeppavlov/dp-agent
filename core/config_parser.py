@@ -88,7 +88,7 @@ def parse_old_config():
 
     if SKILLS:
         for s in SKILLS:
-            service, workers = make_service_from_config_rec(s, session, StateManager.add_selected_skill_dict,
+            service, workers = make_service_from_config_rec(s, session, StateManager.add_hypothesis_dict,
                                                             ['SKILLS'], previous_services)
             services.append(service)
             worker_tasks.extend(workers)
