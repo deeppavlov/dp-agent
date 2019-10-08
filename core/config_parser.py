@@ -187,8 +187,6 @@ def parse_old_config():
 
 
 def get_service_gateway_config(service_name):
-    matching_config = None
-
     for config in chain(SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3,
                         SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
         config_name = config['name']
@@ -196,8 +194,7 @@ def get_service_gateway_config(service_name):
         if config_name == service_name:
             matching_config = config
             break
-
-    if not matching_config:
+    else:
         raise ValueError(f'Config for service {service_name} was not found')
 
     gateway_config = deepcopy(TRANSPORT_SETTINGS)
