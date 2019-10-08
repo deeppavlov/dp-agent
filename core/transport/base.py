@@ -39,7 +39,7 @@ class ServiceGatewayConnectorBase:
     _service_config: dict
     _formatter: Callable
 
-    def __init__(self, service_config: dict, formatter: Callable) -> None:
+    def __init__(self, service_config: Dict, formatter: Callable) -> None:
         self._service_config = service_config
         self._formatter = formatter
 
