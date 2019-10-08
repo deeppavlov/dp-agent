@@ -20,15 +20,10 @@ from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
 from core import gateways_map, connectors_map
 
-# TODO move service logging configuration to log_config.yml
+
 service_logger = logging.getLogger('service_logger')
-service_logger.setLevel(logging.INFO)
-fh = logging.FileHandler('../service.log')
-fh.setLevel(logging.INFO)
-service_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
                     default='default', choices=['default', 'agent', 'service', 'channel'])
 parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)

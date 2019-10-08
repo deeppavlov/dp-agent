@@ -11,11 +11,14 @@ MAX_WORKERS = 4
 
 AGENT_ENV_FILE = "agent.env"
 
+# TODO: may be we should move default values setting for service config params from code to special config section
+# Implicit service default params:
+# batch_size = 1
+# infer_url = http://127.0.0.1:5000/model
+
 SKILLS = [
     {
         "name": "odqa",
-        "highload": False,
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2080,
@@ -29,8 +32,6 @@ SKILLS = [
     },
     {
         "name": "chitchat",
-        "highload": False,
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2081,
@@ -48,8 +49,6 @@ SKILLS = [
 ANNOTATORS_1 = [
     {
         "name": "ner",
-        "highload": False,
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2083,
@@ -66,8 +65,6 @@ ANNOTATORS_1 = [
 ANNOTATORS_2 = [
     {
         "name": "sentiment",
-        "highload": False,
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2084,
@@ -86,8 +83,6 @@ ANNOTATORS_3 = []
 SKILL_SELECTORS = [
     {
         "name": "chitchat_odqa",
-        "highload": False,
-        "batch_size": 1,
         "protocol": "http",
         "host": "127.0.0.1",
         "port": 2082,

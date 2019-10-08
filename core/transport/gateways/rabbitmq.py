@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from uuid import uuid4
-from typing import Dict, List, Optional, Callable, Awaitable
+from typing import Dict, List, Optional, Callable
 from logging import getLogger
 
 import aio_pika
@@ -28,8 +28,7 @@ logger = getLogger(__name__)
 
 
 # TODO: add proper RabbitMQ SSL authentication
-# TODO: add load balancing for stateful skills
-# TODO: add graceful connection close
+# TODO: add load balancing for stateful skills or remove SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE
 class RabbitMQTransportBase:
     _config: dict
     _loop: asyncio.AbstractEventLoop
@@ -39,22 +38,22 @@ class RabbitMQTransportBase:
     _agent_in_channel: Channel
     _agent_out_channel: Channel
     _in_queue: Optional[Queue]
-    _response_timeout_sec: int
+    _utterance_lifetime_sec: int
 
     def __init__(self, config: dict, *args, **kwargs):
         super(RabbitMQTransportBase, self).__init__(*args, **kwargs)
         self._config = config
         self._in_queue = None
-        self._response_timeout_sec = config['agent']['response_timeout_sec']
+        self._utterance_lifetime_sec = config['utterance_lifetime_sec']
 
     async def _connect(self) -> None:
         agent_namespace = self._config['agent_namespace']
 
-        host = self._config['transport']['rabbitmq']['host']
-        port = self._config['transport']['rabbitmq']['port']
-        login = self._config['transport']['rabbitmq']['login']
-        password = self._config['transport']['rabbitmq']['password']
-        virtualhost = self._config['transport']['rabbitmq']['virtualhost']
+        host = self._config['transport']['AMQP']['host']
+        port = self._config['transport']['AMQP']['port']
+        login = self._config['transport']['AMQP']['login']
+        password = self._config['transport']['AMQP']['password']
+        virtualhost = self._config['transport']['AMQP']['virtualhost']
 
         logger.info('Starting RabbitMQ connection...')
 
@@ -103,7 +102,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                    on_channel_callback=on_channel_callback)
 
         self._loop = asyncio.get_event_loop()
-        self._agent_name = self._config['agent']['name']
+        self._agent_name = self._config['agent_name']
 
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
@@ -146,7 +145,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -161,7 +160,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         channel_message_json = channel_message.to_json()
         message = Message(body=json.dumps(channel_message_json).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = CHANNEL_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name, channel_id=channel_id)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
@@ -182,7 +181,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
         self._instance_id = self._config['service'].get('instance_id', None) or f'{self._service_name}{str(uuid4())}'
-        self._batch_size = self._config['service']['batch_size']
+        self._batch_size = self._config['service'].get('batch_size', 1)
 
         self._incoming_messages_buffer = []
         self._add_to_buffer_lock = asyncio.Lock()
@@ -258,7 +257,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
         try:
             responses_batch = await asyncio.wait_for(self._to_service_callback(dialogs_batch),
-                                                     self._response_timeout_sec)
+                                                     self._utterance_lifetime_sec)
 
             results_replies = []
 
@@ -283,7 +282,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
@@ -297,7 +296,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
     def __init__(self, config: dict, to_channel_callback: Callable) -> None:
         super(RabbitMQChannelGateway, self).__init__(config=config, to_channel_callback=to_channel_callback)
         self._loop = asyncio.get_event_loop()
-        self._agent_name = self._config['agent']['name']
+        self._agent_name = self._config['agent_name']
         self._channel_id = self._config['channel']['id']
 
         self._loop.run_until_complete(self._connect())
@@ -336,7 +335,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
         message_json = message_from_channel.to_json()
         message = Message(body=json.dumps(message_json).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                          expiration=self._response_timeout_sec)
+                          expiration=self._utterance_lifetime_sec)
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=self._agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
