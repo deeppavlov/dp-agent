@@ -134,7 +134,7 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _service_name: str
 
     def __init__(self, service_config: dict, formatter: Callable) -> None:
-        super(ServiceGatewayHTTPConnector, self).__init__(service_config, formatter)
+        super().__init__(service_config, formatter)
         self._session = aiohttp.ClientSession()
         self._service_name = service_config['name']
         self._url = service_config['url']
