@@ -35,9 +35,6 @@ class AgentGatewayBase:
         raise NotImplementedError
 
 
-TAgentGateway = TypeVar('TAgentGateway', bound=AgentGatewayBase)
-
-
 class ServiceGatewayConnectorBase:
     _service_config: dict
     _formatter: Callable
@@ -50,18 +47,12 @@ class ServiceGatewayConnectorBase:
         raise NotImplementedError
 
 
-TServiceGatewayConnectorBase = TypeVar('TServiceGatewayConnectorBase', bound=ServiceGatewayConnectorBase)
-
-
 class ServiceGatewayBase:
     _to_service_callback: Callable
 
     def __init__(self, to_service_callback: Callable, *args, **kwargs) -> None:
         super(ServiceGatewayBase, self).__init__(*args, **kwargs)
         self._to_service_callback = to_service_callback
-
-
-TServiceGateway = TypeVar('TServiceGateway', bound=ServiceGatewayBase)
 
 
 class ChannelGatewayConnectorBase:
@@ -78,9 +69,6 @@ class ChannelGatewayConnectorBase:
         raise NotImplementedError
 
 
-TChannelGatewayConnectorBase = TypeVar('TChannelGatewayConnectorBase', bound=ChannelGatewayConnectorBase)
-
-
 class ChannelGatewayBase:
     _to_channel_callback: Callable
 
@@ -92,4 +80,8 @@ class ChannelGatewayBase:
         raise NotImplementedError
 
 
+TAgentGateway = TypeVar('TAgentGateway', bound=AgentGatewayBase)
+TServiceGatewayConnectorBase = TypeVar('TServiceGatewayConnectorBase', bound=ServiceGatewayConnectorBase)
+TServiceGateway = TypeVar('TServiceGateway', bound=ServiceGatewayBase)
+TChannelGatewayConnectorBase = TypeVar('TChannelGatewayConnectorBase', bound=ChannelGatewayConnectorBase)
 TChannelGateway = TypeVar('TChannelGateway', bound=ChannelGatewayBase)
