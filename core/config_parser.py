@@ -5,7 +5,8 @@ import aiohttp
 import asyncio
 
 from core.transform_config import SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3, SKILL_SELECTORS, \
-    RESPONSE_SELECTORS, POSTPROCESSORS, HIGHLOAD_SETTINGS
+    RESPONSE_SELECTORS, POSTPROCESSORS
+from core.transport.transport_settings import TRANSPORT_SETTINGS
 from core.connectors import HTTPConnector, ConfidenceResponseSelectorConnector, AioQueueConnector, \
     QueueListenerBatchifyer, AgentGatewayToServiceConnector
 from core.pipeline import Service, simple_workflow_formatter
@@ -14,9 +15,9 @@ from core import gateways_map
 
 
 def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
-    transport_type = HIGHLOAD_SETTINGS['transport']['type']
+    transport_type = TRANSPORT_SETTINGS['transport']['type']
     gateway_cls = gateways_map[transport_type]['agent']
-    return gateway_cls(config=HIGHLOAD_SETTINGS,
+    return gateway_cls(config=TRANSPORT_SETTINGS,
                        on_service_callback=on_service_callback,
                        on_channel_callback=on_channel_callback)
 
@@ -198,7 +199,7 @@ def get_service_gateway_config(service_name):
     if not matching_config:
         raise ValueError(f'Config for service {service_name} was not found')
 
-    gateway_config = deepcopy(HIGHLOAD_SETTINGS)
+    gateway_config = deepcopy(TRANSPORT_SETTINGS)
     gateway_config['service'] = matching_config
 
     return gateway_config

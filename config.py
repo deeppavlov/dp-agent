@@ -7,27 +7,6 @@ DB_HOST = getenv('DB_HOST', '127.0.0.1')
 DB_PORT = getenv('DB_PORT', 27017)
 DB_PATH = getenv('DB_PATH', '/data/db')
 
-# TODO: move response timeout to transport settings
-# TODO: change naming to transport settings
-HIGHLOAD_SETTINGS = {
-    'agent_namespace': 'deeppavlov_agent',
-    'agent': {
-        'name': 'dp_agent',
-        'response_timeout_sec': 120
-    },
-    'channels': {},
-    'transport': {
-        'type': 'rabbitmq',
-        'rabbitmq': {
-            'host': '127.0.0.1',
-            'port': 5672,
-            'login': 'guest',
-            'password': 'guest',
-            'virtualhost': '/'
-        }
-    }
-}
-
 MAX_WORKERS = 4
 
 AGENT_ENV_FILE = "agent.env"
