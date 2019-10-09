@@ -2,7 +2,6 @@ import asyncio
 import argparse
 import uuid
 import logging
-from typing import Any, Hashable
 
 from aiohttp import web, ClientSession
 from datetime import datetime
@@ -194,6 +193,8 @@ def run_default():
             future.cancel()
             if session:
                 loop.run_until_complete(session.close())
+            if gateway:
+                gateway.disconnect()
             loop.stop()
             loop.close()
             logging.shutdown()
@@ -254,10 +255,21 @@ def run_service():
 
     transport_type = gateway_config['transport']['type']
     gateway_cls = gateways_map[transport_type]['service']
-    _gateway = gateway_cls(config=gateway_config, to_service_callback=connector.send_to_service)
+    gateway = gateway_cls(config=gateway_config, to_service_callback=connector.send_to_service)
 
     loop = asyncio.get_event_loop()
-    loop.run_forever()
+
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        raise e
+    finally:
+        gateway.disconnect()
+        loop.stop()
+        loop.close()
+        logging.shutdown()
 
 
 def run_channel():

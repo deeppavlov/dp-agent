@@ -81,6 +81,9 @@ class RabbitMQTransportBase:
                                                                                  type=aio_pika.ExchangeType.TOPIC)
         logger.info(f'Declared agent out exchange: {agent_out_exchange_name}')
 
+    def disconnect(self):
+        self._connection.close()
+
     async def _setup_queues(self) -> None:
         raise NotImplementedError
 
