@@ -4,8 +4,8 @@ TRANSPORT_SETTINGS = {
     'response_timeout_sec': 120,
     'channels': {},
     'transport': {
-        'type': 'rabbitmq',
-        'rabbitmq': {
+        'type': 'AMQP',
+        'AMQP': {
             'host': '127.0.0.1',
             'port': 5672,
             'login': 'guest',
