@@ -143,7 +143,11 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
     async def send_to_service(self, service_name: str, dialog: dict) -> None:
         task_uuid = str(uuid4())
-        task = ServiceTaskMessage(agent_name=self._agent_name, task_uuid=task_uuid, dialog=dialog)
+        task = ServiceTaskMessage(agent_name=self._agent_name,
+                                  service_name=service_name,
+                                  task_uuid=task_uuid,
+                                  dialog=dialog)
+
         logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog)}')
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
@@ -204,15 +208,18 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         self._in_queue = await self._agent_out_channel.declare_queue(name=in_queue_name, durable=True)
         logger.info(f'Declared service in queue: {in_queue_name}')
 
-        any_instance_routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=self._service_name)
-        await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=any_instance_routing_key)
-        logger.info(f'Queue: {in_queue_name} bound to routing key: {any_instance_routing_key}')
+        # TODO think if we can remove this workaround for bot annotators
+        service_names = self._config['service'].get('names', []) or [self._service_name]
+        for service_name in service_names:
+            any_instance_routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
+            await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=any_instance_routing_key)
+            logger.info(f'Queue: {in_queue_name} bound to routing key: {any_instance_routing_key}')
 
-        this_instance_routing_key = SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE.format(service_name=self._service_name,
-                                                                                 instance_id=self._instance_id)
+            this_instance_routing_key = SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE.format(service_name=service_name,
+                                                                                     instance_id=self._instance_id)
 
-        await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=this_instance_routing_key)
-        logger.info(f'Queue: {in_queue_name} bound to routing key: {this_instance_routing_key}')
+            await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=this_instance_routing_key)
+            logger.info(f'Queue: {in_queue_name} bound to routing key: {this_instance_routing_key}')
 
         await self._agent_out_channel.set_qos(prefetch_count=self._batch_size * 2)
 
@@ -253,8 +260,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             self._infer_lock.release()
 
     async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> bool:
-        task_agent_names_batch, task_uuids_batch, dialogs_batch = \
-            zip(*[(task.agent_name, task.task_uuid, task.dialog) for task in tasks_batch])
+        task_uuids_batch, dialogs_batch = \
+            zip(*[(task.task_uuid, task.dialog) for task in tasks_batch])
 
         logger.debug(f'Prepared for infering tasks {str(task_uuids_batch)}')
 
@@ -266,7 +273,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
             for i, response in enumerate(responses_batch):
                 results_replies.append(
-                    self._send_results(task_agent_names_batch[i], task_uuids_batch[i], dialogs_batch[i]['id'], response)
+                    self._send_results(tasks_batch[i], response)
                 )
 
             await asyncio.gather(*results_replies)
@@ -275,21 +282,21 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         except asyncio.TimeoutError:
             return False
 
-    async def _send_results(self, agent_name: str, task_uuid: str, dialog_id: str, response: dict) -> None:
-        result = ServiceResponseMessage(agent_name=agent_name,
-                                        task_uuid=task_uuid,
-                                        service_name=self._service_name,
+    async def _send_results(self, task: ServiceTaskMessage, response: Dict) -> None:
+        result = ServiceResponseMessage(agent_name=task.agent_name,
+                                        task_uuid=task.task_uuid,
+                                        service_name=task.service_name,
                                         service_instance_id=self._instance_id,
-                                        dialog_id=dialog_id,
+                                        dialog_id=task.dialog['id'],
                                         response=response)
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                           expiration=self._utterance_lifetime_sec)
 
-        routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=agent_name)
+        routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=task.agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
-        logger.debug(f'Sent response for task {str(task_uuid)} with routing key {routing_key}')
+        logger.debug(f'Sent response for task {str(task.task_uuid)} with routing key {routing_key}')
 
 
 class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):

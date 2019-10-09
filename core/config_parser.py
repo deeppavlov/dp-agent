@@ -22,6 +22,10 @@ def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
                        on_channel_callback=on_channel_callback)
 
 
+def add_bot_to_name(name):
+    return f'bot_{name}'
+
+
 def parse_old_config():
     services = []
     worker_tasks = []
@@ -68,9 +72,6 @@ def parse_old_config():
                            tags, names_previous_services, simple_workflow_formatter)
 
         return _service, _worker_tasks, sess, gate
-
-    def add_bot_to_name(name):
-        return f'bot_{name}'
 
     for anno in ANNOTATORS_1:
         service, workers, session, gateway = make_service_from_config_rec(anno, session,
@@ -200,5 +201,9 @@ def get_service_gateway_config(service_name):
 
     gateway_config = deepcopy(TRANSPORT_SETTINGS)
     gateway_config['service'] = matching_config
+
+    # TODO think if we can remove this workaround for bot annotators
+    if service_name in [service['name'] for service in chain(ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3)]:
+        gateway_config['service']['names'] = [service_name, add_bot_to_name(service_name)]
 
     return gateway_config

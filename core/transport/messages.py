@@ -17,12 +17,14 @@ TMessageBase = TypeVar('TMessageBase', bound=MessageBase)
 class ServiceTaskMessage(MessageBase):
     msg_type = 'service_task'
     agent_name: str
+    service_name: str
     task_uuid: str
     dialog: dict
 
-    def __init__(self, agent_name: str, task_uuid: str, dialog: dict) -> None:
+    def __init__(self, agent_name: str, service_name: str, task_uuid: str, dialog: dict) -> None:
         self.msg_type = self.__class__.msg_type
         self.agent_name = agent_name
+        self.service_name = service_name
         self.task_uuid = task_uuid
         self.dialog = dialog
 
