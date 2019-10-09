@@ -1,10 +1,7 @@
-# TODO: move response timeout to transport settings
 TRANSPORT_SETTINGS = {
     'agent_namespace': 'deeppavlov_agent',
-    'agent': {
-        'name': 'dp_agent',
-        'response_timeout_sec': 120
-    },
+    'agent_name': 'dp_agent',
+    'response_timeout_sec': 120,
     'channels': {},
     'transport': {
         'type': 'rabbitmq',
