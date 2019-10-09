@@ -9,7 +9,8 @@ from string import hexdigits
 from os import getenv
 
 from core.agent import Agent
-from core.pipeline import Pipeline, Service
+from core.pipeline import Pipeline
+from core.service import Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config
 from core.state_manager import StateManager
