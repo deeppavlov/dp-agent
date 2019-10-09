@@ -134,10 +134,11 @@ def parse_old_config():
         )
     else:
         for r in RESPONSE_SELECTORS:
-            service, workers, session, gateway = make_service_from_config_rec(r, session,
-                                                                              StateManager.add_bot_utterance_simple_dict,
-                                                                              ['RESPONSE_SELECTORS'], previous_services,
-                                                                              gateway)
+            service, workers, session, gateway = \
+                make_service_from_config_rec(r, session,
+                                             StateManager.add_bot_utterance_simple_dict,
+                                             ['RESPONSE_SELECTORS'], previous_services,
+                                             gateway)
             services.append(service)
             worker_tasks.extend(workers)
 
