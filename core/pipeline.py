@@ -1,5 +1,4 @@
 from collections import defaultdict, Counter
-from core.service import Service
 
 
 class Pipeline:
@@ -33,7 +32,7 @@ class Pipeline:
                 self.services[name_prev_service].next_services.add(service)
         return wrong_names  # wrong names means that some service_names, used in previous services don't exist
 
-    def get_next_services(self, done: set = None, waiting: set =None):
+    def get_next_services(self, done: set = None, waiting: set = None):
         if done is None:
             done = set()
         if waiting is None:
