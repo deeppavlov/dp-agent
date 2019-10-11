@@ -1,32 +1,28 @@
-import asyncio
+import logging
 import argparse
 import uuid
-import logging
-
-from aiohttp import web
 from datetime import datetime
 from string import hexdigits
 from os import getenv
+
+import asyncio
+from aiohttp import web
+from aiogram import Bot
+from aiogram.utils import executor
+from aiogram.dispatcher import Dispatcher
 
 from core.agent import Agent
 from core.pipeline import Pipeline, Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config
 from core.state_manager import StateManager
-
 from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
-
-from aiogram import Bot
-from aiogram.utils import executor
-from aiogram.dispatcher import Dispatcher
-
 
 logger = logging.getLogger('service_logger')
 logger.setLevel(logging.INFO)
 fh = logging.FileHandler('../service.log')
 fh.setLevel(logging.INFO)
 logger.addHandler(fh)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
@@ -90,8 +86,8 @@ async def on_shutdown(app):
 
 
 async def init_app(register_msg, intermediate_storage,
-        on_startup, on_shutdown_func=on_shutdown,
-        debug=False):
+                   on_startup, on_shutdown_func=on_shutdown,
+                   debug=False):
     app = web.Application(debug=True)
     handle_func = await api_message_processor(
         register_msg, intermediate_storage, debug)
@@ -117,8 +113,7 @@ def prepare_startup(consumers, process_callable, session):
 
 async def api_message_processor(register_msg, intermediate_storage, debug=False):
     async def api_handle(request):
-        user_id = None
-        bot_response = None
+        response = None
         if request.method == 'POST':
             if request.headers.get('content-type') != 'application/json':
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
