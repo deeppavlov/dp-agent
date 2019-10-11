@@ -53,7 +53,8 @@ DIALOG_SCHEMA = {
     'utterances': [],
     'channel_type': None,
     'human': None,
-    'bot': None
+    'bot': None,
+    'version': STATE_API_VERSION
 }
 
 
