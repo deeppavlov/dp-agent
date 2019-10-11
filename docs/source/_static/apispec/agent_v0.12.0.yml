@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  title: DeepPavlov Agent Services REST API
+  title: DeepPavlov Agent State API
   version: 0.12.0
   description: >-
     Agents built with DeepPavlov Agent communicate with their Services via HTTP, so
