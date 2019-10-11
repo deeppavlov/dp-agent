@@ -47,8 +47,8 @@ class Agent:
     def register_service_request(self, dialog_id: str, service_name):
         if dialog_id not in self.workflow.keys():
             raise ValueError(f'dialog with id {dialog_id} is not exist in workflow')
-        self.workflow[dialog_id]['services'][service_name] = {'send': True, 'done': False, 'send_time': time(),
-                                                              'done_time': None}
+        self.workflow[dialog_id]['services'][service_name] = {'send': True, 'done': False, 'agent_send_time': time(),
+                                                              'agent_done_time': None}
 
     def get_services_status(self, dialog_id: str):
         if dialog_id not in self.workflow.keys():
@@ -71,7 +71,7 @@ class Agent:
         if service:
             service_data = workflow_record['services'][service_name]
             service_data['done'] = True
-            service_data['done_time'] = time()
+            service_data['agent_done_time'] = time()
             if response and service.state_processor_method:
                 service.state_processor_method(dialog=workflow_record['dialog'],
                                                dialog_object=workflow_record['dialog_object'],
@@ -98,7 +98,7 @@ class Agent:
             for service in next_services:
                 if service.name not in selected_services:
                     self.workflow[dialog_id]['services'][service.name] = {'done': True, 'send': False,
-                                                                          'send_time': None, 'done_time': None}
+                                                                          'agent_send_time': None, 'agent_done_time': None}
                 else:
                     result.append(service)
             next_services = result

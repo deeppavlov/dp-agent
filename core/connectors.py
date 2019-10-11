@@ -101,11 +101,12 @@ class HttpOutputConnector:
         service_send_time = time.time()
         self.intermediate_storage[message_uuid] = response_text
         event.set()
+        service_response_time = time.time()
         await callback(dialog_id=payload['dialog']['id'],
                        service_name=self.service_name,
                        response=response_text,
                        service_send_time=service_send_time,
-                       service_response_time=time.time())
+                       service_response_time=service_response_time)
 
 
 class EventSetOutputConnector:
@@ -118,8 +119,9 @@ class EventSetOutputConnector:
         if not event or not isinstance(event, asyncio.Event):
             raise ValueError("'event' key is not presented in payload")
         event.set()
+        service_response_time = time.time()
         await callback(dialog_id=payload['dialog']['id'],
                        service_name=self.service_name,
                        response=" ",
                        service_send_time=service_send_time,
-                       service_response_time=time.time())
+                       service_response_time=service_response_time)

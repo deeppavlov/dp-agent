@@ -32,8 +32,8 @@ CHANNEL = args.channel
 
 def response_logger(workflow_record):
     for service_name, service_data in workflow_record['services'].items():
-        done = service_data['done_time']
-        send = service_data['send_time']
+        done = service_data['agent_done_time']
+        send = service_data['agent_send_time']
         if not send or not done:
             continue
         logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
