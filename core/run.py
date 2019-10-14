@@ -1,23 +1,25 @@
-import asyncio
+import logging
 import argparse
 import uuid
 import logging
-
-from aiohttp import web, ClientSession
 from datetime import datetime
 from string import hexdigits
 from os import getenv
 
+import asyncio
+from aiohttp import web, ClientSession
 from aiogram import Bot
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
 
 from core.agent import Agent
-from core.pipeline import Pipeline, Service
+from core.pipeline import Pipeline
+from core.service import Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
 from core import gateways_map, connectors_map
+from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
 
 
 service_logger = logging.getLogger('service_logger')
@@ -88,9 +90,12 @@ async def on_shutdown(app):
     await app['client_session'].close()
 
 
-async def init_app(register_msg, intermediate_storage, on_startup, on_shutdown_func=on_shutdown):
+async def init_app(register_msg, intermediate_storage,
+                   on_startup, on_shutdown_func=on_shutdown,
+                   debug=False):
     app = web.Application(debug=True)
-    handle_func = await api_message_processor(register_msg, intermediate_storage)
+    handle_func = await api_message_processor(
+        register_msg, intermediate_storage, debug)
     app.router.add_post('/', handle_func)
     app.router.add_get('/dialogs', users_dialogs)
     app.router.add_get('/dialogs/{dialog_id}', dialog)
@@ -111,10 +116,9 @@ def prepare_startup(consumers, process_callable, session):
     return startup_background_tasks
 
 
-async def api_message_processor(register_msg, intermediate_storage):
+async def api_message_processor(register_msg, intermediate_storage, debug=False):
     async def api_handle(request):
-        user_id = None
-        bot_response = None
+        response = None
         if request.method == 'POST':
             if request.headers.get('content-type') != 'application/json':
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
@@ -135,8 +139,12 @@ async def api_message_processor(register_msg, intermediate_storage):
 
             if bot_response is None:
                 raise RuntimeError('Got None instead of a bot response.')
+            if debug:
+                response = http_debug_output_formatter(bot_response)
+            else:
+                response = http_api_output_formatter(bot_response)
 
-        return web.json_response({'user_id': user_id, 'response': bot_response})
+        return web.json_response(response)
 
     return api_handle
 
@@ -157,14 +165,12 @@ async def dialog(request):
     if dialog_id == 'all':
         dialogs = Dialog.objects()
         return web.json_response([i.to_dict() for i in dialogs])
-    elif len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
+    if len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
         d = Dialog.objects(id__exact=dialog_id)
         if not d:
             raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} is not exist')
-        else:
-            return web.json_response(d[0].to_dict())
-    else:
-        raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
+        return web.json_response(d[0].to_dict())
+    raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
 
 
 def run_default():
@@ -205,13 +211,13 @@ def run_default():
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process
-        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process, session),
-                       on_shutdown)
-
+        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
+                       on_shutdown, args.debug)
+ 
         web.run_app(app, port=args.port)
 
     elif CHANNEL == 'telegram':

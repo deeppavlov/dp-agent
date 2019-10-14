@@ -9,12 +9,15 @@ from core.transform_config import SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS
 from core.transport.transport_settings import TRANSPORT_SETTINGS
 from core.connectors import HTTPConnector, ConfidenceResponseSelectorConnector, AioQueueConnector, \
     QueueListenerBatchifyer, AgentGatewayToServiceConnector
-from core.pipeline import Service, simple_workflow_formatter
+from core.pipeline import simple_workflow_formatter
+from core.service import Service
 from core.state_manager import StateManager
 from core import gateways_map
 
 
-def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
+def prepare_agent_gateway(on_channel_callback=None, on_service_callb
+                          
+     ack=None):
     transport_type = TRANSPORT_SETTINGS['transport']['type']
     gateway_cls = gateways_map[transport_type]['agent']
     return gateway_cls(config=TRANSPORT_SETTINGS,
@@ -117,7 +120,7 @@ def parse_old_config():
     if SKILLS:
         for s in SKILLS:
             service, workers, session, gateway = make_service_from_config_rec(s, session,
-                                                                              StateManager.add_selected_skill_dict,
+                                                                              StateManager.add_hypothesis_dict,
                                                                               ['SKILLS'], previous_services, gateway)
             services.append(service)
             worker_tasks.extend(workers)
