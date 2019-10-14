@@ -1,7 +1,6 @@
 import logging
 import argparse
 import uuid
-import logging
 from datetime import datetime
 from string import hexdigits
 from os import getenv
@@ -214,10 +213,9 @@ def run_default():
         register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
         if gateway:
             gateway.on_channel_callback = register_msg
-            gateway.on_service_callback = process
+            gateway.on_service_callback = process_callable
         app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
                        on_shutdown, args.debug)
- 
         web.run_app(app, port=args.port)
 
     elif CHANNEL == 'telegram':

@@ -15,9 +15,7 @@ from core.state_manager import StateManager
 from core import gateways_map
 
 
-def prepare_agent_gateway(on_channel_callback=None, on_service_callb
-                          
-     ack=None):
+def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
     transport_type = TRANSPORT_SETTINGS['transport']['type']
     gateway_cls = gateways_map[transport_type]['agent']
     return gateway_cls(config=TRANSPORT_SETTINGS,
