@@ -14,15 +14,18 @@ class HTTPConnector:
         self.service_name = service_name
 
     async def send(self, payload: Dict, callback: Callable):
+        formatted_payload = self.formatter([payload])
+        service_send_time = time.time()
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.url, json=self.formatter([payload])) as resp:
+            async with session.post(self.url, json=formatted_payload) as resp:
                 response = await resp.json()
-                response_time = time.time()
-        await callback(
-            dialog_id=payload['id'], service_name=self.service_name,
-            response={self.service_name: self.formatter(response[0], mode='out')},
-            response_time=response_time
-        )
+                service_response_time = time.time()
+                await callback(
+                    dialog_id=payload['id'], service_name=self.service_name,
+                    response={self.service_name: self.formatter(response[0], mode='out')},
+                    service_send_time=service_send_time,
+                    service_response_time=service_response_time
+                )
 
 
 class AioQueueConnector:
@@ -51,13 +54,18 @@ class QueueListenerBatchifyer:
                 batch.append(item)
             if batch:
                 tasks = []
-                async with self.session.post(self.url, json=self.formatter(batch)) as resp:
+                formatted_payload = self.formatter(batch)
+                service_send_time = time.time()
+                async with self.session.post(self.url, json=formatted_payload) as resp:
                     response = await resp.json()
-                    response_time = time.time()
+                    service_response_time = time.time()
                 for dialog, response_text in zip(batch, response):
-                    tasks.append(process_callable(dialog['id'], self.service_name,
-                                                  {self.service_name: self.formatter(response_text, mode='out')},
-                                                  response_time))
+                    tasks.append(
+                        process_callable(
+                            dialog_id=dialog['id'], service_name=self.service_name,
+                            response={self.service_name: self.formatter(response_text, mode='out')},
+                            service_send_time=service_send_time,
+                            service_response_time=service_response_time))
                 await asyncio.gather(*tasks)
             await asyncio.sleep(0.1)
 
@@ -67,13 +75,15 @@ class ConfidenceResponseSelectorConnector:
         self.service_name = service_name
 
     async def send(self, payload: Dict, callback: Callable):
+        service_send_time = time.time()
         response = payload['utterances'][-1]['hypotheses']
         best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
         response_time = time.time()
         await callback(
             dialog_id=payload['id'], service_name=self.service_name,
             response={'confidence_response_selector': best_skill},
-            response_time=response_time)
+            service_send_time=service_send_time,
+            service_response_time=response_time)
 
 
 class HttpOutputConnector:
@@ -85,11 +95,15 @@ class HttpOutputConnector:
         message_uuid = payload['message_uuid']
         event = payload['event']
         response_text = payload
+        service_send_time = time.time()
         self.intermediate_storage[message_uuid] = response_text
         event.set()
-        response_time = time.time()
-        await callback(payload['dialog']['id'], self.service_name,
-                       response_text, response_time)
+        service_response_time = time.time()
+        await callback(dialog_id=payload['dialog']['id'],
+                       service_name=self.service_name,
+                       response=response_text,
+                       service_send_time=service_send_time,
+                       service_response_time=service_response_time)
 
 
 class EventSetOutputConnector:
@@ -98,12 +112,16 @@ class EventSetOutputConnector:
 
     async def send(self, payload: Dict, callback: Callable):
         event = payload.get('event', None)
+        service_send_time = time.time()
         if not event or not isinstance(event, asyncio.Event):
             raise ValueError("'event' key is not presented in payload")
         event.set()
-        response_time = time.time()
-        await callback(payload['dialog']['id'], self.service_name,
-                       " ", response_time)
+        service_response_time = time.time()
+        await callback(dialog_id=payload['dialog']['id'],
+                       service_name=self.service_name,
+                       response=" ",
+                       service_send_time=service_send_time,
+                       service_response_time=service_response_time)
 
 
 class AgentGatewayToChannelConnector:

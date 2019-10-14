@@ -47,8 +47,8 @@ class Agent:
     def register_service_request(self, dialog_id: str, service_name):
         if dialog_id not in self.workflow.keys():
             raise ValueError(f'dialog with id {dialog_id} is not exist in workflow')
-        self.workflow[dialog_id]['services'][service_name] = {'send': True, 'done': False, 'send_time': time(),
-                                                              'done_time': None}
+        self.workflow[dialog_id]['services'][service_name] = {'send': True, 'done': False, 'agent_send_time': time(),
+                                                              'agent_done_time': None}
 
     def get_services_status(self, dialog_id: str):
         if dialog_id not in self.workflow.keys():
@@ -63,7 +63,7 @@ class Agent:
         return done, waiting
 
     def process_service_response(self, dialog_id: str, service_name: str = None, response: Any = None,
-                                 response_time: float = None):
+                                 **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
 
         # Updating workflow with service response
@@ -71,11 +71,16 @@ class Agent:
         if service:
             service_data = self.workflow[dialog_id]['services'][service_name]
             service_data['done'] = True
-            service_data['done_time'] = response_time
+            service_data['agent_done_time'] = time()
             if response and service.state_processor_method:
                 service.state_processor_method(dialog=workflow_record['dialog'],
                                                dialog_object=workflow_record['dialog_object'],
                                                payload=response)
+
+        # passing kwargs to services record
+            if not set(service_data.keys()).intersection(set(kwargs.keys())):
+                service_data.update(kwargs)
+
         # Flush record  and return zero next services if service is is_responder
         if service.is_responder():
             if not workflow_record.get('hold_flush'):
@@ -93,7 +98,8 @@ class Agent:
             for service in next_services:
                 if service.name not in selected_services:
                     self.workflow[dialog_id]['services'][service.name] = {'done': True, 'send': False,
-                                                                          'send_time': None, 'done_time': None}
+                                                                          'agent_send_time': None,
+                                                                          'agent_done_time': None}
                 else:
                     result.append(service)
             next_services = result
@@ -115,18 +121,17 @@ class Agent:
             kwargs['event'] = event
             self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, hold_flush=True, **kwargs)
             self.register_service_request(str(dialog.id), 'input')
-            await self.process(str(dialog.id), 'input', utterance, time())
+            await self.process(dialog_id=str(dialog.id), service_name='input', response=utterance)
             await event.wait()
             return self.flush_record(str(dialog.id))
-
         else:
             self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
             self.register_service_request(str(dialog.id), 'input')
-            await self.process(str(dialog.id), 'input', utterance, time())
+            await self.process(dialog_id=str(dialog.id), service_name='input', response=utterance)
 
-    async def process(self, dialog_id, service_name=None, response: Any = None, response_time: float = None):
+    async def process(self, dialog_id, service_name=None, response: Any = None, **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
-        next_services = self.process_service_response(dialog_id, service_name, response, response_time)
+        next_services = self.process_service_response(dialog_id, service_name, response, **kwargs)
 
         service_requests = []
         for service in next_services:
