@@ -6,7 +6,7 @@ from string import hexdigits
 from os import getenv
 
 import asyncio
-from aiohttp import web
+from aiohttp import web, ClientSession
 from aiogram import Bot
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
@@ -15,23 +15,26 @@ from core.agent import Agent
 from core.pipeline import Pipeline
 from core.service import Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
-from core.config_parser import parse_old_config
+from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
+from core import gateways_map, connectors_map
 from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
 
-logger = logging.getLogger('service_logger')
-logger.setLevel(logging.INFO)
-fh = logging.FileHandler('../service.log')
-fh.setLevel(logging.INFO)
-logger.addHandler(fh)
+
+service_logger = logging.getLogger('service_logger')
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
+                    default='default', choices=['default', 'agent', 'service', 'channel'])
+parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)
 parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
                     choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
 parser.add_argument('-rl', '--response-logger', help='run agent with services response logging', action='store_true')
+
 args = parser.parse_args()
+MODE = args.mode
 CHANNEL = args.channel
 
 
@@ -41,7 +44,7 @@ def response_logger(workflow_record):
         send = service_data['send_time']
         if not send or not done:
             continue
-        logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
+        service_logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
 
 
 def prepare_agent(services, endpoint: Service, input_serv: Service, use_response_logger: bool):
@@ -169,8 +172,8 @@ async def dialog(request):
     raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
 
 
-def main():
-    services, workers, session = parse_old_config()
+def run_default():
+    services, workers, session, gateway = parse_old_config()
 
     if CHANNEL == 'cmd_client':
         endpoint = Service('cmd_responder', EventSetOutputConnector('cmd_responder').send,
@@ -179,6 +182,9 @@ def main():
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
         register_msg, process = prepare_agent(services, endpoint, input_srv, use_response_logger=args.response_logger)
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process
         future = asyncio.ensure_future(run(register_msg))
         for i in workers:
             loop.create_task(i.call_service(process))
@@ -190,19 +196,26 @@ def main():
             raise e
         finally:
             future.cancel()
-            loop.run_until_complete(session.close())
+            if session:
+                loop.run_until_complete(session.close())
+            if gateway:
+                gateway.disconnect()
             loop.stop()
             loop.close()
             logging.shutdown()
     elif CHANNEL == 'http_client':
+        if not session:
+            session = ClientSession()
         intermediate_storage = {}
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process_callable
         app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
                        on_shutdown, args.debug)
-
         web.run_app(app, port=args.port)
 
     elif CHANNEL == 'telegram':
@@ -218,7 +231,9 @@ def main():
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         register_msg, process = prepare_agent(
             services, endpoint, input_srv, use_response_logger=args.response_logger)
-
+        if gateway:
+            gateway.on_channel_callback = register_msg
+            gateway.on_service_callback = process
         for i in workers:
             loop.create_task(i.call_service(process))
         tg_msg_processor = TelegramMessageProcessor(register_msg)
@@ -226,6 +241,54 @@ def main():
         dp.message_handler()(tg_msg_processor.handle_message)
 
         executor.start_polling(dp, skip_updates=True)
+
+
+def run_agent():
+    raise NotImplementedError
+
+
+def run_service():
+    service_name = args.service_name
+    gateway_config = get_service_gateway_config(service_name)
+    service_config = gateway_config['service']
+
+    formatter = service_config['formatter']
+    connector_type = service_config['protocol']
+    connector_cls = connectors_map[connector_type]
+    connector = connector_cls(service_config=service_config, formatter=formatter)
+
+    transport_type = gateway_config['transport']['type']
+    gateway_cls = gateways_map[transport_type]['service']
+    gateway = gateway_cls(config=gateway_config, to_service_callback=connector.send_to_service)
+
+    loop = asyncio.get_event_loop()
+
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        raise e
+    finally:
+        gateway.disconnect()
+        loop.stop()
+        loop.close()
+        logging.shutdown()
+
+
+def run_channel():
+    raise NotImplementedError
+
+
+def main():
+    if MODE == 'default':
+        run_default()
+    elif MODE == 'agent':
+        run_agent()
+    elif MODE == 'service':
+        run_service()
+    elif MODE == 'channel':
+        run_channel()
 
 
 if __name__ == '__main__':

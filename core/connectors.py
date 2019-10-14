@@ -1,7 +1,9 @@
 import asyncio
 import aiohttp
 import time
-from typing import Dict, Callable
+from typing import Dict, Callable, List, Any
+
+from core.transport.base import ServiceGatewayConnectorBase
 
 
 class HTTPConnector:
@@ -102,3 +104,37 @@ class EventSetOutputConnector:
         response_time = time.time()
         await callback(payload['dialog']['id'], self.service_name,
                        " ", response_time)
+
+
+class AgentGatewayToChannelConnector:
+    pass
+
+
+class AgentGatewayToServiceConnector:
+    _to_service_callback: Callable
+    _service_name: str
+
+    def __init__(self, to_service_callback: Callable, service_name: str):
+        self._to_service_callback = to_service_callback
+        self._service_name = service_name
+
+    async def send(self, payload: Dict, **_kwargs):
+        await self._to_service_callback(dialog=payload, service_name=self._service_name)
+
+
+class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
+    _session: aiohttp.ClientSession
+    _url: str
+    _service_name: str
+
+    def __init__(self, service_config: dict, formatter: Callable) -> None:
+        super().__init__(service_config, formatter)
+        self._session = aiohttp.ClientSession()
+        self._service_name = service_config['name']
+        self._url = service_config['url']
+
+    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
+        async with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+            responses_batch = await resp.json()
+
+        return [{self._service_name: self._formatter(response, mode='out')} for response in responses_batch]
