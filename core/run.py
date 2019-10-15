@@ -121,17 +121,22 @@ async def api_message_processor(register_msg, intermediate_storage, debug=False)
             if request.headers.get('content-type') != 'application/json':
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
             data = await request.json()
-            user_id = data.get('user_id')
-            payload = data.get('payload', '')
+            user_id = data.pop('user_id')
+            payload = data.pop('payload', '')
 
             if not user_id:
                 raise web.HTTPBadRequest(reason='user_id key is required')
 
             event = asyncio.Event()
             message_uuid = uuid.uuid3(uuid.NAMESPACE_DNS, f'{user_id}{payload}{datetime.now()}').hex
-            await register_msg(utterance=payload, user_telegram_id=user_id, user_device_type='http',
-                               date_time=datetime.now(), location='', channel_type=CHANNEL,
-                               event=event, message_uuid=message_uuid)
+            await register_msg(utterance=payload, user_telegram_id=user_id,
+                               user_device_type=data.pop('user_device_type', 'http'),
+                               date_time=datetime.now(),
+                               location=data.pop('location', ''),
+                               channel_type=CHANNEL,
+                               event=event,
+                               message_uuid=message_uuid,
+                               message_attrs=data)
             await event.wait()
             bot_response = intermediate_storage.pop(message_uuid)
 
