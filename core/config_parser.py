@@ -6,18 +6,18 @@ import asyncio
 
 from core.transform_config import SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3, SKILL_SELECTORS, \
     RESPONSE_SELECTORS, POSTPROCESSORS
-from core.transport.transport_settings import TRANSPORT_SETTINGS
 from core.connectors import HTTPConnector, ConfidenceResponseSelectorConnector, AioQueueConnector, \
     QueueListenerBatchifyer, AgentGatewayToServiceConnector
 from core.pipeline import simple_workflow_formatter
 from core.service import Service
 from core.state_manager import StateManager
-from core import gateways_map
+from core.transport.settings import TRANSPORT_SETTINGS
 
 
 def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
+    from core.transport.mapping import GATEWAYS_MAP
     transport_type = TRANSPORT_SETTINGS['transport']['type']
-    gateway_cls = gateways_map[transport_type]['agent']
+    gateway_cls = GATEWAYS_MAP[transport_type]['agent']
     return gateway_cls(config=TRANSPORT_SETTINGS,
                        on_service_callback=on_service_callback,
                        on_channel_callback=on_channel_callback)

@@ -17,7 +17,6 @@ from core.service import Service
 from core.connectors import EventSetOutputConnector, HttpOutputConnector
 from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
-from core import gateways_map, connectors_map
 from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
 
 
@@ -248,17 +247,19 @@ def run_agent():
 
 
 def run_service():
+    from core.transport.mapping import GATEWAYS_MAP, CONNECTORS_MAP
+
     service_name = args.service_name
     gateway_config = get_service_gateway_config(service_name)
     service_config = gateway_config['service']
 
     formatter = service_config['formatter']
     connector_type = service_config['protocol']
-    connector_cls = connectors_map[connector_type]
+    connector_cls = CONNECTORS_MAP[connector_type]
     connector = connector_cls(service_config=service_config, formatter=formatter)
 
     transport_type = gateway_config['transport']['type']
-    gateway_cls = gateways_map[transport_type]['service']
+    gateway_cls = GATEWAYS_MAP[transport_type]['service']
     gateway = gateway_cls(config=gateway_config, to_service_callback=connector.send_to_service)
 
     loop = asyncio.get_event_loop()
