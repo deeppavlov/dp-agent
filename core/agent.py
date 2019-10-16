@@ -2,7 +2,7 @@ import asyncio
 
 from collections import defaultdict
 from time import time
-from typing import Any, Optional, Callable, Hashable, Dict
+from typing import Any, Optional, Callable, Hashable
 
 from core.pipeline import Pipeline
 from core.state_manager import StateManager
@@ -129,10 +129,10 @@ class Agent:
             await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
             await event.wait()
             return self.flush_record(dialog_id)
-        else:
-            self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
-            self.register_service_request(dialog_id, service_name)
-            await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
+
+        self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
+        self.register_service_request(dialog_id, service_name)
+        await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
 
     async def process(self, dialog_id, service_name=None, response: Any = None, **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
