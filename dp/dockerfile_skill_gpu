@@ -9,6 +9,9 @@ ENV CONFIG=$skillconfig
 ENV PORT=$skillport
 ENV HOST=$skillhost
 ENV ENDPOINT=$skill_endpoint
+ENV TFHUB_CACHE_DIR=/tmp/tfhub
+
+VOLUME /tmp/tfhub
 
 RUN mkdir dp-agent
 WORKDIR /dp-agent

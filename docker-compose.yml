@@ -120,4 +120,5 @@ services:
     - .:/dp-agent
     - ${EXTERNAL_FOLDER}/dp_logs:/logs
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
 version: '3.7'
