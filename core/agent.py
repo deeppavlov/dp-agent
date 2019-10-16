@@ -76,7 +76,7 @@ class Agent:
                 service.state_processor_method(dialog=workflow_record['dialog'],
                                                dialog_object=workflow_record['dialog_object'],
                                                payload=response,
-                                               message_attrs=kwargs.get('message_attrs', {}))
+                                               message_attrs=kwargs.pop('message_attrs', {}))
 
             # passing kwargs to services record
             if not set(service_data.keys()).intersection(set(kwargs.keys())):
@@ -117,20 +117,22 @@ class Agent:
         user = self.state_manager.get_or_create_user(user_telegram_id, user_device_type)
         should_reset = True if utterance == TG_START_UTT else False
         dialog = self.state_manager.get_or_create_dialog(user, location, channel_type, should_reset=should_reset)
+        dialog_id = str(dialog.id)
+        service_name = 'input'
+        message_attrs = kwargs.pop('message_attrs', {})
+
         if require_response:
             event = asyncio.Event()
             kwargs['event'] = event
             self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, hold_flush=True, **kwargs)
-            self.register_service_request(str(dialog.id), 'input')
-            await self.process(dialog_id=str(dialog.id), service_name='input', response=utterance,
-                               message_attrs=kwargs.get('message_attrs', {}))
+            self.register_service_request(dialog_id, service_name)
+            await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
             await event.wait()
-            return self.flush_record(str(dialog.id))
+            return self.flush_record(dialog_id)
         else:
             self.add_workflow_record(dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
-            self.register_service_request(str(dialog.id), 'input')
-            await self.process(dialog_id=str(dialog.id), service_name='input', response=utterance,
-                               message_attrs=kwargs.get('message_attrs', {}))
+            self.register_service_request(dialog_id, service_name)
+            await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
 
     async def process(self, dialog_id, service_name=None, response: Any = None, **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
