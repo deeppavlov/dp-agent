@@ -10,6 +10,7 @@ HUMAN_UTTERANCE_SCHEMA = {
     'annotations': {},
     'date_time': None,
     'hypotheses': [],
+    'attributes': {}
 }
 
 BOT_UTTERANCE_SCHEMA = {
@@ -133,6 +134,7 @@ class Utterance(DynamicDocument):
 
 class HumanUtterance(Utterance):
     hypotheses = ListField(default=[])
+    attributes = DictField(default={})
 
     def to_dict(self):
         return {
@@ -141,7 +143,8 @@ class HumanUtterance(Utterance):
             'user': self.user,
             'annotations': self.annotations,
             'date_time': str(self.date_time),
-            'hypotheses': self.hypotheses
+            'hypotheses': self.hypotheses,
+            'attributes': self.attributes
         }
 
     @classmethod
@@ -152,6 +155,7 @@ class HumanUtterance(Utterance):
         utterance.annotations = payload['annotations']
         utterance.date_time = payload['date_time']
         utterance.hypotheses = payload['hypotheses']
+        utterance.attributes = payload['attributes']
         utterance.user = payload['user']
         utterance.save()
         return utterance

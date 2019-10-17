@@ -192,6 +192,7 @@ Running the Agent
 Agent can run both from container and from a local machine. The default Agent port is **4242**.
 
 **Container**
+-------------
 
 1. Connect to agent's container:
 
@@ -208,6 +209,7 @@ Agent can run both from container and from a local machine. The default Agent po
         python -m core.run
 
 **Local machine**
+-----------------
 
 1. (optional) Please consider setting your locale according your input language to avoid decoding errors while communicating agent via command line.
    For example:
@@ -243,8 +245,9 @@ Agent can run both from container and from a local machine. The default Agent po
         python -m core.run -ch telegram
 
 **HTTP api server**
+-------------------
 
-1. You can run agent api server from both container and local environment:
+1. **Run the agent api server from both container and local environment**
 
     .. code:: bash
 
@@ -252,7 +255,7 @@ Agent can run both from container and from a local machine. The default Agent po
 
     In both cases api will be accessible on your localhost
 
-2. Web server accepts POST requests with application/json content-type:
+2. **Web server accepts POST requests with application/json content-type**
 
     Request should be in form:
 
@@ -283,17 +286,34 @@ Agent can run both from container and from a local machine. The default Agent po
 
     In case of wrong format, HTTP errors will be returned.
 
-    If you need the Agent server to return something different than ``user_id`` and ``reponse``, try the
-    :ref:`output formatters <output-formatters>`.
+3.  **Arbitrary input format of the Agent Server**
 
-3. In addition to everything else the HTTP api server allows viewing dialogs in the database through GET requests.
-   The result is returned in json format which can be easily prettifyed with various browser extensions.
+     If you want to pass anything except
+     ``user_id`` and ``payload``, just pass it as an additional key-value item, for example:
+
+     .. code:: bash
+
+        curl --header "Content-Type: application/json" \
+             --request POST \
+             --data '{"user_id":"xyz","payload":"hello", "my_custom_dialog_id": 111}' \
+             http://localhost:4242
+
+     All additional items will be stored into the ``attributes`` field of a ``HumanUtterance``.
+
+4.  **Modify the default response format of the Agent server**
+
+     If you need the Agent server to return something different than ``user_id`` and ``reponse``, try the
+     :ref:`output formatters <output-formatters>`.
+
+5. **View dialogs in the database through GET requests**
+
+    The result is returned in json format which can be easily prettifyed with various browser extensions.
 
     Three main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
 
-      * http://localhost:4242/dialogs - provides list of all dialogs (without utterances)
-      * http://localhost:4242/dialogs/all - provides list of all dialogs (with utterances)
-      * http://localhost:4242/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
+     * http://localhost:4242/dialogs - provides list of all dialogs (without utterances)
+     * http://localhost:4242/dialogs/all - provides list of all dialogs (with utterances)
+     * http://localhost:4242/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
 
 
 Analyzing the data
