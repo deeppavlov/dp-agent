@@ -1,4 +1,4 @@
-FROM deeppavlov/base-gpu:latest
+FROM deeppavlov/base-gpu:0.6.1
 
 ARG skillconfig
 ARG skillport
@@ -9,6 +9,9 @@ ENV CONFIG=$skillconfig
 ENV PORT=$skillport
 ENV HOST=$skillhost
 ENV ENDPOINT=$skill_endpoint
+ENV TFHUB_CACHE_DIR=/tmp/tfhub
+
+VOLUME /tmp/tfhub
 
 RUN mkdir dp-agent
 WORKDIR /dp-agent
@@ -18,5 +21,6 @@ ENV PYTHONPATH "${PYTONPATH}:/dp-agent"
 RUN pip install -r /base/DeepPavlov/deeppavlov/requirements/tf-gpu.txt
 RUN python -m deeppavlov install $CONFIG
 RUN python dp/dp_server_config.py
+RUN sed -i "/uvicorn.run/s/app,/app, timeout_keep_alive=20,/g" "/base/DeepPavlov/deeppavlov/utils/server/server.py"
 
 ENTRYPOINT python -m deeppavlov riseapi $CONFIG -p $PORT -d

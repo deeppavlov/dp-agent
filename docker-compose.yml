@@ -57,7 +57,7 @@ services:
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
   mongo:
     command: mongod
-    image: mongo:3.2.0
+    image: mongo:4.0.0
     ports:
     - 27017:27017
     volumes:
@@ -120,4 +120,5 @@ services:
     - .:/dp-agent
     - ${EXTERNAL_FOLDER}/dp_logs:/logs
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
 version: '3.7'

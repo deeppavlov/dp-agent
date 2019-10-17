@@ -8,10 +8,30 @@ Welcome to DeepPavlov Agent documentation!
    :maxdepth: 2
    :caption: Overview
 
-   Overview <intro/overview>
+   intro/overview
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`search`
+.. toctree::
+   :maxdepth: 2
+   :caption: Services HTTP API
+
+   api/services_http_api
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User State API
+
+   api/user_state_api
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Commands
+
+   user_commands/commands
+
+.. toctree::
+   :maxdepth: 2
+   :caption: State Formatters
+
+   state_formatters/formatters
