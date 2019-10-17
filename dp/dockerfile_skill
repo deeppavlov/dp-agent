@@ -1,0 +1,14 @@
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
+ARG skillconfig
+
+ENV CONFIG=$skillconfig
+ENV TFHUB_CACHE_DIR=/tmp/tfhub
+
+VOLUME /tmp/tfhub
+
+RUN python -m deeppavlov install $CONFIG && \
+    sed -i "/uvicorn.run/s/app,/app, timeout_keep_alive=20,/g" "/base/DeepPavlov/deeppavlov/utils/server/server.py"
+
+CMD python -m deeppavlov riseapi $CONFIG -d

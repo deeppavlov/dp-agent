@@ -16,7 +16,7 @@ SKILLS = [
         "name": "odqa",
         "protocol": "http",
         "host": "127.0.0.1",
-        "port": 2080,
+        "port": 5000,
         "endpoint": "model",
         "path": "odqa/ru_odqa_infer_wiki",
         "env": {
@@ -29,7 +29,7 @@ SKILLS = [
         "name": "chitchat",
         "protocol": "http",
         "host": "127.0.0.1",
-        "port": 2081,
+        "port": 5000,
         "endpoint": "model",
         "path": "faq/tfidf_autofaq",
         "env": {
@@ -46,7 +46,7 @@ ANNOTATORS_1 = [
         "name": "ner",
         "protocol": "http",
         "host": "127.0.0.1",
-        "port": 2083,
+        "port": 5000,
         "endpoint": "model",
         "path": "ner/ner_rus",
         "env": {
@@ -62,7 +62,7 @@ ANNOTATORS_2 = [
         "name": "sentiment",
         "protocol": "http",
         "host": "127.0.0.1",
-        "port": 2084,
+        "port": 5000,
         "endpoint": "model",
         "path": "classifiers/rusentiment_cnn",
         "env": {
@@ -80,7 +80,7 @@ SKILL_SELECTORS = [
         "name": "chitchat_odqa",
         "protocol": "http",
         "host": "127.0.0.1",
-        "port": 2082,
+        "port": 5000,
         "endpoint": "model",
         "path": "classifiers/rusentiment_bigru_superconv",
         "env": {
