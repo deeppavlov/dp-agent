@@ -1,57 +1,48 @@
-import logging
 import argparse
+import asyncio
+import logging
 import uuid
 from datetime import datetime
-from string import hexdigits
 from os import getenv
+from string import hexdigits
+from typing import Optional
 
-import asyncio
-from aiohttp import web, ClientSession
 from aiogram import Bot
-from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
+from aiogram.utils import executor
+from aiohttp import web, ClientSession
 
 from core.agent import Agent
+from core.config_parser import parse_old_config, get_service_gateway_config
+from core.connectors import EventSetOutputConnector, HttpOutputConnector
+from core.log import ResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
-from core.connectors import EventSetOutputConnector, HttpOutputConnector
-from core.config_parser import parse_old_config, get_service_gateway_config
 from core.state_manager import StateManager
 from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
-
-
-service_logger = logging.getLogger('service_logger')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
                     default='default', choices=['default', 'agent', 'service', 'channel'])
 parser.add_argument('-n', '--service-name', help='service name for service run mode', type=str)
-parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
+parser.add_argument('-ch', '--channel', help='run agent in telegram, cmd_client or http_client', type=str,
                     choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
-parser.add_argument('-rl', '--response-logger', help='run agent with services response logging', action='store_true')
+parser.add_argument('-v', '--verbose', help='set services response logging verbosity level', type=str, default=None,
+                    choices=['agent', 'service', 'both'])
 
 args = parser.parse_args()
 MODE = args.mode
 CHANNEL = args.channel
 
 
-def response_logger(workflow_record):
-    for service_name, service_data in workflow_record['services'].items():
-        done = service_data['agent_done_time']
-        send = service_data['agent_send_time']
-        if not send or not done:
-            continue
-        service_logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
-
-
-def prepare_agent(services, endpoint: Service, input_serv: Service, use_response_logger: bool):
+def prepare_agent(services, endpoint: Service, input_serv: Service, verbose: Optional[str]):
     pipeline = Pipeline(services)
     pipeline.add_responder_service(endpoint)
     pipeline.add_input_service(input_serv)
-    if use_response_logger:
-        response_logger_callable = response_logger
+    if verbose is not None:
+        response_logger_callable = ResponseLogger(verbose)
     else:
         response_logger_callable = None
     agent = Agent(pipeline, StateManager(), response_logger_callable=response_logger_callable)
@@ -185,7 +176,7 @@ def run_default():
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        register_msg, process = prepare_agent(services, endpoint, input_srv, use_response_logger=args.response_logger)
+        register_msg, process = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process
@@ -214,7 +205,7 @@ def run_default():
         endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
+        register_msg, process_callable = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process_callable
@@ -233,8 +224,7 @@ def run_default():
         endpoint = Service('telegram_responder', EventSetOutputConnector('telegram_responder').send,
                            StateManager.save_dialog_dict, 1, ['responder'])
         input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process = prepare_agent(
-            services, endpoint, input_srv, use_response_logger=args.response_logger)
+        register_msg, process = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process

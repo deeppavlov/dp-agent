@@ -15,7 +15,8 @@ from core.run import prepare_agent
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
-parser.add_argument('-rl', '--response-logger', help='run agent with services response logging', action='store_true')
+parser.add_argument('-v', '--verbose', help='set services response logging verbosity level', type=str, default=None,
+                    choices=['agent', 'service', 'both'])
 args = parser.parse_args()
 CHANNEL = 'vk'
 
@@ -34,7 +35,7 @@ class DummyConnector:
             service_name=self.service_name,
             response={self.service_name: [{"text": choice(self.returns), "confidence": 0.5}]},
             service_send_time=service_send_time,
-            service_response_time=time.time())
+            service_done_time=time.time())
 
 
 class DummySelectorConnector:
@@ -51,7 +52,7 @@ class DummySelectorConnector:
             service_name=self.service_name,
             response={self.service_name: self.returns},
             service_send_time=service_send_time,
-            service_response_time=time.time())
+            service_done_time=time.time())
 
 
 async def on_shutdown(app):
@@ -124,7 +125,7 @@ def main():
     endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
                        StateManager.save_dialog_dict, 1, ['responder'])
     input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-    register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.response_logger)
+    register_msg, process_callable = prepare_agent(services, endpoint, input_srv, args.verbose)
     app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
                    on_shutdown)
 
