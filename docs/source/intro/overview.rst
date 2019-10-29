@@ -218,7 +218,9 @@ Agent can run both from container and from a local machine. The default Agent po
 
         export LANG="C.UTF-8"
         export LC_ALL="C.UTF-8"
+        stty iutf8
 
+    `stty iutf8` fixes decoding errors that occure when using backspace with utf-8 symbols.
 
 2. Setup **DPA_LAUNCHING_ENV** environment variable:
 

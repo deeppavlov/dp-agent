@@ -3,9 +3,6 @@ FROM python:3.7-slim-stretch
 EXPOSE 4242
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV PYTHONIOENCODING=utf-8
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
 ENV PYTHONPATH "${PYTHONPATH}:/dp-agent"
 ENV DPA_LAUNCHING_ENV "docker"
 
@@ -18,5 +15,6 @@ RUN apt-get update -y --fix-missing && \
         git \
         libssl-dev \
         libffi-dev && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip install -r requirements.txt
+    echo "stty iutf8" >> ~/.bashrc && \
+    pip install -r requirements.txt && \
+    rm -rf /var/lib/apt/lists/*
