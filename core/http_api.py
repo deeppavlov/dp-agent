@@ -49,6 +49,11 @@ class ApiHandler:
         self.debug = debug
 
     async def handle_api_request(self, request):
+        async def handle_command(payload, user_id, state_manager):
+            if payload in {'/start', '/close'} and state_manager:
+                await state_manager.drop_active_dialog(user_id)
+                return True
+
         response = {}
         register_msg = request.app['agent'].register_msg
         if request.method == 'POST':
@@ -60,6 +65,10 @@ class ApiHandler:
 
             if not user_id:
                 raise web.HTTPBadRequest(reason='user_id key is required')
+            
+            command_performed = await handle_command(payload, user_id, request.app['agent'].state_manager)
+            if command_performed:
+                return web.json_response({})
 
             response = await register_msg(utterance=payload, user_telegram_id=user_id,
                                           user_device_type=data.pop('user_device_type', 'http'),
