@@ -113,6 +113,22 @@ def chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
                  "confidence": 0.5}]
 
 
+def ranking_chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
+    if mode == 'in':
+        dialogs = base_input_formatter(payload)
+        print(f"last_utterance  {dialogs['last_utterances']}")
+        print(f"utterances_histories  {dialogs['utterances_histories']}")
+        return {
+            "last_utterances": dialogs['last_utterances'],
+            "history_batch": dialogs['utterances_histories'],
+        }
+    if mode == 'out':
+        print(f"--------------------------------------------------------------------------")
+        print(f"payload  {payload}")
+        return [{"text": payload[0],
+                 "confidence": payload[1]}]
+
+
 def chitchat_example_formatter(payload: Any,
                                model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs'),
                                mode='in'):
