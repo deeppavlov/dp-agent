@@ -1,25 +1,24 @@
 import argparse
 import asyncio
 import logging
-import uuid
 from datetime import datetime
 from os import getenv
-from string import hexdigits
 from typing import Optional
 
 from aiogram import Bot
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
-from aiohttp import web, ClientSession
+from aiohttp import ClientSession, web
 
 from core.agent import Agent
-from core.config_parser import parse_old_config, get_service_gateway_config
-from core.connectors import EventSetOutputConnector, HttpOutputConnector
+from core.config_parser import get_service_gateway_config, parse_old_config
+from core.connectors import EventSetOutputConnector
+from core.db import db
+from core.http_api import init_app
 from core.log import ResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
-from state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
@@ -37,7 +36,7 @@ MODE = args.mode
 CHANNEL = args.channel
 
 
-def prepare_agent(services, endpoint: Service, input_serv: Service, verbose: Optional[str]):
+def prepare_agent(services, state_manager, endpoint: Service, input_serv: Service, verbose: Optional[str]):
     pipeline = Pipeline(services)
     pipeline.add_responder_service(endpoint)
     pipeline.add_input_service(input_serv)
@@ -45,8 +44,8 @@ def prepare_agent(services, endpoint: Service, input_serv: Service, verbose: Opt
         response_logger_callable = ResponseLogger(verbose)
     else:
         response_logger_callable = None
-    agent = Agent(pipeline, StateManager(), response_logger_callable=response_logger_callable)
-    return agent.register_msg, agent.process
+    agent = Agent(pipeline, state_manager, response_logger_callable=response_logger_callable)
+    return agent.register_msg, agent.process, agent
 
 
 async def run(register_msg):
@@ -57,7 +56,7 @@ async def run(register_msg):
             response = await register_msg(utterance=msg, user_telegram_id=user_id, user_device_type='cmd',
                                           location='lab', channel_type=CHANNEL,
                                           deadline_timestamp=None, require_response=True)
-            print('Bot: ', response['dialog']['utterances'][-1]['text'])
+            print('Bot: ', response['dialog'].utterances[-1].text)
 
 
 class TelegramMessageProcessor:
@@ -75,108 +74,17 @@ class TelegramMessageProcessor:
         await message.answer(response['dialog']['utterances'][-1]['text'])
 
 
-async def on_shutdown(app):
-    await app['client_session'].close()
-
-
-async def init_app(register_msg, intermediate_storage,
-                   on_startup, on_shutdown_func=on_shutdown,
-                   debug=False):
-    app = web.Application(debug=True)
-    handle_func = await api_message_processor(
-        register_msg, intermediate_storage, debug)
-    app.router.add_post('/', handle_func)
-    app.router.add_get('/dialogs', users_dialogs)
-    app.router.add_get('/dialogs/{dialog_id}', dialog)
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown_func)
-    return app
-
-
-def prepare_startup(consumers, process_callable, session):
-    result = []
-    for i in consumers:
-        result.append(asyncio.ensure_future(i.call_service(process_callable)))
-
-    async def startup_background_tasks(app):
-        app['consumers'] = result
-        app['client_session'] = session
-
-    return startup_background_tasks
-
-
-async def api_message_processor(register_msg, intermediate_storage, debug=False):
-    async def api_handle(request):
-        response = None
-        if request.method == 'POST':
-            if request.headers.get('content-type') != 'application/json':
-                raise web.HTTPBadRequest(reason='Content-Type should be application/json')
-            data = await request.json()
-            user_id = data.pop('user_id')
-            payload = data.pop('payload', '')
-
-            if not user_id:
-                raise web.HTTPBadRequest(reason='user_id key is required')
-
-            event = asyncio.Event()
-            message_uuid = uuid.uuid3(uuid.NAMESPACE_DNS, f'{user_id}{payload}{datetime.now()}').hex
-            await register_msg(utterance=payload, user_telegram_id=user_id,
-                               user_device_type=data.pop('user_device_type', 'http'),
-                               date_time=datetime.now(),
-                               location=data.pop('location', ''),
-                               channel_type=CHANNEL,
-                               event=event,
-                               message_uuid=message_uuid,
-                               message_attrs=data)
-            await event.wait()
-            bot_response = intermediate_storage.pop(message_uuid)
-
-            if bot_response is None:
-                raise RuntimeError('Got None instead of a bot response.')
-            if debug:
-                response = http_debug_output_formatter(bot_response)
-            else:
-                response = http_api_output_formatter(bot_response)
-
-        return web.json_response(response)
-
-    return api_handle
-
-
-async def users_dialogs():
-    from core.state_schema import Dialog
-    exist_dialogs = Dialog.objects()
-    result = list()
-    for i in exist_dialogs:
-        result.append(
-            {'id': str(i.id), 'location': i.location, 'channel_type': i.channel_type, 'user': i.user.to_dict()})
-    return web.json_response(result)
-
-
-async def dialog(request):
-    from core.state_schema import Dialog
-    dialog_id = request.match_info['dialog_id']
-    if dialog_id == 'all':
-        dialogs = Dialog.objects()
-        return web.json_response([i.to_dict() for i in dialogs])
-    if len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
-        d = Dialog.objects(id__exact=dialog_id)
-        if not d:
-            raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} is not exist')
-        return web.json_response(d[0].to_dict())
-    raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
-
-
 def run_default():
-    services, workers, session, gateway = parse_old_config()
+    sm = StateManager(db)
+    services, workers, session, gateway = parse_old_config(sm)
 
     if CHANNEL == 'cmd_client':
         endpoint = Service('cmd_responder', EventSetOutputConnector('cmd_responder').send,
-                           StateManager.save_dialog_dict, 1, ['responder'])
-        input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
+                           sm.save_dialog, 1, ['responder'])
+        input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
         loop = asyncio.get_event_loop()
         loop.set_debug(args.debug)
-        register_msg, process = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
+        register_msg, process, _ = prepare_agent(services, sm,  endpoint, input_srv, verbose=args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process
@@ -201,16 +109,14 @@ def run_default():
     elif CHANNEL == 'http_client':
         if not session:
             session = ClientSession()
-        intermediate_storage = {}
-        endpoint = Service('http_responder', HttpOutputConnector(intermediate_storage, 'http_responder').send,
-                           StateManager.save_dialog_dict, 1, ['responder'])
-        input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process_callable = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
+        endpoint = Service('http_responder', EventSetOutputConnector('http_responder').send,
+                           sm.save_dialog, 1, ['responder'])
+        input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
+        register_msg, process_callable, agent = prepare_agent(services, sm, endpoint, input_srv, args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process_callable
-        app = init_app(register_msg, intermediate_storage, prepare_startup(workers, process_callable, session),
-                       on_shutdown, args.debug)
+        app = init_app(agent, session, workers, args.debug)
         web.run_app(app, port=args.port)
 
     elif CHANNEL == 'telegram':
@@ -222,9 +128,10 @@ def run_default():
         bot = Bot(token=token, loop=loop, proxy=proxy)
         dp = Dispatcher(bot)
         endpoint = Service('telegram_responder', EventSetOutputConnector('telegram_responder').send,
-                           StateManager.save_dialog_dict, 1, ['responder'])
-        input_srv = Service('input', None, StateManager.add_human_utterance_simple_dict, 1, ['input'])
-        register_msg, process = prepare_agent(services, endpoint, input_srv, verbose=args.verbose)
+                           StateManager.save_dialog, 1, ['responder'])
+        input_srv = Service('input', None, StateManager.add_human_utterance, 1, ['input'])
+        register_msg, process, _ = prepare_agent(
+            services, sm, endpoint, input_srv, verbose=args.verbose)
         if gateway:
             gateway.on_channel_callback = register_msg
             gateway.on_service_callback = process

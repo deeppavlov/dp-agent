@@ -6,6 +6,7 @@ import json
 from time import time
 from random import randrange
 import uuid
+from tqdm import tqdm
 
 '''
 structure of dialog file (-df) should be written in json
@@ -51,10 +52,12 @@ else:
 
 async def perform_test_dialogue(session, url, uuid, payloads):
     result = []
-    for i in payloads:
+    for i in tqdm(payloads, desc=uuid):
         request_body = {'user_id': uuid, 'payload': i}
         start_time = time()
-        async with session.post(url, json=request_body) as resp:
+        async with session.post(url, json=request_body, timeout=None) as resp:
+            resp.raise_for_status()
+                
             response = await resp.json()
             end_time = time()
             if response['user_id'] != uuid:
@@ -82,5 +85,6 @@ async def run(url, payloads, out_filename):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
+    loop.set_debug(True)
     future = asyncio.ensure_future(run(args.url, payloads, args.outputfile))
     loop.run_until_complete(future)
