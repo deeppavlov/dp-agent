@@ -1,4 +1,5 @@
 from typing import List, Any
+import json
 
 
 def base_input_formatter(state: List):
@@ -120,7 +121,7 @@ def ranking_chitchat_formatter(payload: Any, model_args_names=('q',), mode='in')
         print(f"utterances_histories  {dialogs['utterances_histories']}")
         return {
             "last_utterances": dialogs['last_utterances'],
-            "history_batch": dialogs['utterances_histories'],
+            "utterances_histories": [json.dumps(i, ensure_ascii=False) for i in dialogs['utterances_histories']],
         }
     if mode == 'out':
         print(f"--------------------------------------------------------------------------")

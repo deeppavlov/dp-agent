@@ -7,10 +7,10 @@ services:
     depends_on:
     # - odqa
     # - chitchat
-    - ranking_chitchat_2stage
+    # - ranking_chitchat_2stage
     - ner
     - sentiment
-    # - chitchat_odqa
+    - chitchat_odqa
     - mongo
     env_file: agent.env
     ports:
@@ -18,63 +18,44 @@ services:
     tty: true
     volumes:
     - .:/dp-agent
-  ranking_chitchat_2stage:
+  # ranking_chitchat_2stage:
+  #   build:
+  #     args:
+  #       skill_endpoint: model
+  #       skillconfig: skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+  #       skillhost: 0.0.0.0
+  #       skillport: 2085
+  #     context: ./
+  #     dockerfile: dp/dockerfile_skill_cpu
+  #   container_name: ranking_chitchat_2stage
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES=""
+  #   ports:
+  #   - 2085:2085
+  #   tty: true
+  #   volumes:
+  #   - .:/dp-agent
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  chitchat_odqa:
     build:
       args:
         skill_endpoint: model
-        skillconfig: skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+        skillconfig: classifiers/rusentiment_bigru_superconv
         skillhost: 0.0.0.0
-        skillport: 2085
+        skillport: 2082
       context: ./
       dockerfile: dp/dockerfile_skill_cpu
-    container_name: ranking_chitchat_2stage
+    container_name: chitchat_odqa
     environment:
     - CUDA_VISIBLE_DEVICES=""
     ports:
-    - 2085:2085
+    - 2082:2082
     tty: true
     volumes:
     - .:/dp-agent
     - ${EXTERNAL_FOLDER}/dp_logs:/logs
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-  # chitchat:
-  #   build:
-  #     args:
-  #       skill_endpoint: model
-  #       skillconfig: faq/tfidf_autofaq
-  #       skillhost: 0.0.0.0
-  #       skillport: 2081
-  #     context: ./
-  #     dockerfile: dp/dockerfile_skill_cpu
-  #   container_name: chitchat
-  #   environment:
-  #   - CUDA_VISIBLE_DEVICES=""
-  #   ports:
-  #   - 2081:2081
-  #   tty: true
-  #   volumes:
-  #   - .:/dp-agent
-  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
-  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-  # chitchat_odqa:
-  #   build:
-  #     args:
-  #       skill_endpoint: model
-  #       skillconfig: classifiers/rusentiment_bigru_superconv
-  #       skillhost: 0.0.0.0
-  #       skillport: 2082
-  #     context: ./
-  #     dockerfile: dp/dockerfile_skill_cpu
-  #   container_name: chitchat_odqa
-  #   environment:
-  #   - CUDA_VISIBLE_DEVICES=""
-  #   ports:
-  #   - 2082:2082
-  #   tty: true
-  #   volumes:
-  #   - .:/dp-agent
-  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
-  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
   mongo:
     command: mongod
     image: mongo:4.0.0

@@ -4,6 +4,12 @@
     "in": ["last_utterances", "utterances_histories"],
     "pipe": [
       {
+        "info": "0. Converting list[json string] to list[list[string]]",
+        "class_name": "skills.ranking_chitchat_2stage.model.utils:JSON2StrList",
+        "in": ["utterances_histories"],
+        "out": ["utterances_histories"]
+      },
+      {
         "info": "1. Replace separators from input string",
         "class_name": "skills.ranking_chitchat_2stage.model.compose_inputs_hybrid_ranker:ComposeInputsHybridRanker",
         "context_depth": 3,
