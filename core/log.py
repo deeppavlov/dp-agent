@@ -12,7 +12,7 @@ import yaml
 _root_path = Path(__file__).resolve().parents[1]
 log_dir_path: Path = _root_path / 'logs'
 
-AvgVals = namedtuple('AvgVals', ['name', 'agent', 'service'])
+AvgVals = namedtuple('AvgVals', ['service_name', 'agent_metric', 'service_metric'])
 
 
 def init_logger() -> None:
@@ -49,7 +49,7 @@ def init_logger() -> None:
 class ResponseLogger:
     """Class to log Agent services response times and compute services RPS or average response time.
 
-    Logs asre stored at `logs` directory. Class uses services and stats log files. Services timeouts are written to the
+    Logs are stored at `logs` directory. Class uses services and stats log files. Services timeouts are written to the
     services log file, services RPS/average response time are written to the `stats.log` file.
 
     """
@@ -59,22 +59,22 @@ class ResponseLogger:
     _stats_logger: logging.Logger
     _log_file_path: Path
 
-    def __init__(self, verbose: str, log_file_name: Optional[str] = None) -> None:
+    def __init__(self, log_scope: str, log_file_name: Optional[str] = None) -> None:
         """Inits logging parameters.
 
         Args:
-            verbose: `agent` to log agent response timeout, `service` to log service response timeout, `both` to log
+            log_scope: `agent` to log agent response timeout, `service` to log service response timeout, `both` to log
                 both timeouts.
             log_file_name: Service timeouts log file name. If no argument is given new log file will be created with
                 the name representing current detetime.
 
         Raises:
-            ValueError: If wrong `verbose` argument or forbidden `log_file_name` was given.
+            ValueError: If wrong `log_scope` argument or forbidden `log_file_name` was given.
 
         """
         self._stats_logger = logging.getLogger('stats_logger')
-        self._log_agent = verbose == 'both' or verbose == 'agent'
-        self._log_service = verbose == 'both' or verbose == 'service'
+        self._log_agent = log_scope == 'both' or log_scope == 'agent'
+        self._log_service = log_scope == 'both' or log_scope == 'service'
 
         if not self._log_agent and not self._log_service:
             raise ValueError('Neither agent time nor service time have chosen to log')
@@ -122,16 +122,16 @@ class ResponseLogger:
     def get_rps(self) -> None:
         """Writes services RPS to the stats log file."""
         self._stats_logger.info(f'Average responses per second for {self._log_file_path.name}:')
-        rps = [AvgVals(avg_time.name,
-                       1 / avg_time.agent if avg_time.agent else None,
-                       1 / avg_time.service if avg_time.service else None) for avg_time in self._get_avg_time()]
+        rps = [AvgVals(avg_time.service_name,
+                       1 / avg_time.agent_metric if avg_time.agent_metric else None,
+                       1 / avg_time.service_metric if avg_time.service_metric else None) for avg_time in self._get_avg_time()]
         sort_by = 'agent' if self._log_agent else 'service'
         self._log_stats(rps, 'rps', key=lambda val: getattr(val, sort_by) or 0)
 
     def _get_avg_time(self) -> List[AvgVals]:
         """Calculates services average timeouts from the services log file."""
-        agents = defaultdict(list)
-        services = defaultdict(list)
+        services_agent_time = defaultdict(list)
+        services_service_time = defaultdict(list)
         service_name_pattern = re.compile(r'(.+?),')
         agent_pattern = re.compile(r'.*agent time (.+?) s')
         service_pattern = re.compile(r'.*service time (.+?) s')
@@ -144,14 +144,14 @@ class ResponseLogger:
                 agent_time = agent_pattern.match(line)
                 service_time = service_pattern.match(line)
                 if agent_time:
-                    agents[service_name].append(float(agent_time.group(1)))
+                    services_agent_time[service_name].append(float(agent_time.group(1)))
                 if service_time:
-                    services[service_name].append(float(service_time.group(1)))
-        agents = {key: mean(value) for key, value in agents.items()}
-        services = {key: mean(value) for key, value in services.items()}
+                    services_service_time[service_name].append(float(service_time.group(1)))
+        services_agent_time = {key: mean(value) for key, value in services_agent_time.items()}
+        services_service_time = {key: mean(value) for key, value in services_service_time.items()}
         response = []
-        for key in set(agents.keys()) | set(services.keys()):
-            response.append(AvgVals(key, agents.get(key), services.get(key)))
+        for key in set(services_agent_time.keys()) | set(services_service_time.keys()):
+            response.append(AvgVals(key, services_agent_time.get(key), services_service_time.get(key)))
         return response
 
     def _get_service_logger(self) -> logging.Logger:
@@ -167,7 +167,7 @@ class ResponseLogger:
     def _log_stats(self,
                    data: List[AvgVals],
                    param_name: str,
-                   key: callable = lambda val: val.name,
+                   key: callable = lambda val: val.service_name,
                    exponent_notation: bool = False) -> None:
         """Writes services RPS or average timeouts to stats log file.
 
@@ -182,11 +182,11 @@ class ResponseLogger:
         fmt = lambda arg: f'{arg:.2e}' if exponent_notation else f'{arg:.2f}'
         format = lambda arg: fmt(arg) if isinstance(arg, float) else arg
         if len(data) > 0:
-            max_name_length = max([len(argval.name) for argval in data])
+            max_name_length = max([len(argval.service_name) for argval in data])
             for avgval in sorted(data, key=key):
-                result = [avgval.name.ljust(max_name_length)]
+                result = [avgval.service_name.ljust(max_name_length)]
                 if self._log_agent:
-                    result.append(f'agent {param_name} {format(avgval.agent)}')
+                    result.append(f'agent {param_name} {format(avgval.agent_metric)}')
                 if self._log_service:
-                    result.append(f'service {param_name} {format(avgval.service)}')
+                    result.append(f'service {param_name} {format(avgval.service_metric)}')
                 self._stats_logger.info('\t'.join(result))

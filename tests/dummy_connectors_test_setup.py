@@ -16,7 +16,7 @@ from state_formatters.output_formatters import http_debug_output_formatter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
-parser.add_argument('-v', '--verbose', help='set services response logging verbosity level', type=str, default=None,
+parser.add_argument('-ls', '--log-scope', help='set services response timeouts log scope', type=str, default=None,
                     choices=['agent', 'service', 'both'])
 args = parser.parse_args()
 CHANNEL = 'vk'
