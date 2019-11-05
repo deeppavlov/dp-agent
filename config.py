@@ -12,33 +12,33 @@ MAX_WORKERS = 4
 AGENT_ENV_FILE = "agent.env"
 
 SKILLS = [
-    {
-        "name": "odqa",
-        "protocol": "http",
-        "host": "127.0.0.1",
-        "port": 2080,
-        "endpoint": "model",
-        "path": "odqa/ru_odqa_infer_wiki",
-        "env": {
-            "CUDA_VISIBLE_DEVICES": ""
-        },
-        "dockerfile": "dockerfile_skill_cpu",
-        "formatter": odqa_formatter
-    },
     # {
-    #     "name": "ranking_chitchat_2stage",
+    #     "name": "odqa",
     #     "protocol": "http",
     #     "host": "127.0.0.1",
-    #     "port": 2085,
+    #     "port": 2080,
     #     "endpoint": "model",
-    #     "path": "skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json",
+    #     "path": "odqa/ru_odqa_infer_wiki",
     #     "env": {
     #         "CUDA_VISIBLE_DEVICES": ""
     #     },
-    #     "profile_handler": True,
     #     "dockerfile": "dockerfile_skill_cpu",
-    #     "formatter": ranking_chitchat_formatter
-    # }
+    #     "formatter": odqa_formatter
+    # },
+    {
+        "name": "ranking_chitchat_2stage",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2085,
+        "endpoint": "model",
+        "path": "skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "profile_handler": True,
+        "dockerfile": "dockerfile_skill_cpu",
+        "formatter": ranking_chitchat_formatter
+    }
 ]
 
 ANNOTATORS_1 = [
