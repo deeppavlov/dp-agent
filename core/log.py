@@ -125,7 +125,7 @@ class ResponseLogger:
         rps = [AvgVals(avg_time.service_name,
                        1 / avg_time.agent_metric if avg_time.agent_metric else None,
                        1 / avg_time.service_metric if avg_time.service_metric else None) for avg_time in self._get_avg_time()]
-        sort_by = 'agent' if self._log_agent else 'service'
+        sort_by = 'agent_metric' if self._log_agent else 'service_metric'
         self._log_stats(rps, 'rps', key=lambda val: getattr(val, sort_by) or 0)
 
     def _get_avg_time(self) -> List[AvgVals]:
