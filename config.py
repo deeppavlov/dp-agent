@@ -12,19 +12,19 @@ MAX_WORKERS = 4
 AGENT_ENV_FILE = "agent.env"
 
 SKILLS = [
-    # {
-    #     "name": "odqa",
-    #     "protocol": "http",
-    #     "host": "127.0.0.1",
-    #     "port": 2080,
-    #     "endpoint": "model",
-    #     "path": "odqa/ru_odqa_infer_wiki",
-    #     "env": {
-    #         "CUDA_VISIBLE_DEVICES": ""
-    #     },
-    #     "dockerfile": "dockerfile_skill_cpu",
-    #     "formatter": odqa_formatter
-    # },
+    {
+        "name": "odqa",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2080,
+        "endpoint": "model",
+        "path": "odqa/ru_odqa_infer_wiki_rubert_noans",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "dockerfile": "dockerfile_skill_сpu",
+        "formatter": odqa_formatter
+    },
     {
         "name": "ranking_chitchat_2stage",
         "protocol": "http",
@@ -76,19 +76,19 @@ ANNOTATORS_2 = [
 ANNOTATORS_3 = []
 
 SKILL_SELECTORS = [
-    # {
-    #     "name": "chitchat_odqa",
-    #     "protocol": "http",
-    #     "host": "127.0.0.1",
-    #     "port": 2082,
-    #     "endpoint": "model",
-    #     "path": "classifiers/rusentiment_bigru_superconv",
-    #     "env": {
-    #         "CUDA_VISIBLE_DEVICES": ""
-    #     },
-    #     "dockerfile": "dockerfile_skill_cpu",
-    #     "formatter": chitchat_odqa_formatter
-    # }
+    {
+        "name": "chitchat_odqa",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2082,
+        "endpoint": "model",
+        "path": "classifiers/rusentiment_bigru_superconv",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "dockerfile": "dockerfile_skill_cpu",
+        "formatter": chitchat_odqa_formatter
+    }
 ]
 
 RESPONSE_SELECTORS = []
