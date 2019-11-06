@@ -274,7 +274,8 @@ class Human:
             'user_telegram_id': self.telegram_id,
             'persona': self.persona,
             'profile': self.profile,
-            'attributes': self.attributes
+            'attributes': self.attributes,
+            'user_type': 'human'
         }
 
     def get_state(self):
@@ -340,6 +341,7 @@ class Bot:
             'id': self.id,
             'persona': self.persona,
             'attributes': self.attributes,
+            'user_type': 'bot'
         }
 
     def get_state(self):
