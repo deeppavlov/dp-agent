@@ -2,7 +2,7 @@ from os import getenv
 
 from state_formatters.dp_formatters import *
 
-DB_NAME = getenv('DB_NAME', 'test')
+DB_NAME = getenv('DB_NAME', 'dp_agent')
 DB_HOST = getenv('DB_HOST', '127.0.0.1')
 DB_PORT = getenv('DB_PORT', 27017)
 DB_PATH = getenv('DB_PATH', '/data/db')

@@ -1,13 +1,11 @@
 import asyncio
-
 from collections import defaultdict
 from time import time
-from typing import Any, Optional, Callable, Hashable
+from typing import Any, Callable, Hashable, Optional
 
 from core.pipeline import Pipeline
 from core.state_manager import StateManager
 from core.state_schema import Dialog
-from models.hardcode_utterances import TG_START_UTT
 
 
 class Agent:
@@ -23,7 +21,7 @@ class Agent:
     def add_workflow_record(self, dialog: Dialog, deadline_timestamp: Optional[float] = None, **kwargs):
         if str(dialog.id) in self.workflow.keys():
             raise ValueError(f'dialog with id {dialog.id} is already in workflow')
-        workflow_record = {'dialog_object': dialog, 'dialog': dialog.to_dict(), 'services': defaultdict(dict)}
+        workflow_record = {'dialog': dialog, 'services': defaultdict(dict)}
         if deadline_timestamp:
             workflow_record['deadline_timestamp'] = deadline_timestamp
         if 'dialog_object' in kwargs:
@@ -62,7 +60,7 @@ class Agent:
 
         return done, waiting
 
-    def process_service_response(self, dialog_id: str, service_name: str = None, response: Any = None,
+    async def process_service_response(self, dialog_id: str, service_name: str = None, response: Any = None,
                                  **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
 
@@ -72,11 +70,11 @@ class Agent:
             service_data = self.workflow[dialog_id]['services'][service_name]
             service_data['done'] = True
             service_data['agent_done_time'] = time()
-            if response and service.state_processor_method:
-                service.state_processor_method(dialog=workflow_record['dialog'],
-                                               dialog_object=workflow_record['dialog_object'],
-                                               payload=response,
-                                               message_attrs=kwargs.pop('message_attrs', {}))
+            if service.state_processor_method:
+                await service.state_processor_method(
+                    dialog=workflow_record['dialog'], payload=response,
+                    message_attrs=kwargs.pop('message_attrs', {})
+                )
 
             # passing kwargs to services record
             if not set(service_data.keys()).intersection(set(kwargs.keys())):
@@ -114,9 +112,7 @@ class Agent:
                            user_device_type: Any, location: Any,
                            channel_type: str, deadline_timestamp=None,
                            require_response=False, **kwargs):
-        user = self.state_manager.get_or_create_user(user_telegram_id, user_device_type)
-        should_reset = True if utterance == TG_START_UTT else False
-        dialog = self.state_manager.get_or_create_dialog(user, location, channel_type, should_reset=should_reset)
+        dialog = await self.state_manager.get_or_create_dialog_by_tg_id(user_telegram_id, channel_type)
         dialog_id = str(dialog.id)
         service_name = 'input'
         message_attrs = kwargs.pop('message_attrs', {})
@@ -136,7 +132,7 @@ class Agent:
 
     async def process(self, dialog_id, service_name=None, response: Any = None, **kwargs):
         workflow_record = self.get_workflow_record(dialog_id)
-        next_services = self.process_service_response(dialog_id, service_name, response, **kwargs)
+        next_services = await self.process_service_response(dialog_id, service_name, response, **kwargs)
 
         service_requests = []
         for service in next_services:
