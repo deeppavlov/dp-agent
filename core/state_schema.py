@@ -170,20 +170,33 @@ class Dialog:
             'bot': self.bot.to_dict()
         }
 
+    async def load_external_info(self, db):
+        if self._id:
+            human_utterances = await HumanUtterance.get_many(db, self._id)
+            bot_utterances = await BotUtterance.get_many(db, self._id)
+            self.utterances = sorted(chain(human_utterances, bot_utterances), key=lambda x: x._in_dialog_id)
+            self.bot = await Bot.get_or_create(db, self._bot_id)
+
     @classmethod
     async def get_or_create_by_user(cls, db, human, channel_type):
         if human._id:
             dialog = await db[cls.collection_name].find_one({'_human_id': human._id, '_active': True})
             if dialog:
                 dialog_obj = cls(actual=True, human=human, **dialog)
-                human_utterances = await HumanUtterance.get_many(db, dialog_obj._id)
-                bot_utterances = await BotUtterance.get_many(db, dialog_obj._id)
-                dialog_obj.utterances = sorted(chain(human_utterances, bot_utterances), key=lambda x: x._in_dialog_id)
-                dialog_obj.bot = await Bot.get_or_create(db, dialog_obj._bot_id)
+                await dialog_obj.load_external_info(db)
                 return dialog_obj
         dialog_obj = cls(_human_id=human._id, human=human, channel_type=channel_type)
         dialog_obj.bot = Bot()
         return dialog_obj
+
+    @classmethod
+    async def get_many_by_ext_id(cls, db, telegram_id):
+        human = await Human.get_or_create(db, telegram_id)
+        result = []
+        async for document in db[cls.collection_name].find({'_human_id': human._id}):
+            result.append(cls(actual=True, human=human, **document))
+            await result[-1].load_external_info(db)
+        return result
 
     @classmethod
     async def get_by_id(cls, db, dialog_id):
@@ -197,7 +210,6 @@ class Dialog:
             dialog_obj.bot = await Bot.get_or_create(db, dialog_obj._bot_id)
             return dialog_obj
         return None
-
 
     @classmethod
     async def drop_active(cls, db, human_id):

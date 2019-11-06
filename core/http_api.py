@@ -22,6 +22,7 @@ async def init_app(agent, session, consumers, debug=False):
 
     app.router.add_post('/', handler.handle_api_request)
     app.router.add_get('/dialogs/{dialog_id}', handler.dialog)
+    app.router.add_get('/user/{user_telegram_id}', handler.dialogs_by_user)
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
@@ -94,3 +95,9 @@ class ApiHandler:
                 raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} does not exist')
             return web.json_response(dialog_obj.to_dict())
         raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
+
+    async def dialogs_by_user(self, request):
+        state_manager = request.app['agent'].state_manager
+        user_telegram_id = request.match_info['user_telegram_id']
+        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
+        return web.json_response([i.to_dict() for i in dialogs])
