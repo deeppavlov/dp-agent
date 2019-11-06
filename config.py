@@ -22,7 +22,7 @@ SKILLS = [
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_сpu",
+        "dockerfile": "dockerfile_skill_cpu",
         "formatter": odqa_formatter
     },
     {
