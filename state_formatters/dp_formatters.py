@@ -92,7 +92,7 @@ def chitchat_odqa_formatter(payload: Any, model_args_names=('x',), mode='in'):
     if mode == 'out':
         class_name = payload[0]
         if class_name in ['speech', 'negative']:
-            response = ['chitchat']
+            response = ['ranking_chitchat_2stage']
         else:
             response = ['odqa']
         return response
@@ -117,15 +117,11 @@ def chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
 def ranking_chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
     if mode == 'in':
         dialogs = base_input_formatter(payload)
-        print(f"last_utterance  {dialogs['last_utterances']}")
-        print(f"utterances_histories  {dialogs['utterances_histories']}")
         return {
             "last_utterances": dialogs['last_utterances'],
             "utterances_histories": [json.dumps(i, ensure_ascii=False) for i in dialogs['utterances_histories']],
         }
     if mode == 'out':
-        print(f"--------------------------------------------------------------------------")
-        print(f"payload  {payload}")
         return [{"text": payload[0],
                  "confidence": payload[1]}]
 

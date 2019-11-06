@@ -147,45 +147,45 @@ def parse_old_config(state_manager):
 
     previous_services = {i.name for i in services if 'RESPONSE_SELECTORS' in i.tags}
 
-    if POSTPROCESSORS:
-        for p in POSTPROCESSORS:
-            service, workers, session, gateway = make_service_from_config_rec(p, session, state_manager.add_text,
-                                                                              ['POSTPROCESSORS'], previous_services,
-                                                                              gateway)
-            services.append(service)
-            worker_tasks.extend(workers)
+    # if POSTPROCESSORS:
+    #     for p in POSTPROCESSORS:
+    #         service, workers, session, gateway = make_service_from_config_rec(p, session, state_manager.add_text,
+    #                                                                           ['POSTPROCESSORS'], previous_services,
+    #                                                                           gateway)
+    #         services.append(service)
+    #         worker_tasks.extend(workers)
 
-        previous_services = {i.name for i in services if 'POSTPROCESSORS' in i.tags}
+    #     previous_services = {i.name for i in services if 'POSTPROCESSORS' in i.tags}
 
-    if ANNOTATORS_1:
-        for anno in ANNOTATORS_1:
-            service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                              state_manager.add_annotation,
-                                                                              ['POST_ANNOTATORS_1'], previous_services,
-                                                                              gateway, add_bot_to_name)
-            services.append(service)
-            worker_tasks.extend(workers)
+    # if ANNOTATORS_1:
+    #     for anno in ANNOTATORS_1:
+    #         service, workers, session, gateway = make_service_from_config_rec(anno, session,
+    #                                                                           state_manager.add_annotation,
+    #                                                                           ['POST_ANNOTATORS_1'], previous_services,
+    #                                                                           gateway, add_bot_to_name)
+    #         services.append(service)
+    #         worker_tasks.extend(workers)
 
-        previous_services = {i.name for i in services if 'POST_ANNOTATORS_1' in i.tags}
+    #     previous_services = {i.name for i in services if 'POST_ANNOTATORS_1' in i.tags}
 
-    if ANNOTATORS_2:
-        for anno in ANNOTATORS_2:
-            service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                              state_manager.add_annotation,
-                                                                              ['POST_ANNOTATORS_2'], previous_services,
-                                                                              gateway, add_bot_to_name)
-            services.append(service)
-            worker_tasks.extend(workers)
+    # if ANNOTATORS_2:
+    #     for anno in ANNOTATORS_2:
+    #         service, workers, session, gateway = make_service_from_config_rec(anno, session,
+    #                                                                           state_manager.add_annotation,
+    #                                                                           ['POST_ANNOTATORS_2'], previous_services,
+    #                                                                           gateway, add_bot_to_name)
+    #         services.append(service)
+    #         worker_tasks.extend(workers)
 
-        previous_services = {i.name for i in services if 'POST_ANNOTATORS_2' in i.tags}
+    #     previous_services = {i.name for i in services if 'POST_ANNOTATORS_2' in i.tags}
 
-    for anno in ANNOTATORS_3:
-        service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                          state_manager.add_annotation,
-                                                                          ['POST_ANNOTATORS_3'],
-                                                                          previous_services, gateway, add_bot_to_name)
-        services.append(service)
-        worker_tasks.extend(workers)
+    # for anno in ANNOTATORS_3:
+    #     service, workers, session, gateway = make_service_from_config_rec(anno, session,
+    #                                                                       state_manager.add_annotation,
+    #                                                                       ['POST_ANNOTATORS_3'],
+    #                                                                       previous_services, gateway, add_bot_to_name)
+    #     services.append(service)
+    #     worker_tasks.extend(workers)
 
     return services, worker_tasks, session, gateway
 

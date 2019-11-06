@@ -22,7 +22,7 @@ class HTTPConnector:
             service_response_time = time.time()
             await callback(
                 dialog_id=payload['id'], service_name=self.service_name,
-                response={self.service_name: self.formatter(response[0], mode='out')},
+                response={self.service_name: self.formatter(response[0] if response else ('',0), mode='out')},
                 service_send_time=service_send_time,
                 service_response_time=service_response_time
             )
