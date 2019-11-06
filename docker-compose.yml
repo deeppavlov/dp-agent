@@ -90,7 +90,7 @@ services:
         skillhost: 0.0.0.0
         skillport: 2080
       context: ./
-      dockerfile: dp/dockerfile_skill_сpu
+      dockerfile: dp/dockerfile_skill_cpu
     container_name: odqa
     environment:
     - CUDA_VISIBLE_DEVICES="0"
