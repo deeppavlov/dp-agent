@@ -82,7 +82,7 @@ change anything.
 * **port**
     * A port on a service host machine
 * **endpoint**
-    * A service URL endpoint, **"/skill"** by default
+    * A service URL endpoint, **"/model"** by default
 * **url** (optional)
     * A service url. By default it is generated from **protocol + host + port +  endpoint**
 * **path**
@@ -91,13 +91,8 @@ change anything.
     * Environment variables dictionary
 * **external** (optional)
     * If the service is running from the **dp-agent** repo. **False** by default.
-* **dockerfile** (optional)
-    * Specify a dockerfile name available inside the Agent repo. **"dockerfile_skill_cpu"** by default.
-
-    Available options:
-
-        * **"dockerfile_skill_cpu"**
-        * **"dockerfile_skill_gpu"**
+* **base_image**
+    * Specify a base docker image name for **dp/dockerfile_skill image**.
 * **formatter**
     * The name of a function that converts the Agent state into a service input format
       and converts a service output format into the Agent state

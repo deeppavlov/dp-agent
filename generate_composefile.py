@@ -34,9 +34,9 @@ SKILL_BASIC = {
     'build': {'context': './',
               'dockerfile': 'dp/dockerfile_skill_cpu',
               'args': {}},
-    'volumes': ['.:/dp-agent',
-                '${EXTERNAL_FOLDER}/dp_logs:/logs',
-                '${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov'],
+    'volumes': ['${EXTERNAL_FOLDER}/dp_logs:/logs',
+                '${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov',
+                '${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub'],
     'ports': [],
     'tty': True,
 }
@@ -82,13 +82,11 @@ class SkillConfig(Config):
     def parse_config(self, skill_config):
         self.container_name = skill_config['name']
         self.template['container_name'] = self.container_name
-        self.template['build']['args']['skillport'] = skill_config['port']
-        self.template['build']['args']['skillconfig'] = skill_config['path']
-        self.template['build']['args']['skill_endpoint'] = skill_config['endpoint']
-        self.template['build']['args']['skillhost'] = '0.0.0.0'
+        self.template['build']['args']['SKILL_CONFIG'] = skill_config['path']
+        self.template['build']['args']['BASE_IMAGE'] = skill_config['base_image']
+        self.template['build']['args']['SKILL_PORT'] = skill_config['port']
         self.template['ports'].append("{}:{}".format(skill_config['port'], skill_config['port']))
-        self.template['build']['dockerfile'] = "dp/{}".format(skill_config.get("dockerfile",
-                                                                               "dockerfile_skill_cpu"))
+        self.template['build']['dockerfile'] = "dp/dockerfile_skill"
 
         env_vars = skill_config.get('env')
         if env_vars:
@@ -151,7 +149,7 @@ class DockerComposeConfig:
         if not self.no_agent:
             config_dict['services'].update(self.agent.config)
 
-        return dict(config_dict)
+        return config_dict
 
 
 if __name__ == '__main__':
