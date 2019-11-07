@@ -18,11 +18,11 @@ SKILLS = [
         "host": "127.0.0.1",
         "port": 2080,
         "endpoint": "model",
-        "path": "odqa/ru_odqa_infer_wiki",
+        "path": "ru_odqa_infer_wiki",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": odqa_formatter
     },
     {
@@ -31,12 +31,12 @@ SKILLS = [
         "host": "127.0.0.1",
         "port": 2081,
         "endpoint": "model",
-        "path": "faq/tfidf_autofaq",
+        "path": "tfidf_autofaq",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
         "profile_handler": True,
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": chitchat_formatter
     }
 ]
@@ -48,11 +48,11 @@ ANNOTATORS_1 = [
         "host": "127.0.0.1",
         "port": 2083,
         "endpoint": "model",
-        "path": "ner/ner_rus",
+        "path": "ner_rus",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": ner_formatter
     }
 ]
@@ -64,11 +64,11 @@ ANNOTATORS_2 = [
         "host": "127.0.0.1",
         "port": 2084,
         "endpoint": "model",
-        "path": "classifiers/rusentiment_cnn",
+        "path": "rusentiment_cnn",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": sentiment_formatter
     }
 ]
@@ -82,11 +82,11 @@ SKILL_SELECTORS = [
         "host": "127.0.0.1",
         "port": 2082,
         "endpoint": "model",
-        "path": "classifiers/rusentiment_bigru_superconv",
+        "path": "rusentiment_bigru_superconv",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": chitchat_odqa_formatter
     }
 ]
