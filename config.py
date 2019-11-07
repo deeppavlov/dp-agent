@@ -22,7 +22,7 @@ SKILLS = [
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": odqa_formatter
     },
     {
@@ -36,7 +36,7 @@ SKILLS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "profile_handler": True,
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": ranking_chitchat_formatter
     }
 ]
@@ -48,11 +48,11 @@ ANNOTATORS_1 = [
         "host": "127.0.0.1",
         "port": 2083,
         "endpoint": "model",
-        "path": "ner/ner_rus",
+        "path": "ner_rus",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": ner_formatter
     }
 ]
@@ -64,11 +64,11 @@ ANNOTATORS_2 = [
         "host": "127.0.0.1",
         "port": 2084,
         "endpoint": "model",
-        "path": "classifiers/rusentiment_cnn",
+        "path": "rusentiment_cnn",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },
-        "dockerfile": "dockerfile_skill_cpu",
+        "base_image": "deeppavlov/base-cpu:0.6.1",
         "formatter": sentiment_formatter
     }
 ]

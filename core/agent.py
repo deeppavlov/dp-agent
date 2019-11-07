@@ -70,7 +70,7 @@ class Agent:
             service_data = self.workflow[dialog_id]['services'][service_name]
             service_data['done'] = True
             service_data['agent_done_time'] = time()
-            if response and service.state_processor_method:
+            if service.state_processor_method:
                 await service.state_processor_method(
                     dialog=workflow_record['dialog'], payload=response,
                     message_attrs=kwargs.pop('message_attrs', {})
