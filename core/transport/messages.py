@@ -24,8 +24,9 @@ class ServiceTaskMessage(MessageBase):
     task_uuid: str
     dialog: Dict
 
-    def __init__(self, agent_name: str, service_name: str, task_uuid: str, dialog: Dict) -> None:
-        super().__init__('service_task', agent_name)
+    def __init__(self, agent_name: str, service_name: str, task_uuid: str, dialog: Dict,
+                 msg_type: str = 'service_task') -> None:
+        super().__init__(msg_type, agent_name)
         self.service_name = service_name
         self.task_uuid = task_uuid
         self.dialog = dialog
@@ -40,8 +41,8 @@ class ServiceResponseMessage(MessageBase):
     response: Any
 
     def __init__(self, agent_name: str, task_uuid: str, service_name: str, service_instance_id: str, dialog_id: str,
-                 response: Any) -> None:
-        super().__init__('service_response', agent_name)
+                 response: Any, msg_type: str = 'service_response') -> None:
+        super().__init__(msg_type, agent_name)
         self.task_uuid = task_uuid
         self.service_name = service_name
         self.service_instance_id = service_instance_id
@@ -55,8 +56,9 @@ class ToChannelMessage(MessageBase):
     user_id: str
     response: str
 
-    def __init__(self, agent_name: str, channel_id: str, user_id: str, response: str) -> None:
-        super().__init__('to_channel_message', agent_name)
+    def __init__(self, agent_name: str, channel_id: str, user_id: str, response: str,
+                 msg_type: str = 'to_channel_message') -> None:
+        super().__init__(msg_type, agent_name)
         self.channel_id = channel_id
         self.user_id = user_id
         self.response = response
@@ -69,8 +71,9 @@ class FromChannelMessage(MessageBase):
     utterance: str
     reset_dialog: bool
 
-    def __init__(self, agent_name: str, channel_id: str, user_id: str, utterance: str, reset_dialog: bool) -> None:
-        super().__init__('from_channel_message', agent_name)
+    def __init__(self, agent_name: str, channel_id: str, user_id: str, utterance: str,
+                 reset_dialog: bool, msg_type: str = 'from_channel_message') -> None:
+        super().__init__(msg_type, agent_name)
         self.channel_id = channel_id
         self.user_id = user_id
         self.utterance = utterance
