@@ -12,7 +12,7 @@ ANNOTATORS = [ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3]
 
 # generate component url
 for service in chain(*ANNOTATORS, SKILL_SELECTORS, SKILLS, RESPONSE_SELECTORS,
-                     POSTPROCESSORS):
+                     POSTPROCESSORS, POST_ANNOTATORS):
     if 'url' not in service:
         host = service['name'] if getenv('DPA_LAUNCHING_ENV') == 'docker' else service['host']
         service['url'] = f"{service['protocol']}://{host}:{service['port']}/{service['endpoint']}"
@@ -40,7 +40,7 @@ def _get_config_path(component_config: dict) -> dict:
 
 
 _run_config_path: Path = Path(__file__).resolve().parent / 'config.yaml'
-_component_groups = ['SKILLS', 'ANNOTATORS', 'SKILL_SELECTORS', 'RESPONSE_SELECTORS', 'POSTPROCESSORS']
+_component_groups = ['SKILLS', 'ANNOTATORS', 'SKILL_SELECTORS', 'RESPONSE_SELECTORS', 'POSTPROCESSORS', 'POST_ANNOTATORS']
 _module = sys.modules[__name__]
 
 if _run_config_path.is_file():

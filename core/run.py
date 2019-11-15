@@ -12,13 +12,14 @@ from aiohttp import ClientSession, web
 
 from core.agent import Agent
 from core.config_parser import get_service_gateway_config, parse_old_config
-from core.connectors import EventSetOutputConnector, HttpOutputConnector
+from core.connectors import EventSetOutputConnector
 from core.db import db
 from core.http_api import init_app
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
 from core.db import DataBase
+from core.workflow_manager import WorkflowManager
 
 
 service_logger = logging.getLogger('service_logger')
@@ -55,7 +56,7 @@ def prepare_agent(services, state_manager, endpoint: Service, input_serv: Servic
         response_logger_callable = response_logger
     else:
         response_logger_callable = None
-    agent = Agent(pipeline, state_manager, response_logger_callable=response_logger_callable)
+    agent = Agent(pipeline, state_manager, WorkflowManager(), response_logger_callable=response_logger_callable)
     return agent.register_msg, agent.process, agent
 
 

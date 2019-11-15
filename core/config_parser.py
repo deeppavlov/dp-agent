@@ -10,7 +10,7 @@ from core.connectors import (AgentGatewayToServiceConnector, AioQueueConnector,
 from core.pipeline import simple_workflow_formatter
 from core.service import Service
 from core.transform_config import (ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3,
-                                   POSTPROCESSORS, RESPONSE_SELECTORS,
+                                   POSTPROCESSORS, RESPONSE_SELECTORS, POST_ANNOTATORS,
                                    SKILL_SELECTORS, SKILLS)
 from core.transport.settings import TRANSPORT_SETTINGS
 
@@ -35,22 +35,21 @@ def parse_old_config(state_manager):
     gateway = None
 
     def make_service_from_config_rec(conf_record, sess, state_processor_method, tags, names_previous_services,
-                                     gate, name_modifier=None):
+                                     gate,):
         _worker_tasks = []
-        if name_modifier:
-            name = name_modifier(conf_record['name'])
-        else:
-            name = conf_record['name']
-        formatter = conf_record['formatter']
+        name = conf_record['name']
+        formatter_in = conf_record['formatter_in']
+        formatter_out = conf_record['formatter_out']
         batch_size = conf_record.get('batch_size', 1)
         url = conf_record['url']
+        label = conf_record.get('label')
 
         connector_func = None
 
         if conf_record['protocol'] == 'http':
             sess = sess or aiohttp.ClientSession()
             if batch_size == 1 and isinstance(url, str):
-                connector_func = HTTPConnector(sess, url, formatter, name).send
+                connector_func = HTTPConnector(sess, url).send
             else:
                 queue = asyncio.Queue()
                 connector_func = AioQueueConnector(queue).send  # worker task and queue connector
@@ -59,8 +58,8 @@ def parse_old_config(state_manager):
                 else:
                     urls = url
                 for u in urls:
-                    _worker_tasks.append(QueueListenerBatchifyer(sess, u, formatter,
-                                                                 name, queue, batch_size))
+                    _worker_tasks.append(QueueListenerBatchifyer(sess, u, queue, batch_size))
+
 
         elif conf_record['protocol'] == 'AMQP':
             gate = gate or prepare_agent_gateway()
@@ -71,7 +70,8 @@ def parse_old_config(state_manager):
             raise ValueError(f'No connector function is defined while making a service {name}.')
 
         _service = Service(name, connector_func, state_processor_method, batch_size,
-                           tags, names_previous_services, simple_workflow_formatter)
+                           tags, names_previous_services, simple_workflow_formatter,
+                           formatter_in, formatter_out, label)
 
         return _service, _worker_tasks, sess, gate
 
@@ -108,7 +108,7 @@ def parse_old_config(state_manager):
 
     if SKILL_SELECTORS:
         for ss in SKILL_SELECTORS:
-            service, workers, session, gateway = make_service_from_config_rec(ss, session, state_manager.do_nothing,
+            service, workers, session, gateway = make_service_from_config_rec(ss, session, None,
                                                                               ['SKILL_SELECTORS', 'selector'],
                                                                               previous_services, gateway)
             services.append(service)
@@ -126,13 +126,25 @@ def parse_old_config(state_manager):
 
         previous_services = {i.name for i in services if 'SKILLS' in i.tags}
 
+    if POST_ANNOTATORS:
+        for anno in POST_ANNOTATORS:
+            service, workers, session, gateway = make_service_from_config_rec(anno, session,
+                                                                              state_manager.add_hypothesis_annotation,
+                                                                              ['POST_ANNOTATORS'], previous_services,
+                                                                              gateway)
+            services.append(service)
+            worker_tasks.extend(workers)
+
+        previous_services = {i.name for i in services if 'POST_ANNOTATORS' in i.tags}
+
     if not RESPONSE_SELECTORS:
         services.append(
             Service(
                 'confidence_response_selector',
-                ConfidenceResponseSelectorConnector('confidence_response_selector').send,
+                ConfidenceResponseSelectorConnector().send,
                 state_manager.add_bot_utterance,
-                1, ['RESPONSE_SELECTORS'], previous_services, simple_workflow_formatter
+                1, ['RESPONSE_SELECTORS'], previous_services,
+                simple_workflow_formatter
             )
         )
     else:
@@ -157,42 +169,12 @@ def parse_old_config(state_manager):
 
         previous_services = {i.name for i in services if 'POSTPROCESSORS' in i.tags}
 
-    if ANNOTATORS_1:
-        for anno in ANNOTATORS_1:
-            service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                              state_manager.add_annotation,
-                                                                              ['POST_ANNOTATORS_1'], previous_services,
-                                                                              gateway, add_bot_to_name)
-            services.append(service)
-            worker_tasks.extend(workers)
-
-        previous_services = {i.name for i in services if 'POST_ANNOTATORS_1' in i.tags}
-
-    if ANNOTATORS_2:
-        for anno in ANNOTATORS_2:
-            service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                              state_manager.add_annotation,
-                                                                              ['POST_ANNOTATORS_2'], previous_services,
-                                                                              gateway, add_bot_to_name)
-            services.append(service)
-            worker_tasks.extend(workers)
-
-        previous_services = {i.name for i in services if 'POST_ANNOTATORS_2' in i.tags}
-
-    for anno in ANNOTATORS_3:
-        service, workers, session, gateway = make_service_from_config_rec(anno, session,
-                                                                          state_manager.add_annotation,
-                                                                          ['POST_ANNOTATORS_3'],
-                                                                          previous_services, gateway, add_bot_to_name)
-        services.append(service)
-        worker_tasks.extend(workers)
-
     return services, worker_tasks, session, gateway
 
 
 def get_service_gateway_config(service_name):
     for config in chain(SKILLS, ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3,
-                        SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS):
+                        SKILL_SELECTORS, RESPONSE_SELECTORS, POSTPROCESSORS, POST_ANNOTATORS):
         config_name = config['name']
 
         if config_name == service_name:
@@ -205,7 +187,7 @@ def get_service_gateway_config(service_name):
     gateway_config['service'] = matching_config
 
     # TODO think if we can remove this workaround for bot annotators
-    if service_name in [service['name'] for service in chain(ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3)]:
+    if service_name in [service['name'] for service in chain(ANNOTATORS_1, ANNOTATORS_2, ANNOTATORS_3, POST_ANNOTATORS)]:
         gateway_config['service']['names'] = [service_name, add_bot_to_name(service_name)]
 
     return gateway_config

@@ -23,7 +23,8 @@ SKILLS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": odqa_formatter
+        "formatter_in": odqa_formatter_in,
+        "formatter_out": add_confidence_formatter_out
     },
     {
         "name": "chitchat",
@@ -37,7 +38,27 @@ SKILLS = [
         },
         "profile_handler": True,
         "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": chitchat_formatter
+        "formatter_in": chitchat_formatter_in,
+        "formatter_out": add_confidence_formatter_out
+    }
+]
+
+POST_ANNOTATORS = [
+    {
+        "name": "bot_ner",
+        "label": "ner",
+        "protocol": "http",
+        "url": "http://ner:2083/model",
+        "formatter_in": base_hypotheses_formatter_in,
+        "formatter_out": ner_formatter_out
+    },
+    {
+        "name": "bot_sentiment",
+        "label": "sentiment",
+        "protocol": "http",
+        "url": "http://sentiment:2084/model",
+        "formatter_in": base_hypotheses_formatter_in,
+        "formatter_out": sentiment_formatter_out
     }
 ]
 
@@ -53,7 +74,8 @@ ANNOTATORS_1 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": ner_formatter
+        "formatter_in": base_last_utterances_formatter_in,
+        "formatter_out": ner_formatter_out
     }
 ]
 
@@ -69,26 +91,14 @@ ANNOTATORS_2 = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": sentiment_formatter
+        "formatter_in": base_last_utterances_formatter_in,
+        "formatter_out": sentiment_formatter_out
     }
 ]
 
 ANNOTATORS_3 = []
 
 SKILL_SELECTORS = [
-    {
-        "name": "chitchat_odqa",
-        "protocol": "http",
-        "host": "127.0.0.1",
-        "port": 2082,
-        "endpoint": "model",
-        "path": "rusentiment_bigru_superconv",
-        "env": {
-            "CUDA_VISIBLE_DEVICES": ""
-        },
-        "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": chitchat_odqa_formatter
-    }
 ]
 
 RESPONSE_SELECTORS = []
