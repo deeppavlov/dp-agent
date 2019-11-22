@@ -31,7 +31,7 @@ SKILLS = [
         "host": "127.0.0.1",
         "port": 2085,
         "endpoint": "model",
-        "path": "skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json",
+        "path": "skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a.json",
         "env": {
             "CUDA_VISIBLE_DEVICES": ""
         },

@@ -21,10 +21,10 @@ services:
     build:
       args:
         BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-        SKILL_CONFIG: skills/ranking_chitchat_2stage/agent_ranking_chitchat_2staged_tfidf_smn_v4_prep.json
+        SKILL_CONFIG: skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a.json
         SKILL_PORT: 2085
       context: ./
-      dockerfile: dp/dockerfile_skill
+      dockerfile: dp/dockerfile_ranking
     container_name: ranking_chitchat_2stage
     environment:
     - CUDA_VISIBLE_DEVICES=""
