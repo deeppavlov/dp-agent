@@ -1,0 +1,1 @@
+ranking configs from deeppavlov commit 960a487d (HEAD -> retrieval_chitchat_with_intents_sentiment, origin/retrieval_chitchat_with_intents_sentiment)
