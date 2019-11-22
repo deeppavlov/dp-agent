@@ -22,8 +22,8 @@ logger = getLogger(__name__)
 
 
 class JSON2StrList(Component):
-
     def __init__(self, **kwargs):
         pass
+
     def __call__(self, history_batch: List):
         return [json.loads(json_string) for json_string in history_batch]

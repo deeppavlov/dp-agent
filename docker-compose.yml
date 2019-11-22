@@ -5,11 +5,11 @@ services:
       dockerfile: dockerfile_agent
     container_name: agent
     depends_on:
-    - odqa
     - ranking_chitchat_2stage
-    - ner
-    - sentiment
-    - chitchat_odqa
+    # - ner
+    # - sentiment
+    # - chitchat_odqa
+    # - odqa
     - mongo
     env_file: agent.env
     ports:
@@ -17,14 +17,16 @@ services:
     tty: true
     volumes:
     - .:/dp-agent
+  
   ranking_chitchat_2stage:
     build:
       args:
-        BASE_IMAGE: deeppavlov/base-cpu:0.6.1
+        PYTHON_BASE_IMAGE: python:3.7-slim-stretch
+        COMMIT: feat/agnostic_retrieval_chitchat
         SKILL_CONFIG: skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a.json
         SKILL_PORT: 2085
       context: ./
-      dockerfile: dp/dockerfile_ranking
+      dockerfile: dp/custom_cpu_dockerfile
     container_name: ranking_chitchat_2stage
     environment:
     - CUDA_VISIBLE_DEVICES=""
@@ -35,24 +37,45 @@ services:
     - ${EXTERNAL_FOLDER}/dp_logs:/logs
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
     - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
-  chitchat_odqa:
-    build:
-      args:
-        BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-        SKILL_CONFIG: rusentiment_bigru_superconv
-        SKILL_PORT: 2082
-      context: ./
-      dockerfile: dp/dockerfile_skill
-    container_name: chitchat_odqa
-    environment:
-    - CUDA_VISIBLE_DEVICES=""
-    ports:
-    - 2082:2082
-    tty: true
-    volumes:
-    - ${EXTERNAL_FOLDER}/dp_logs:/logs
-    - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
+    - .:/base/dp-agent
+  # chitchat_odqa:
+  #   build:
+  #     args:
+  #       PYTHON_BASE_IMAGE: python:3.7-slim-stretch
+  #       COMMIT: dp_agent/skill_selector/chitchat_vs_odqa
+  #       SKILL_CONFIG: ru_skills_selector_bert
+  #       SKILL_PORT: 2082
+  #     context: ./
+  #     dockerfile: dp/custom_cpu_dockerfile
+  #   container_name: chitchat_odqa
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES=""
+  #   ports:
+  #   - 2082:2082
+  #   tty: true
+  #   volumes:
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
+  #   - .:/base/dp-agent
+  # chitchat_odqa:
+  #   build:
+  #     args:
+  #       BASE_IMAGE: deeppavlov/base-cpu:0.6.1
+  #       SKILL_CONFIG: rusentiment_bigru_superconv
+  #       SKILL_PORT: 2082
+  #     context: ./
+  #     dockerfile: dp/dockerfile_skill
+  #   container_name: chitchat_odqa
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES=""
+  #   ports:
+  #   - 2082:2082
+  #   tty: true
+  #   volumes:
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
   mongo:
     command: mongod
     image: mongo:4.0.0
@@ -61,58 +84,58 @@ services:
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
     - /data/db:/root/data/db
-  ner:
-    build:
-      args:
-        BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-        SKILL_CONFIG: ner_rus
-        SKILL_PORT: 2083
-      context: ./
-      dockerfile: dp/dockerfile_skill
-    container_name: ner
-    environment:
-    - CUDA_VISIBLE_DEVICES=""
-    ports:
-    - 2083:2083
-    tty: true
-    volumes:
-    - ${EXTERNAL_FOLDER}/dp_logs:/logs
-    - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
-  odqa:
-    build:
-      args:
-        BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-        SKILL_CONFIG: odqa/ru_odqa_infer_wiki_rubert_noans
-        SKILL_PORT: 2080
-      context: ./
-      dockerfile: dp/dockerfile_skill
-    container_name: odqa
-    environment:
-    - CUDA_VISIBLE_DEVICES="0"
-    ports:
-    - 2080:2080
-    tty: true
-    volumes:
-    - ${EXTERNAL_FOLDER}/dp_logs:/logs
-    - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
-  sentiment:
-    build:
-      args:
-        BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-        SKILL_CONFIG: rusentiment_cnn
-        SKILL_PORT: 2084
-      context: ./
-      dockerfile: dp/dockerfile_skill
-    container_name: sentiment
-    environment:
-    - CUDA_VISIBLE_DEVICES=""
-    ports:
-    - 2084:2084
-    tty: true
-    volumes:
-    - ${EXTERNAL_FOLDER}/dp_logs:/logs
-    - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-    - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
+  # ner:
+  #   build:
+  #     args:
+  #       BASE_IMAGE: deeppavlov/base-cpu:0.6.1
+  #       SKILL_CONFIG: ner_rus
+  #       SKILL_PORT: 2083
+  #     context: ./
+  #     dockerfile: dp/dockerfile_skill
+  #   container_name: ner
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES=""
+  #   ports:
+  #   - 2083:2083
+  #   tty: true
+  #   volumes:
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
+  # odqa:
+  #   build:
+  #     args:
+  #       BASE_IMAGE: deeppavlov/base-cpu:0.6.1
+  #       SKILL_CONFIG: odqa/ru_odqa_infer_wiki_rubert_noans
+  #       SKILL_PORT: 2080
+  #     context: ./
+  #     dockerfile: dp/dockerfile_skill
+  #   container_name: odqa
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES="0"
+  #   ports:
+  #   - 2080:2080
+  #   tty: true
+  #   volumes:
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
+  # sentiment:
+  #   build:
+  #     args:
+  #       BASE_IMAGE: deeppavlov/base-cpu:0.6.1
+  #       SKILL_CONFIG: rusentiment_cnn
+  #       SKILL_PORT: 2084
+  #     context: ./
+  #     dockerfile: dp/dockerfile_skill
+  #   container_name: sentiment
+  #   environment:
+  #   - CUDA_VISIBLE_DEVICES=""
+  #   ports:
+  #   - 2084:2084
+  #   tty: true
+  #   volumes:
+  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
+  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
+  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
 version: '3.7'

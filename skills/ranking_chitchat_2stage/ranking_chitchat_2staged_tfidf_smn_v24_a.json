@@ -1,8 +1,14 @@
 {
-    "info": "Bot+intents+sentiment (v24_g; 09.04.19) Gopnik V5 Bot. Books_v2 + VK + pBot. +replaced replicas; -hedgehogs; +spherical horse; Total 577285 dialogs",
+    "info": "Bot+intents+sentiment (v24_a; 09.04.19) Alice V5 Bot.  Alice2Alice + Toloka_Alice_only. Total 203780 dialogs",
     "chainer": {
       "in": ["last_utterances", "utterances_histories"],
       "pipe": [
+        {
+          "info": "0. Converting list[json string] to list[list[string]]",
+          "class_name": "skills.ranking_chitchat_2stage.utils:JSON2StrList",
+          "in": ["utterances_histories"],
+          "out": ["utterances_histories"]
+        },
         {
           "info": "1. Replace separators from input string",
           "class_name": "compose_inputs_hybrid_ranker",
@@ -260,7 +266,7 @@
         "CONFIGS_PATH": "{DEEPPAVLOV_PATH}/configs"
       },
       "requirements": [
-        "{DEEPPAVLOV_PATH}/requirements/tf-gpu.txt",
+        "{DEEPPAVLOV_PATH}/requirements/tf.txt",
         "{DEEPPAVLOV_PATH}/requirements/gensim.txt",
         "{DEEPPAVLOV_PATH}/requirements/fasttext.txt"
       ],

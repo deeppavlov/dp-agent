@@ -12,19 +12,19 @@ MAX_WORKERS = 4
 AGENT_ENV_FILE = "agent.env"
 
 SKILLS = [
-    {
-        "name": "odqa",
-        "protocol": "http",
-        "host": "127.0.0.1",
-        "port": 2080,
-        "endpoint": "model",
-        "path": "odqa/ru_odqa_infer_wiki_rubert_noans",
-        "env": {
-            "CUDA_VISIBLE_DEVICES": ""
-        },
-        "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": odqa_formatter
-    },
+    # {
+    #     "name": "odqa",
+    #     "protocol": "http",
+    #     "host": "127.0.0.1",
+    #     "port": 2080,
+    #     "endpoint": "model",
+    #     "path": "odqa/ru_odqa_infer_wiki_rubert_noans",
+    #     "env": {
+    #         "CUDA_VISIBLE_DEVICES": ""
+    #     },
+    #     "base_image": "deeppavlov/base-cpu:0.6.1",
+    #     "formatter": odqa_formatter
+    # },
     {
         "name": "ranking_chitchat_2stage",
         "protocol": "http",
@@ -36,41 +36,41 @@ SKILLS = [
             "CUDA_VISIBLE_DEVICES": ""
         },
         "profile_handler": True,
-        "base_image": "deeppavlov/base-cpu:0.6.1",
+        "base_image": "",
         "formatter": ranking_chitchat_formatter
     }
 ]
 
 ANNOTATORS_1 = [
-    {
-        "name": "ner",
-        "protocol": "http",
-        "host": "127.0.0.1",
-        "port": 2083,
-        "endpoint": "model",
-        "path": "ner_rus",
-        "env": {
-            "CUDA_VISIBLE_DEVICES": ""
-        },
-        "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": ner_formatter
-    }
+    # {
+    #     "name": "ner",
+    #     "protocol": "http",
+    #     "host": "127.0.0.1",
+    #     "port": 2083,
+    #     "endpoint": "model",
+    #     "path": "ner_rus",
+    #     "env": {
+    #         "CUDA_VISIBLE_DEVICES": ""
+    #     },
+    #     "base_image": "deeppavlov/base-cpu:0.6.1",
+    #     "formatter": ner_formatter
+    # }
 ]
 
 ANNOTATORS_2 = [
-    {
-        "name": "sentiment",
-        "protocol": "http",
-        "host": "127.0.0.1",
-        "port": 2084,
-        "endpoint": "model",
-        "path": "rusentiment_cnn",
-        "env": {
-            "CUDA_VISIBLE_DEVICES": ""
-        },
-        "base_image": "deeppavlov/base-cpu:0.6.1",
-        "formatter": sentiment_formatter
-    }
+    # {
+    #     "name": "sentiment",
+    #     "protocol": "http",
+    #     "host": "127.0.0.1",
+    #     "port": 2084,
+    #     "endpoint": "model",
+    #     "path": "rusentiment_cnn",
+    #     "env": {
+    #         "CUDA_VISIBLE_DEVICES": ""
+    #     },
+    #     "base_image": "deeppavlov/base-cpu:0.6.1",
+    #     "formatter": sentiment_formatter
+    # }
 ]
 
 ANNOTATORS_3 = []

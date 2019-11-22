@@ -91,7 +91,7 @@ def chitchat_odqa_formatter(payload: Any, model_args_names=('x',), mode='in'):
         return last_utterances(payload, model_args_names)
     if mode == 'out':
         class_name = payload[0]
-        if class_name in ['speech', 'negative']:
+        if class_name in ['chit-chat']:
             response = ['ranking_chitchat_2stage']
         else:
             response = ['odqa']
