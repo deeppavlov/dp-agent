@@ -99,6 +99,20 @@ ANNOTATORS_2 = [
 ANNOTATORS_3 = []
 
 SKILL_SELECTORS = [
+    {
+        "name": "chitchat_odqa",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2082,
+        "endpoint": "model",
+        "path": "rusentiment_bigru_superconv",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "base_image": "deeppavlov/base-cpu:0.6.1",
+        "formatter_in": base_last_utterances_formatter_in,
+        "formatter_out": chitchat_odqa_formatter_out
+    }
 ]
 
 RESPONSE_SELECTORS = []

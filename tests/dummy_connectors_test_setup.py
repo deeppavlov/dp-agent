@@ -28,14 +28,12 @@ class DummyConnector:
         self.service_name = service_name
 
     async def send(self, payload, callback):
-        service_send_time = time.time()
         await asyncio.sleep(self.sleeptime)
         await callback(
             dialog_id=payload['id'],
             service_name=self.service_name,
-            response={self.service_name: [{"text": choice(self.returns), "confidence": 0.5}]},
-            service_send_time=service_send_time,
-            service_response_time=time.time())
+            response={self.service_name: [{"text": choice(self.returns), "confidence": 0.5}]}
+        )
 
 
 class DummySelectorConnector:
@@ -45,14 +43,12 @@ class DummySelectorConnector:
         self.service_name = service_name
 
     async def send(self, payload, callback):
-        service_send_time = time.time()
         await asyncio.sleep(self.sleeptime)
         await callback(
             dialog_id=payload['id'],
             service_name=self.service_name,
             response={self.service_name: self.returns},
-            service_send_time=service_send_time,
-            service_response_time=time.time())
+        )
 
 
 async def on_shutdown(app):
