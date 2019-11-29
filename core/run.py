@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import logging
-import uuid
 from datetime import datetime
 from os import getenv
 
@@ -18,11 +17,7 @@ from core.http_api import init_app
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
-from core.db import DataBase
 from core.workflow_manager import WorkflowManager
-
-
-service_logger = logging.getLogger('service_logger')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='run agent in default mode or as one of the high load components',
@@ -39,24 +34,11 @@ MODE = args.mode
 CHANNEL = args.channel
 
 
-def response_logger(workflow_record):
-    for service_name, service_data in workflow_record['services'].items():
-        done = service_data['agent_done_time']
-        send = service_data['agent_send_time']
-        if not send or not done:
-            continue
-        service_logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
-
-
 def prepare_agent(services, state_manager, endpoint: Service, input_serv: Service, use_response_logger: bool):
     pipeline = Pipeline(services)
     pipeline.add_responder_service(endpoint)
     pipeline.add_input_service(input_serv)
-    if use_response_logger:
-        response_logger_callable = response_logger
-    else:
-        response_logger_callable = None
-    agent = Agent(pipeline, state_manager, WorkflowManager(), response_logger_callable=response_logger_callable)
+    agent = Agent(pipeline, state_manager, WorkflowManager(), use_response_logger)
     return agent.register_msg, agent.process, agent
 
 

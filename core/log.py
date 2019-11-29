@@ -4,6 +4,8 @@ from pathlib import Path
 
 import yaml
 
+from core.service import Service
+
 
 def init_logger():
     agent_path = Path(__file__).resolve().parent.parent
@@ -33,3 +35,26 @@ def init_logger():
             handler['filename'] = str(logfile_path)
 
     logging.config.dictConfig(log_config)
+
+
+class ResponseLogger:
+    _enabled: bool
+    _logger: logging.Logger
+
+    def __init__(self, enabled: bool) -> None:
+        self._enabled = enabled
+        if self._enabled:
+            self._logger = logging.getLogger('service_logger')
+
+    def _log(self, task_id: str, workflow_record: dict, service: Service, status: str) -> None:
+        service_name = service.name
+        dialog_id = workflow_record['dialog'].id
+        self._logger.info(f'{dialog_id}\t{task_id}\t{status}\t{service_name}')
+
+    def log_start(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        if self._enabled:
+            self._log(task_id, workflow_record, service, 'start')
+
+    def log_end(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        if self._enabled:
+            self._log(task_id, workflow_record, service, 'end\t')

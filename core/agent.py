@@ -1,28 +1,26 @@
 import asyncio
-from typing import Any, Callable, Hashable, Optional
+from typing import Any, Hashable
 
+from core.log import ResponseLogger
 from core.pipeline import Pipeline
 from core.state_manager import StateManager
 from core.workflow_manager import WorkflowManager
 
 
 class Agent:
+    _response_logger: ResponseLogger
     def __init__(self,
                  pipeline: Pipeline,
                  state_manager: StateManager,
                  workflow_manager: WorkflowManager,
-                 process_logger_callable: Optional[Callable] = None,
-                 response_logger_callable: Optional[Callable] = None) -> None:
+                 use_response_logger: bool = False) -> None:
         self.pipeline = pipeline
         self.state_manager = state_manager
         self.workflow_manager = workflow_manager
-        self.process_logger_callable = process_logger_callable
-        self.response_logger_callable = response_logger_callable
+        self._response_logger = ResponseLogger(use_response_logger)
 
     def flush_record(self, dialog_id: str):
         workflow_record = self.workflow_manager.flush_record(dialog_id)
-        if self.response_logger_callable:
-            self.response_logger_callable(workflow_record)
         return workflow_record
 
     async def register_msg(self, utterance: str, user_telegram_id: Hashable,
@@ -52,6 +50,8 @@ class Agent:
     async def process(self, task_id, response: Any = None, **kwargs):
         workflow_record, task_data = self.workflow_manager.complete_task(task_id, response, **kwargs)
         service = task_data['service']
+
+        self._response_logger.log_end(task_id, workflow_record, service)
 
         if isinstance(response, Exception):
             self.flush_record(workflow_record['dialog'].id)
@@ -87,14 +87,13 @@ class Agent:
                     result.append(service)
             next_services = result
         # send dialog workflow record to further logging operations:
-        if self.process_logger_callable:
-            self.process_logger_callable(workflow_record)
 
         service_requests = []
         for service in next_services:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):
                 task_id = self.workflow_manager.add_task(workflow_record['dialog'].id, service, task_data, ind)
+                self._response_logger.log_start(task_id, workflow_record, service)
                 service_requests.append(
                     service.connector_func(payload={'task_id': task_id, 'payload': task_data}, callback=self.process)
                 )
