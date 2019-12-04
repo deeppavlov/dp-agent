@@ -1,5 +1,6 @@
 import asyncio
 from typing import Any, Callable, Dict, List
+from collections import defaultdict
 
 import aiohttp
 
@@ -116,7 +117,7 @@ class AgentGatewayToServiceConnector:
         self._service_name = service_name
 
     async def send(self, payload: Dict, **_kwargs):
-        await self._to_service_callback(dialog=payload, service_name=self._service_name)
+        await self._to_service_callback(payload=payload, service_name=self._service_name)
 
 
 class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
@@ -124,14 +125,18 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _url: str
     _service_name: str
 
-    def __init__(self, service_config: dict, formatter: Callable) -> None:
-        super().__init__(service_config, formatter)
+    def __init__(self, service_config: dict) -> None:
+        super().__init__(service_config)
         self._session = aiohttp.ClientSession()
         self._service_name = service_config['name']
         self._url = service_config['url']
 
-    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
-        async with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+    async def send_to_service(self, payloads: List[Dict]) -> List[Any]:
+        batch = defaultdict(list)
+        for payload in payloads:
+            for key, value in payload.items():
+                batch[key].extend(value)
+        async with await self._session.post(self._url, json=batch) as resp:
             responses_batch = await resp.json()
 
-        return [{self._service_name: self._formatter(response, mode='out')} for response in responses_batch]
+        return responses_batch

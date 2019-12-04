@@ -149,10 +149,9 @@ def run_service():
     gateway_config = get_service_gateway_config(service_name)
     service_config = gateway_config['service']
 
-    formatter = service_config['formatter']
     connector_type = service_config['protocol']
     connector_cls = CONNECTORS_MAP[connector_type]
-    connector = connector_cls(service_config=service_config, formatter=formatter)
+    connector = connector_cls(service_config=service_config)
 
     transport_type = gateway_config['transport']['type']
     gateway_cls = GATEWAYS_MAP[transport_type]['service']

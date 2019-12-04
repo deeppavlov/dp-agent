@@ -48,7 +48,9 @@ POST_ANNOTATORS = [
         "name": "bot_ner",
         "label": "ner",
         "protocol": "http",
-        "url": "http://ner:2083/model",
+        "host": "127.0.0.1",
+        "port": 2083,
+        "endpoint": "model",
         "formatter_in": base_hypotheses_formatter_in,
         "formatter_out": ner_formatter_out
     },
@@ -56,7 +58,9 @@ POST_ANNOTATORS = [
         "name": "bot_sentiment",
         "label": "sentiment",
         "protocol": "http",
-        "url": "http://sentiment:2084/model",
+        "host": "127.0.0.1",
+        "port": 2084,
+        "endpoint": "model",
         "formatter_in": base_hypotheses_formatter_in,
         "formatter_out": sentiment_formatter_out
     }

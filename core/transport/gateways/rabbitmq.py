@@ -128,11 +128,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         if isinstance(message_in, ServiceResponseMessage):
             logger.debug(f'Received service response message {str(message_in.to_json())}')
-            response_time = time.time()
-            await self._loop.create_task(self._on_service_callback(dialog_id=message_in.dialog_id,
-                                                                   service_name=message_in.service_name,
-                                                                   response=message_in.response,
-                                                                   response_time=response_time))
+            await self._loop.create_task(self._on_service_callback(task_id=message_in.task_id,
+                                                                   response=message_in.response))
 
         elif isinstance(message_in, FromChannelMessage):
             logger.debug(f'Received message from channel {str(message_in.to_json())}')
@@ -141,14 +138,8 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                                                                    user_id=message_in.user_id,
                                                                    reset_dialog=message_in.reset_dialog))
 
-    async def send_to_service(self, service_name: str, dialog: dict) -> None:
-        task_uuid = str(uuid4())
-        task = ServiceTaskMessage(agent_name=self._agent_name,
-                                  service_name=service_name,
-                                  task_uuid=task_uuid,
-                                  dialog=dialog)
-
-        logger.debug(f'Created task {task_uuid} to service {service_name} with dialog state: {str(dialog)}')
+    async def send_to_service(self, service_name: str, payload: dict) -> None:
+        task = ServiceTaskMessage(agent_name=self._agent_name, payload=payload)
 
         message = Message(body=json.dumps(task.to_json()).encode('utf-8'),
                           delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
@@ -156,7 +147,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 
         routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
         await self._agent_out_exchange.publish(message=message, routing_key=routing_key)
-        logger.debug(f'Published task {task_uuid} with routing key {routing_key}')
+        logger.debug(f'Published task {payload["task_id"]} with routing key {routing_key}')
 
     async def send_to_channel(self, channel_id: str, user_id: str, response: str) -> None:
         channel_message = ToChannelMessage(agent_name=self._agent_name,
@@ -240,9 +231,9 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
                 if self._add_to_buffer_lock.locked():
                     self._add_to_buffer_lock.release()
-
-                tasks_batch = [ServiceTaskMessage.from_json(json.loads(message.body, encoding='utf-8'))
-                               for message in messages_batch]
+                tasks_batch: List[ServiceTaskMessage] = [get_transport_message(json.loads(message.body,
+                                                                                          encoding='utf-8'))
+                                                         for message in messages_batch]
 
                 # TODO: Think about proper infer errors and aknowledge handling
                 processed_ok = await self._process_tasks(tasks_batch)
@@ -260,13 +251,13 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             self._infer_lock.release()
 
     async def _process_tasks(self, tasks_batch: List[ServiceTaskMessage]) -> bool:
-        task_uuids_batch, dialogs_batch = \
-            zip(*[(task.task_uuid, task.dialog) for task in tasks_batch])
+        task_uuids_batch, payloads = \
+            zip(*[(task.payload['task_id'], task.payload['payload']) for task in tasks_batch])
 
         logger.debug(f'Prepared for infering tasks {str(task_uuids_batch)}')
 
         try:
-            responses_batch = await asyncio.wait_for(self._to_service_callback(dialogs_batch),
+            responses_batch = await asyncio.wait_for(self._to_service_callback(payloads),
                                                      self._utterance_lifetime_sec)
 
             results_replies = []
@@ -284,10 +275,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
     async def _send_results(self, task: ServiceTaskMessage, response: Dict) -> None:
         result = ServiceResponseMessage(agent_name=task.agent_name,
-                                        task_uuid=task.task_uuid,
-                                        service_name=task.service_name,
                                         service_instance_id=self._instance_id,
-                                        dialog_id=task.dialog['id'],
+                                        task_id=task.payload["task_id"],
                                         response=response)
 
         message = Message(body=json.dumps(result.to_json()).encode('utf-8'),
@@ -296,7 +285,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
         routing_key = AGENT_ROUTING_KEY_TEMPLATE.format(agent_name=task.agent_name)
         await self._agent_in_exchange.publish(message=message, routing_key=routing_key)
-        logger.debug(f'Sent response for task {str(task.task_uuid)} with routing key {routing_key}')
+        logger.debug(f'Sent response for task {str(task.payload["task_id"])} with routing key {routing_key}')
 
 
 class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
