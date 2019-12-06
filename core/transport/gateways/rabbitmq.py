@@ -19,7 +19,6 @@ AGENT_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}'
 
 SERVICE_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_service_{service_name}'
 SERVICE_ROUTING_KEY_TEMPLATE = 'service.{service_name}.any'
-SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE = 'service.{service_name}.instance.{instance_id}'
 
 CHANNEL_QUEUE_NAME_TEMPLATE = '{agent_namespace}_{agent_name}_q_channel_{channel_id}'
 CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_id}.any'
@@ -28,7 +27,6 @@ logger = getLogger(__name__)
 
 
 # TODO: add proper RabbitMQ SSL authentication
-# TODO: add load balancing for stateful skills or remove SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE
 class RabbitMQTransportBase:
     _config: dict
     _loop: asyncio.AbstractEventLoop
@@ -168,7 +166,6 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
 # TODO: add separate service infer timeouts
 class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
     _service_name: str
-    _instance_id: str
     _batch_size: int
     _incoming_messages_buffer: List[IncomingMessage]
     _add_to_buffer_lock: asyncio.Lock
@@ -178,7 +175,6 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         super(RabbitMQServiceGateway, self).__init__(config=config, to_service_callback=to_service_callback)
         self._loop = asyncio.get_event_loop()
         self._service_name = self._config['service']['name']
-        self._instance_id = self._config['service'].get('instance_id', None) or f'{self._service_name}{str(uuid4())}'
         self._batch_size = self._config['service'].get('batch_size', 1)
 
         self._incoming_messages_buffer = []
@@ -202,15 +198,9 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         # TODO think if we can remove this workaround for bot annotators
         service_names = self._config['service'].get('names', []) or [self._service_name]
         for service_name in service_names:
-            any_instance_routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
-            await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=any_instance_routing_key)
-            logger.info(f'Queue: {in_queue_name} bound to routing key: {any_instance_routing_key}')
-
-            this_instance_routing_key = SERVICE_INSTANCE_ROUTING_KEY_TEMPLATE.format(service_name=service_name,
-                                                                                     instance_id=self._instance_id)
-
-            await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=this_instance_routing_key)
-            logger.info(f'Queue: {in_queue_name} bound to routing key: {this_instance_routing_key}')
+            service_routing_key = SERVICE_ROUTING_KEY_TEMPLATE.format(service_name=service_name)
+            await self._in_queue.bind(exchange=self._agent_out_exchange, routing_key=service_routing_key)
+            logger.info(f'Queue: {in_queue_name} bound to routing key: {service_routing_key}')
 
         await self._agent_out_channel.set_qos(prefetch_count=self._batch_size * 2)
 
@@ -275,7 +265,6 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
     async def _send_results(self, task: ServiceTaskMessage, response: Dict) -> None:
         result = ServiceResponseMessage(agent_name=task.agent_name,
-                                        service_instance_id=self._instance_id,
                                         task_id=task.payload["task_id"],
                                         response=response)
 

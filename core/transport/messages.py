@@ -29,14 +29,12 @@ class ServiceTaskMessage(MessageBase):
 
 class ServiceResponseMessage(MessageBase):
     agent_name: str
-    service_instance_id: str
     response: Any
     task_id: str
 
-    def __init__(self, task_id: str, agent_name: str, service_instance_id: str, response: Any) -> None:
+    def __init__(self, task_id: str, agent_name: str, response: Any) -> None:
         super().__init__('service_response', agent_name)
         self.task_id = task_id
-        self.service_instance_id = service_instance_id
         self.response = response
 
 
