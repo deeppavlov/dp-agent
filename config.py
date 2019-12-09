@@ -76,19 +76,19 @@ ANNOTATORS_2 = [
 ANNOTATORS_3 = []
 
 SKILL_SELECTORS = [
-    # {
-    #     "name": "chitchat_odqa",
-    #     "protocol": "http",
-    #     "host": "127.0.0.1",
-    #     "port": 2082,
-    #     "endpoint": "model",
-    #     "path": "classifiers/rusentiment_bigru_superconv",
-    #     "env": {
-    #         "CUDA_VISIBLE_DEVICES": ""
-    #     },
-    #     "dockerfile": "dockerfile_skill_cpu",
-    #     "formatter": chitchat_odqa_formatter
-    # }
+    {
+        "name": "chitchat_odqa",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2082,
+        "endpoint": "model",
+        "path": "classifiers/rusentiment_bigru_superconv",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "dockerfile": "dockerfile_skill_cpu",
+        "formatter": chitchat_odqa_formatter
+    }
 ]
 
 RESPONSE_SELECTORS = []
