@@ -5,8 +5,10 @@ def base_last_utterances_formatter_in(dialog: Dict, model_args_names=('x',)):
     return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]
 
 def base_hypotheses_formatter_in(dialog: Dict, model_args_names=('x',)):
-
     return [{model_args_names[0]: [i['text']]} for i in dialog['utterances'][-1]['hypotheses']]
+
+def all_hypotheses_formatter_in(dialog: Dict):
+    return[{'hypotheses': dialog['utterances'][-1]['hypotheses']}]
 
 def chitchat_formatter_in(dialog: Dict, model_args_names=('q',)):
     return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]

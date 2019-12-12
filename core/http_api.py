@@ -7,7 +7,6 @@ from state_formatters.output_formatters import (http_api_output_formatter,
                                                 http_debug_output_formatter)
 
 
-
 async def init_app(agent, session, consumers, debug=False):
     app = web.Application()
     handler = ApiHandler(debug)
@@ -26,7 +25,6 @@ async def init_app(agent, session, consumers, debug=False):
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
-
 
 def prepare_startup(consumers, agent, session):
     result = []
@@ -58,7 +56,7 @@ class ApiHandler:
         response = {}
         register_msg = request.app['agent'].register_msg
         if request.method == 'POST':
-            if request.headers.get('content-type') != 'application/json':
+            if 'content-type' not in request.headers or not request.headers['content-type'].startswith('application/json'):
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
             data = await request.json()
             user_id = data.pop('user_id')

@@ -90,7 +90,7 @@ class QueueListenerBatchifyer:
 class ConfidenceResponseSelectorConnector:
     async def send(self, payload: Dict, callback: Callable):
         service_send_time = time.time()
-        response = payload['payload']['utterances'][-1]['hypotheses']
+        response = payload['payload']['hypotheses']
         best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
         response_time = time.time()
         await callback(
