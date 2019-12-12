@@ -12,19 +12,19 @@ MAX_WORKERS = 4
 AGENT_ENV_FILE = "agent.env"
 
 SKILLS = [
-    # {
-    #     "name": "odqa",
-    #     "protocol": "http",
-    #     "host": "127.0.0.1",
-    #     "port": 2080,
-    #     "endpoint": "model",
-    #     "path": "odqa/ru_odqa_infer_wiki_rubert_noans",
-    #     "env": {
-    #         "CUDA_VISIBLE_DEVICES": ""
-    #     },
-    #     "base_image": "deeppavlov/base-cpu:0.6.1",
-    #     "formatter": odqa_formatter
-    # },
+    {
+        "name": "odqa",
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 2080,
+        "endpoint": "model",
+        "path": "odqa/ru_odqa_infer_wiki_rubert_noans",
+        "env": {
+            "CUDA_VISIBLE_DEVICES": ""
+        },
+        "base_image": "deeppavlov/base-cpu:0.6.1",
+        "formatter": odqa_formatter
+    },
     {
         "name": "ranking_chitchat_2stage",
         "protocol": "http",
