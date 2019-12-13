@@ -80,7 +80,7 @@ class QueueListenerBatchifyer:
 
 class ConfidenceResponseSelectorConnector:
     async def send(self, payload: Dict, callback: Callable):
-        response = payload['payload']['utterances'][-1]['hypotheses']
+        response = payload['payload']['hypotheses']
         best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
         await callback(
             task_id=payload['task_id'],

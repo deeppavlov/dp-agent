@@ -75,13 +75,12 @@ class Agent:
         # Calculating next steps
         done, waiting, skipped = self.workflow_manager.get_services_status(workflow_record['dialog'].id)
         next_services = self.pipeline.get_next_services(done.union(skipped), waiting)
-
         # Processing the case, when service is a skill selector
         if service and service.is_sselector():
             selected_services = response_data
             result = []
             for service in next_services:
-                if service.name not in selected_services:
+                if service.label not in selected_services:
                     self.workflow_manager.skip_service(workflow_record['dialog'].id, service)
                 else:
                     result.append(service)

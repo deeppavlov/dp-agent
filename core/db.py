@@ -16,5 +16,3 @@ class DataBase:
 
     def get_db(self):
         return self.db
-
-db = DataBase(DB_HOST, DB_PORT, DB_NAME).get_db()
