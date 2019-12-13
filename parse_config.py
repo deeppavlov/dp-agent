@@ -5,7 +5,7 @@ from typing import Dict, List
 
 import aiohttp
 
-from core.connectors import *
+from core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector
 from core.service import Service, simple_workflow_formatter
 from core.state_manager import StateManager
 from state_formatters import all_formatters
