@@ -1,9 +1,11 @@
-import asyncio
+from aioconsole import ainput
+
 
 async def message_processor(register_msg):
     user_id = input('Provide user id: ')
     while True:
-        msg = input(f'You ({user_id}): ').strip()
+        msg = await ainput(f'You ({user_id}): ')
+        msg = msg.strip()
         if msg:
             response = await register_msg(utterance=msg, user_telegram_id=user_id, user_device_type='cmd',
                                           location='lab', channel_type='cmd_client',
