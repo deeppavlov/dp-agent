@@ -1,6 +1,6 @@
 import asyncio
-import time
 from typing import Any, Callable, Dict, List
+from collections import defaultdict
 
 import aiohttp
 
@@ -13,26 +13,19 @@ class HTTPConnector:
         self.url = url
 
     async def send(self, payload: Dict, callback: Callable):
-        service_send_time = time.time()
         try:
             async with self.session.post(self.url, json=payload['payload']) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
-                service_response_time = time.time()
                 await callback(
                     task_id=payload['task_id'],
-                    response=response[0],
-                    service_send_time=service_send_time,
-                    service_response_time=service_response_time
+                    response=response[0]
                 )
         except Exception as e:
             response = e
-            service_response_time = time.time()
             await callback(
                 task_id=payload['task_id'],
-                response=response,
-                service_send_time=service_send_time,
-                service_response_time=service_response_time
+                response=response
             )
 
 
@@ -62,17 +55,15 @@ class QueueListenerBatchifyer:
             if batch:
                 tasks = []
                 model_payload = self.glue_tasks(batch)
-                service_send_time = time.time()
                 async with self.session.post(self.url, json=model_payload) as resp:
                     response = await resp.json()
-                    service_response_time = time.time()
                 for task, task_response in zip(batch, response):
                     tasks.append(
                         process_callable(
                             task_id=task['task_id'],
-                            response=task_response,
-                            service_send_time=service_send_time,
-                            service_response_time=service_response_time))
+                            response=task_response
+                        )
+                    )
                 await asyncio.gather(*tasks)
             await asyncio.sleep(0.1)
 
@@ -89,15 +80,12 @@ class QueueListenerBatchifyer:
 
 class ConfidenceResponseSelectorConnector:
     async def send(self, payload: Dict, callback: Callable):
-        service_send_time = time.time()
         response = payload['payload']['hypotheses']
         best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
-        response_time = time.time()
         await callback(
             task_id=payload['task_id'],
-            response=best_skill,
-            service_send_time=service_send_time,
-            service_response_time=response_time)
+            response=best_skill
+        )
 
 
 
@@ -107,15 +95,13 @@ class EventSetOutputConnector:
 
     async def send(self, payload, callback: Callable):
         event = payload['payload'].get('event', None)
-        service_send_time = time.time()
         if not event or not isinstance(event, asyncio.Event):
             raise ValueError("'event' key is not presented in payload")
         event.set()
-        service_response_time = time.time()
-        await callback(task_id=payload['task_id'],
-                       response=" ",
-                       service_send_time=service_send_time,
-                       service_response_time=service_response_time)
+        await callback(
+            task_id=payload['task_id'],
+            response=" "
+        )
 
 
 class AgentGatewayToChannelConnector:
@@ -131,7 +117,7 @@ class AgentGatewayToServiceConnector:
         self._service_name = service_name
 
     async def send(self, payload: Dict, **_kwargs):
-        await self._to_service_callback(dialog=payload, service_name=self._service_name)
+        await self._to_service_callback(payload=payload, service_name=self._service_name)
 
 
 class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
@@ -139,14 +125,18 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _url: str
     _service_name: str
 
-    def __init__(self, service_config: dict, formatter: Callable) -> None:
-        super().__init__(service_config, formatter)
+    def __init__(self, service_config: dict) -> None:
+        super().__init__(service_config)
         self._session = aiohttp.ClientSession()
         self._service_name = service_config['name']
         self._url = service_config['url']
 
-    async def send_to_service(self, dialogs: List[Dict]) -> List[Any]:
-        async with await self._session.post(self._url, json=self._formatter(dialogs)) as resp:
+    async def send_to_service(self, payloads: List[Dict]) -> List[Any]:
+        batch = defaultdict(list)
+        for payload in payloads:
+            for key, value in payload.items():
+                batch[key].extend(value)
+        async with await self._session.post(self._url, json=batch) as resp:
             responses_batch = await resp.json()
 
-        return [{self._service_name: self._formatter(response, mode='out')} for response in responses_batch]
+        return responses_batch

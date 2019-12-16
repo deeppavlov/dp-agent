@@ -1,49 +1,27 @@
 import asyncio
-from collections import defaultdict
-from time import time
-from typing import Any, Callable, Hashable, Optional
+from typing import Any, Hashable
 
+from core.log import ResponseLogger
 from core.pipeline import Pipeline
 from core.state_manager import StateManager
-from core.state_schema import Dialog
 from core.workflow_manager import WorkflowManager
 
 
 class Agent:
-    def __init__(self, pipeline: Pipeline, state_manager: StateManager,
+    _response_logger: ResponseLogger
+    def __init__(self,
+                 pipeline: Pipeline,
+                 state_manager: StateManager,
                  workflow_manager: WorkflowManager,
-                 process_logger_callable: Optional[Callable] = None,
-                 response_logger_callable: Optional[Callable] = None):
-        self.workflow = dict()
+                 use_response_logger: bool = False) -> None:
         self.pipeline = pipeline
         self.state_manager = state_manager
         self.workflow_manager = workflow_manager
-        self.process_logger_callable = process_logger_callable
-        self.response_logger_callable = response_logger_callable
+        self._response_logger = ResponseLogger(use_response_logger)
 
     def flush_record(self, dialog_id: str):
         workflow_record = self.workflow_manager.flush_record(dialog_id)
-        if self.response_logger_callable:
-            self.response_logger_callable(workflow_record)
         return workflow_record
-
-    def register_service_request(self, dialog_id: str, service_name):
-        if dialog_id not in self.workflow.keys():
-            raise ValueError(f'dialog with id {dialog_id} is not exist in workflow')
-        self.workflow[dialog_id]['services'][service_name] = {'send': True, 'done': False, 'agent_send_time': time(),
-                                                              'agent_done_time': None}
-
-    def get_services_status(self, dialog_id: str):
-        if dialog_id not in self.workflow.keys():
-            raise ValueError(f'dialog with id {dialog_id} is not exist in workflow')
-        done, waiting = set(), set()
-        for key, value in self.workflow[dialog_id]['services'].items():
-            if value['done']:
-                done.add(key)
-            else:
-                waiting.add(key)
-
-        return done, waiting
 
     async def register_msg(self, utterance: str, user_telegram_id: Hashable,
                            user_device_type: Any, location: Any,
@@ -72,6 +50,8 @@ class Agent:
     async def process(self, task_id, response: Any = None, **kwargs):
         workflow_record, task_data = self.workflow_manager.complete_task(task_id, response, **kwargs)
         service = task_data['service']
+
+        self._response_logger.log_end(task_id, workflow_record, service)
 
         if isinstance(response, Exception):
             self.flush_record(workflow_record['dialog'].id)
@@ -106,14 +86,13 @@ class Agent:
                     result.append(service)
             next_services = result
         # send dialog workflow record to further logging operations:
-        if self.process_logger_callable:
-            self.process_logger_callable(workflow_record)
 
         service_requests = []
         for service in next_services:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):
                 task_id = self.workflow_manager.add_task(workflow_record['dialog'].id, service, task_data, ind)
+                self._response_logger.log_start(task_id, workflow_record, service)
                 service_requests.append(
                     service.connector_func(payload={'task_id': task_id, 'payload': task_data}, callback=self.process)
                 )

@@ -5,15 +5,27 @@ from typing import Dict, List
 
 import aiohttp
 
-from core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector
+from core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector, AgentGatewayToServiceConnector
 from core.service import Service, simple_workflow_formatter
 from core.state_manager import StateManager
+from core.transport.mapping import GATEWAYS_MAP
+from core.transport.settings import TRANSPORT_SETTINGS
 from state_formatters import all_formatters
 
 
-def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> List:
+def prepare_agent_gateway(on_channel_callback=None, on_service_callback=None):
+    transport_type = TRANSPORT_SETTINGS['transport']['type']
+    gateway_cls = GATEWAYS_MAP[transport_type]['agent']
+    return gateway_cls(config=TRANSPORT_SETTINGS,
+                       on_service_callback=on_service_callback,
+                       on_channel_callback=on_channel_callback)
+
+
+def parse_pipeline_config(config: Dict, state_manager: StateManager, session) -> List:
     session = None
-    def make_connector(data: Dict, session):
+    gateway = None
+
+    def make_connector(data: Dict, session, gateway):
         workers = []
         if data['protocol'] == 'http':
             connector = None
@@ -30,6 +42,11 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
             else:
                 connector = HTTPConnector(session, data['url'])
 
+        elif data['protocol'] == 'AMQP':
+            gateway = gateway or prepare_agent_gateway()
+            connector = AgentGatewayToServiceConnector(to_service_callback=gateway.send_to_service,
+                                                       service_name=data['routing_key'])
+
         elif data['protocol'] == 'python':
             params = data['class_name'].split(':')
             if len(params) == 1:
@@ -41,7 +58,7 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
             others = {k: v for k, v in data.items() if k not in {'protocol', 'class_name'}}
             connector = connector_class(**others)
         
-        return connector, workers
+        return connector, workers, gateway
 
     def make_service(group, name, data: Dict, connectors: Dict, state_manager: StateManager, services_names: Dict):
         connector_data = data.get('connector', None)
@@ -97,7 +114,7 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
     # fill connectors
 
     for k, v in config['connectors'].items():
-        c, w = make_connector(v, session)
+        c, w, gateway = make_connector(v, session, gateway)
         connectors[f'connectors.{k}'] = c
         workers.extend(w)
 
@@ -106,7 +123,7 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
         if 'connector' in v:  # single service
             if isinstance(v['connector'], dict):
                 if 'protocol' in v['connector']:
-                    c, w = make_connector(v['connector'], session)
+                    c, w, gateway = make_connector(v['connector'], session, gateway)
                     connectors[k] = c
                     workers.extend(w)
                 else:
@@ -119,7 +136,7 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
                 service_name = f'{k}.{sk}'
                 if isinstance(sv['connector'], dict):
                     if 'protocol' in sv['connector']:
-                        c, w = make_connector(sv['connector'], session)
+                        c, w, gateway = make_connector(sv['connector'], session, gateway)
                         connectors[service_name] = c
                         workers.extend(w)
                     else:
@@ -136,4 +153,4 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session)-> 
             for sk, sv in v.items():
                 services.append(make_service(k, sk, sv, connectors, state_manager, services_names))
 
-    return services, workers, session       
+    return services, workers, session, gateway
