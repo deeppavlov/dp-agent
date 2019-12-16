@@ -26,22 +26,6 @@ async def init_app(agent, session, consumers, debug=False):
     app.on_shutdown.append(on_shutdown)
     return app
 
-def prepare_startup(consumers, agent, session):
-    result = []
-    for i in consumers:
-        result.append(asyncio.ensure_future(i.call_service(agent.process)))
-
-    async def startup_background_tasks(app):
-        app['consumers'] = result
-        app['agent'] = agent
-        app['client_session'] = session
-
-    return startup_background_tasks
-
-
-async def on_shutdown(app):
-    await app['client_session'].close()
-
 
 class ApiHandler:
     def __init__(self, debug=False):
