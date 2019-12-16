@@ -35,17 +35,17 @@ class Agent:
         if require_response:
             event = asyncio.Event()
             kwargs['event'] = event
-            self.workflow_manager.add_workflow_record(
-                dialog=dialog, deadline_timestamp=deadline_timestamp, hold_flush=True, **kwargs)
-            task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)
-            await self.process(task_id, utterance, message_attrs=message_attrs)
-            await event.wait()
-            return self.flush_record(dialog_id)
+            kwargs['hold_flush'] = True
 
         self.workflow_manager.add_workflow_record(
             dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
         task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)
+        self._response_logger.log_start(task_id, {'dialog': dialog}, service)
         await self.process(task_id, utterance, message_attrs=message_attrs)
+
+        if require_response:
+            await event.wait()
+            return self.flush_record(dialog_id)
 
     async def process(self, task_id, response: Any = None, **kwargs):
         workflow_record, task_data = self.workflow_manager.complete_task(task_id, response, **kwargs)

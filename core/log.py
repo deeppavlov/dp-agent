@@ -1,6 +1,7 @@
 import logging
 import logging.config
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -46,8 +47,13 @@ class ResponseLogger:
     _enabled: bool
     _logger: logging.Logger
 
-    def __init__(self, enabled: bool) -> None:
+    def __init__(self, enabled: bool, cleanup_timedelta: int = 300) -> None:
+        self._services_load = defaultdict(int)
+        self._services_response_time = defaultdict(dict)
+        self._tasks_buffer = dict()
         self._enabled = enabled
+        self._timedelta = timedelta(seconds=cleanup_timedelta)
+
         if self._enabled:
             self._logger = logging.getLogger('service_logger')
             self._logger.setLevel(logging.DEBUG)
@@ -56,15 +62,63 @@ class ResponseLogger:
             fh.setFormatter(logging.Formatter('%(message)s'))
             self._logger.addHandler(fh)
 
-    def _log(self, task_id: str, workflow_record: dict, service: Service, status: str) -> None:
+    def _log(self, time: datetime, task_id: str, workflow_record: dict, service: Service, status: str) -> None:
         service_name = service.name
         dialog_id = workflow_record['dialog'].id
-        self._logger.info(f"{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')}\t{dialog_id}\t{task_id}\t{status}\t{service_name}")
+        self._logger.info(f"{time.strftime('%Y-%m-%d %H:%M:%S.%f')}\t{dialog_id}\t{task_id}\t{status}\t{service_name}")
+
+    def _cleanup(self, time):
+        time_threshold = time - self._timedelta
+
+        for key in list(self._tasks_buffer.keys()):
+            if self._tasks_buffer[key] < time_threshold:
+                del self._tasks_buffer[key]
+            else:
+                break
+
+        for service_response_time in self._services_response_time.values():
+            for start_time in list(service_response_time.keys()):
+                if start_time < time_threshold:
+                    del service_response_time[start_time]
+                else:
+                    break
 
     def log_start(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        start_time = datetime.utcnow()
+        self._tasks_buffer[task_id] = start_time
+
+        if service.name == 'input':
+            self._services_load['agent'] += 1
+        else:
+            self._services_load[service.name] += 1
+
         if self._enabled:
-            self._log(task_id, workflow_record, service, 'start')
+            self._log(start_time, task_id, workflow_record, service, 'start')
 
     def log_end(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        end_time = datetime.utcnow()
+        start_time = self._tasks_buffer.pop(task_id, None)
+
+        if service.name.endswith('responder'):
+            self._services_load['agent'] -= 1
+            self._cleanup(end_time)
+        else:
+            self._services_load[service.name] -= 1
+            if start_time is not None:
+                self._services_response_time[service.name][start_time] = (end_time - start_time).total_seconds()
+
         if self._enabled:
-            self._log(task_id, workflow_record, service, 'end\t')
+            self._log(end_time, task_id, workflow_record, service, 'end\t')
+
+    def get_current_load(self):
+        self._cleanup(datetime.now())
+        response_time = {}
+        for service_name, time_dict in self._services_response_time.items():
+            sm = sum(time_dict.values())
+            ct = len(time_dict)
+            response_time[service_name] = sm / ct if ct else 0
+        response = {
+            'current_load': dict(self._services_load),
+            'response_time': response_time
+        }
+        return response
