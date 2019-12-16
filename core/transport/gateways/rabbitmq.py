@@ -1,9 +1,8 @@
 import asyncio
 import json
 import time
-from uuid import uuid4
-from typing import Dict, List, Optional, Callable
 from logging import getLogger
+from typing import Dict, List, Optional, Callable
 
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
@@ -18,7 +17,7 @@ AGENT_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_agent_{agent_name}'
 AGENT_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}'
 
 SERVICE_QUEUE_NAME_TEMPLATE = '{agent_namespace}_q_service_{service_name}'
-SERVICE_ROUTING_KEY_TEMPLATE = 'service.{service_name}.any'
+SERVICE_ROUTING_KEY_TEMPLATE = 'service.{service_name}'
 
 CHANNEL_QUEUE_NAME_TEMPLATE = '{agent_namespace}_{agent_name}_q_channel_{channel_id}'
 CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_id}.any'

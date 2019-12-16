@@ -33,14 +33,6 @@ parser.add_argument('-d', '--debug', help='run in debug mode', action='store_tru
 args = parser.parse_args()
 
 
-def response_logger(workflow_record):
-    for service_name, service_data in workflow_record['services'].items():
-        done = service_data['agent_done_time']
-        send = service_data['agent_send_time']
-        if not send or not done:
-            continue
-        service_logger.info(f'{service_name}\t{round(done - send, 5)}\tseconds')
-
 def main():
     with open(args.db_config, 'r') as db_config:
         if args.db_config.endswith('.json'):
@@ -60,7 +52,7 @@ def main():
             pipeline_data = yaml.load(pipeline_config)
         else:
             raise ValueError('unknown format for pipeline_config')
-    services, workers, session = parse_pipeline_config(pipeline_data, sm, None)
+    services, workers, session, gateway = parse_pipeline_config(pipeline_data, sm, None)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
     endpoint_srv = Service('responder', EventSetOutputConnector('responder').send,
@@ -69,11 +61,11 @@ def main():
     pipeline = Pipeline(services)
     pipeline.add_responder_service(endpoint_srv)
     pipeline.add_input_service(input_srv)
-    if args.response_logger:
-        response_logger_callable = response_logger
-    else:
-        response_logger_callable = None
-    agent = Agent(pipeline, sm, WorkflowManager(), response_logger_callable=response_logger_callable)
+
+    agent = Agent(pipeline, sm, WorkflowManager(), use_response_logger=args.response_logger)
+    if gateway:
+        gateway.on_channel_callback = agent.register_msg
+        gateway.on_service_callback = agent.process
 
     if args.channel == 'cmd_client':
 
@@ -92,6 +84,8 @@ def main():
             future.cancel()
             if session:
                 loop.run_until_complete(session.close())
+            if gateway:
+                gateway.disconnect()
             loop.stop()
             loop.close()
             logging.shutdown()
