@@ -43,7 +43,16 @@ def init_logger():
     logging.config.dictConfig(log_config)
 
 
-class ResponseLogger:
+class BaseResponseLogger:
+
+    def log_start(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        raise NotImplementedError
+
+    def log_end(self, task_id: str, workflow_record: dict, service: Service) -> None:
+        raise NotImplementedError
+
+
+class LocalResponseLogger(BaseResponseLogger):
     _enabled: bool
     _logger: logging.Logger
 

@@ -1,23 +1,23 @@
 import asyncio
 from typing import Any, Hashable
 
-from core.log import ResponseLogger
+from core.log import BaseResponseLogger
 from core.pipeline import Pipeline
 from core.state_manager import StateManager
 from core.workflow_manager import WorkflowManager
 
 
 class Agent:
-    _response_logger: ResponseLogger
+    _response_logger: BaseResponseLogger
     def __init__(self,
                  pipeline: Pipeline,
                  state_manager: StateManager,
                  workflow_manager: WorkflowManager,
-                 use_response_logger: bool = False) -> None:
+                 response_logger: BaseResponseLogger) -> None:
         self.pipeline = pipeline
         self.state_manager = state_manager
         self.workflow_manager = workflow_manager
-        self._response_logger = ResponseLogger(use_response_logger)
+        self._response_logger = response_logger
 
     def flush_record(self, dialog_id: str):
         workflow_record = self.workflow_manager.flush_record(dialog_id)

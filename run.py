@@ -11,6 +11,7 @@ from core.cmd_client import run_cmd
 from core.connectors import EventSetOutputConnector
 from core.db import DataBase
 from core.http_api import init_app
+from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
@@ -62,7 +63,8 @@ def main():
     pipeline.add_responder_service(endpoint_srv)
     pipeline.add_input_service(input_srv)
 
-    agent = Agent(pipeline, sm, WorkflowManager(), use_response_logger=args.response_logger)
+    response_logger = LocalResponseLogger(args.response_logger)
+    agent = Agent(pipeline, sm, WorkflowManager(), response_logger=response_logger)
     if gateway:
         gateway.on_channel_callback = agent.register_msg
         gateway.on_service_callback = agent.process
