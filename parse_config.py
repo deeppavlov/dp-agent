@@ -44,8 +44,9 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session) ->
 
         elif data['protocol'] == 'AMQP':
             gateway = gateway or prepare_agent_gateway()
+            service_name = data.get('service_name') or data['connector_name']
             connector = AgentGatewayToServiceConnector(to_service_callback=gateway.send_to_service,
-                                                       service_name=data['routing_key'])
+                                                       service_name=service_name)
 
         elif data['protocol'] == 'python':
             params = data['class_name'].split(':')
@@ -114,6 +115,7 @@ def parse_pipeline_config(config: Dict, state_manager: StateManager, session) ->
     # fill connectors
 
     for k, v in config['connectors'].items():
+        v.update({'connector_name': k})
         c, w, gateway = make_connector(v, session, gateway)
         connectors[f'connectors.{k}'] = c
         workers.extend(w)
