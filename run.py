@@ -67,13 +67,13 @@ def main():
     if gateway:
         gateway.on_channel_callback = agent.register_msg
         gateway.on_service_callback = agent.process
+    try:
+        if args.channel == 'cmd_client':
+            run_cmd(agent, session, workers, args.debug)
 
-    if args.channel == 'cmd_client':
-        run_cmd(agent, session, workers, args.debug)
-
-    elif args.channel == 'http_client':
-        app = init_app(agent, session, workers, args.debug)
-        web.run_app(app, port=args.port)
+        elif args.channel == 'http_client':
+            app = init_app(agent, session, workers, args.debug)
+            web.run_app(app, port=args.port)
     
     logging.shutdown()
 

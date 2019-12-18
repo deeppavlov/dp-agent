@@ -298,3 +298,11 @@ class PipelineConfigParser:
                     elif not isinstance(sv['connector'], str):
                         raise ValueError({f'connector in pipeline.{service_name} is declared incorrectly'})
                     self.services_names[k].add(service_name)
+
+    def fill_services(self):
+        for k, v in config['services'].items():
+            if 'connector' in v:  # single service
+                services.append(make_service(None, k, v, connectors, state_manager, services_names))
+            else:  # grouped services
+                for sk, sv in v.items():
+                    services.append(make_service(k, sk, sv, connectors, state_manager, services_names))
