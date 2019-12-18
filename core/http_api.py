@@ -19,6 +19,8 @@ async def init_app(agent, session, consumers, debug=False):
         app['client_session'] = session
 
     async def on_shutdown(app):
+        for c in app['consumers']:
+            c.cancel()
         if app['client_session']:
             await app['client_session'].close()
 

@@ -1,6 +1,6 @@
 import asyncio
 
-async def run_cmd(register_msg):
+async def message_processor(register_msg):
     user_id = input('Provide user id: ')
     while True:
         msg = input(f'You ({user_id}): ').strip()
@@ -10,3 +10,22 @@ async def run_cmd(register_msg):
                                           deadline_timestamp=None, require_response=True)
             print('Bot: ', response['dialog'].utterances[-1].text)
 
+
+def run_cmd(agent, session, workers, debug):
+    loop = asyncio.get_event_loop()
+    loop.set_debug(debug)
+    future = asyncio.ensure_future(message_processor(agent.register_msg))
+    for i in workers:
+        loop.create_task(i.call_service(agent.process))
+    try:
+        loop.run_until_complete(future)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        raise e
+    finally:
+        future.cancel()
+        if session:
+            loop.run_until_complete(session.close())
+        loop.stop()
+        loop.close()
