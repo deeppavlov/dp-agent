@@ -72,3 +72,9 @@ class StateManager:
     async def drop_active_dialog(self, user_telegram_id):
         user = await Human.get_or_create(self._db, user_telegram_id)
         await Dialog.drop_active(self._db, user._id)
+
+    async def prepare_db(self):
+        await BotUtterance.prepare_collection(self._db)
+        await HumanUtterance.prepare_collection(self._db)
+        await Human.prepare_collection(self._db)
+        await Dialog.prepare_collection(self._db)

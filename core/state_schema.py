@@ -56,13 +56,19 @@ class HumanUtterance:
         }
 
     async def save(self, db):
+        data = self.to_dict()
+        data['date_time'] = self.date_time
+        data['_dialog_id'] = self._dialog_id
+        data['_in_dialog_id'] = self._in_dialog_id
         if not self._id:
-            data = self.to_dict()
-            data['_dialog_id'] = self._dialog_id
-            data['_in_dialog_id'] = self._in_dialog_id
             result = await db[self.collection_name].insert_one(data)
             self._id = result.inserted_id
             self.temp_id = None
+        else:
+            result = await db[self.collection_name].update_one(
+                {'_id': self._id},
+                {'$set': data}
+            )
         return self._id
 
     @classmethod
@@ -111,17 +117,20 @@ class BotUtterance:
         }
 
     async def save(self, db):
-        if not self._id:
-            result = await db[self.collection_name].insert_one(self.get_insert_dict())
-            self._id = result.inserted_id
-            self.temp_id = None
-        return self._id
-
-    def get_insert_dict(self):
         data = self.to_dict()
+        data['date_time'] = self.date_time
         data['_dialog_id'] = self._dialog_id
         data['_in_dialog_id'] = self._in_dialog_id
-        return data
+        if not self._id:
+            result = await db[self.collection_name].insert_one(data)
+            self._id = result.inserted_id
+            self.temp_id = None
+        else:
+            result = await db[self.collection_name].update_one(
+                {'_id': self._id},
+                {'$set': data}
+            )
+        return self._id
 
     @classmethod
     async def get_many(cls, db, dialog_id):
@@ -136,7 +145,8 @@ class Dialog:
     fieldlist = []
 
     def __init__(self, human, channel_type, _human_id=None, _bot_id=None,
-                 _id=None, _active=True, version=None, actual=False):
+                 _id=None, _active=True, version=None, actual=False,
+                 date_start=None, date_finish=None):
         self._id = _id
         self.temp_id = None
         if not _id:
@@ -151,6 +161,8 @@ class Dialog:
         self.version = version or STATE_API_VERSION
         self._dict = {}
         self.actual = actual
+        self.date_start = date_start
+        self.date_finish = date_finish
 
     @property
     def id(self):
@@ -160,7 +172,14 @@ class Dialog:
 
     @classmethod
     async def prepare_collection(cls, db):
-        await db[cls.collection_name].create_index([('_user_id', pymongo.ASCENDING), ('_active', pymongo.DESCENDING)])
+        await db[cls.collection_name].create_index(
+            [
+                ('_user_id', pymongo.ASCENDING),
+                ('_active', pymongo.DESCENDING),
+                ('date_start', pymongo.DESCENDING),
+                ('date_finish', pymongo.DESCENDING)
+            ]
+        )
 
     def to_dict(self):
         return {
@@ -190,8 +209,11 @@ class Dialog:
         return dialog_obj
 
     @classmethod
-    async def get_many_by_ext_id(cls, db, telegram_id):
-        human = await Human.get_or_create(db, telegram_id)
+    async def get_many_by_ext_id(cls, db, telegram_id=None, human=None):
+        if telegram_id:
+            human = await Human.get_or_create(db, telegram_id)
+        if not human:
+            raise ValueError('You should provide either telegram_id or human object')
         result = []
         async for document in db[cls.collection_name].find({'_human_id': human._id}):
             result.append(cls(actual=True, human=human, **document))
@@ -234,20 +256,29 @@ class Dialog:
             ind = self.utterances[-1]._in_dialog_id + 1
         self.utterances.append(BotUtterance(_in_dialog_id=ind))
 
-    async def save(self, db):
+    async def save(self, db, force=False):
         self._human_id = await self.human.save(db)
         self._bot_id = await self.bot.save(db)
-        if not self.actual:
-            data = {
+        data = {}
+        if self.utterances:
+            data['date_start'] = self.utterances[0].date_time
+            data['date_finish'] = self.utterances[-1].date_time
+        if not self._id:
+            data.update({
                 '_human_id': self._human_id,
                 '_bot_id': self._bot_id,
                 '_active': self._active,
                 'channel_type': self.channel_type
-            }
+            })
             dialog = await db[self.collection_name].insert_one(data)
             self._id = dialog.inserted_id
+        else:
+            await db[self.collection_name].update_one(
+                {'_id': self._id},
+                {'$set': data}
+            )
         for utt in self.utterances[::-1]:
-            if utt.actual:
+            if utt.actual and not force:
                 break
             utt._dialog_id = self._id
             await utt.save(db)
@@ -309,6 +340,13 @@ class Human:
         if user:
             return cls(**user)
         return None
+
+    @classmethod
+    async def get_all(cls, db):
+        result = []
+        async for document in db[cls.collection_name].find():
+            result.append(cls(**document))
+        return result
 
     async def save(self, db):
         is_changed = self.prev_state != self.get_state()
