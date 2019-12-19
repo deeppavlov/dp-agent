@@ -10,8 +10,6 @@ from state_formatters.output_formatters import (http_api_output_formatter,
 async def init_app(agent, session, consumers, debug=False):
     app = web.Application()
     handler = ApiHandler(debug)
-    if not consumers:
-        consumers = []
     consumers = [asyncio.ensure_future(i.call_service(agent.process)) for i in consumers]
     async def on_startup(app):
         app['consumers'] = consumers
@@ -19,10 +17,7 @@ async def init_app(agent, session, consumers, debug=False):
         app['client_session'] = session
 
     async def on_shutdown(app):
-        for c in app['consumers']:
-            c.cancel()
-        if app['client_session']:
-            await app['client_session'].close()
+        await app['client_session'].close()
 
     app.router.add_post('/', handler.handle_api_request)
     app.router.add_get('/dialogs/{dialog_id}', handler.dialog)
@@ -30,6 +25,22 @@ async def init_app(agent, session, consumers, debug=False):
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
+
+def prepare_startup(consumers, agent, session):
+    result = []
+    for i in consumers:
+        result.append(asyncio.ensure_future(i.call_service(agent.process)))
+
+    async def startup_background_tasks(app):
+        app['consumers'] = result
+        app['agent'] = agent
+        app['client_session'] = session
+
+    return startup_background_tasks
+
+
+async def on_shutdown(app):
+    await app['client_session'].close()
 
 
 class ApiHandler:

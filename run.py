@@ -15,7 +15,6 @@ from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
-from core.telegram_client import run_tg
 from core.workflow_manager import WorkflowManager
 from parse_config import parse_pipeline_config
 
@@ -69,15 +68,33 @@ def main():
     if gateway:
         gateway.on_channel_callback = agent.register_msg
         gateway.on_service_callback = agent.process
-    try:
-        if args.channel == 'cmd_client':
-            run_cmd(agent, session, workers, args.debug)
 
-        elif args.channel == 'http_client':
-            app = init_app(agent, session, workers, args.debug)
-            web.run_app(app, port=args.port)
-    
-    logging.shutdown()
+    if args.channel == 'cmd_client':
+
+        loop = asyncio.get_event_loop()
+        loop.set_debug(args.debug)
+        future = asyncio.ensure_future(run_cmd(agent.register_msg))
+        for i in workers:
+            loop.create_task(i.call_service(agent.process))
+        try:
+            loop.run_until_complete(future)
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            raise e
+        finally:
+            future.cancel()
+            if session:
+                loop.run_until_complete(session.close())
+            if gateway:
+                gateway.disconnect()
+            loop.stop()
+            loop.close()
+            logging.shutdown()
+    elif args.channel == 'http_client':
+        app = init_app(agent, session, workers, args.debug)
+        web.run_app(app, port=args.port)
+
 
 if __name__ == '__main__':
     main()
