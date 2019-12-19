@@ -1,4 +1,6 @@
+import asyncio
 from aioconsole import ainput
+
 
 
 async def message_processor(register_msg):
