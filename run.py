@@ -17,7 +17,7 @@ from core.service import Service
 from core.state_manager import StateManager
 from core.telegram_client import run_tg
 from core.workflow_manager import WorkflowManager
-from parse_config import parse_pipeline_config
+from parse_config import PipelineConfigParser
 
 service_logger = logging.getLogger('service_logger')
 
@@ -54,27 +54,27 @@ def main():
             pipeline_data = yaml.load(pipeline_config)
         else:
             raise ValueError('unknown format for pipeline_config')
-    services, workers, session, gateway = parse_pipeline_config(pipeline_data, sm, None)
+    pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
     endpoint_srv = Service('responder', EventSetOutputConnector('responder').send,
                         sm.save_dialog, 1, ['responder'])
 
-    pipeline = Pipeline(services)
+    pipeline = Pipeline(pipeline_config.services)
     pipeline.add_responder_service(endpoint_srv)
     pipeline.add_input_service(input_srv)
 
     response_logger = LocalResponseLogger(args.response_logger)
     agent = Agent(pipeline, sm, WorkflowManager(), response_logger=response_logger)
-    if gateway:
-        gateway.on_channel_callback = agent.register_msg
-        gateway.on_service_callback = agent.process
+    if pipeline_config.gateway:
+        pipeline_config.gateway.on_channel_callback = agent.register_msg
+        pipeline_config.gateway.on_service_callback = agent.process
     try:
         if args.channel == 'cmd_client':
-            run_cmd(agent, session, workers, args.debug)
+            run_cmd(agent, pipeline_config.session, pipeline_config.workers, args.debug)
 
         elif args.channel == 'http_client':
-            app = init_app(agent, session, workers, args.debug)
+            app = init_app(agent, pipeline_config.session, pipeline_config.workers, args.debug)
             web.run_app(app, port=args.port)
     except Exception as e:
         raise e
