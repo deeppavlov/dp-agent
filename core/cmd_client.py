@@ -2,9 +2,8 @@ import asyncio
 from aioconsole import ainput
 
 
-
 async def message_processor(register_msg):
-    user_id = input('Provide user id: ')
+    user_id = await ainput('Provide user id: ')
     while True:
         msg = await ainput(f'You ({user_id}): ')
         msg = msg.strip()
