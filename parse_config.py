@@ -66,7 +66,7 @@ class PipelineConfigParser:
                 connector = HTTPConnector(self.get_session(), data['url'])
 
         elif data['protocol'] == 'AMQP':
-            gateway = gateway or self.get_gateway()
+            gateway = self.get_gateway()
             service_name = data.get('service_name') or data['connector_name']
             connector = AgentGatewayToServiceConnector(to_service_callback=gateway.send_to_service,
                                                        service_name=service_name)
