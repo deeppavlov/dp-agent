@@ -20,32 +20,21 @@ TMessageBase = TypeVar('TMessageBase', bound=MessageBase)
 
 class ServiceTaskMessage(MessageBase):
     agent_name: str
-    service_name: str
-    task_uuid: str
-    dialog: Dict
+    payload: Dict
 
-    def __init__(self, agent_name: str, service_name: str, task_uuid: str, dialog: Dict) -> None:
+    def __init__(self, agent_name: str, payload: Dict) -> None:
         super().__init__('service_task', agent_name)
-        self.service_name = service_name
-        self.task_uuid = task_uuid
-        self.dialog = dialog
+        self.payload = payload
 
 
 class ServiceResponseMessage(MessageBase):
     agent_name: str
-    task_uuid: str
-    service_name: str
-    service_instance_id: str
-    dialog_id: str
     response: Any
+    task_id: str
 
-    def __init__(self, agent_name: str, task_uuid: str, service_name: str, service_instance_id: str, dialog_id: str,
-                 response: Any) -> None:
+    def __init__(self, task_id: str, agent_name: str, response: Any) -> None:
         super().__init__('service_response', agent_name)
-        self.task_uuid = task_uuid
-        self.service_name = service_name
-        self.service_instance_id = service_instance_id
-        self.dialog_id = dialog_id
+        self.task_id = task_id
         self.response = response
 
 
