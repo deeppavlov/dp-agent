@@ -131,6 +131,10 @@ class Agent:
         await self.process(dialog_id, service_name, response=utterance, message_attrs=message_attrs)
 
     async def process(self, dialog_id, service_name=None, response: Any = None, **kwargs):
+        if isinstance(response, Exception):
+            self.flush_record(dialog_id)
+            raise response
+
         workflow_record = self.get_workflow_record(dialog_id)
         next_services = await self.process_service_response(dialog_id, service_name, response, **kwargs)
 

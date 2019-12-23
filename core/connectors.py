@@ -17,12 +17,18 @@ class HTTPConnector:
     async def send(self, payload: Dict, callback: Callable):
         formatted_payload = self.formatter([payload])
         service_send_time = time.time()
-        async with self.session.post(self.url, json=formatted_payload) as resp:
-            response = await resp.json()
+        try:
+            async with self.session.post(self.url, json=formatted_payload) as resp:
+                resp.raise_for_status()
+                response = await resp.json()
+                response = {self.service_name: self.formatter(response[0] if response else ('', 0), mode='out')}
+        except Exception as e:
+            response = e
+        finally:
             service_response_time = time.time()
             await callback(
                 dialog_id=payload['id'], service_name=self.service_name,
-                response={self.service_name: self.formatter(response[0] if response else ('',0), mode='out')},
+                response=response,
                 service_send_time=service_send_time,
                 service_response_time=service_response_time
             )
