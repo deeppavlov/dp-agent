@@ -1,4 +1,5 @@
 import uuid
+from collections import defaultdict
 from copy import copy
 from datetime import datetime
 from itertools import chain
@@ -44,6 +45,7 @@ class HumanUtterance:
     @classmethod
     async def prepare_collection(cls, db):
         await db[cls.collection_name].create_index('_dialog_id')
+        await db[cls.collection_name].create_index('date_time')
 
     def to_dict(self):
         return {
@@ -78,6 +80,13 @@ class HumanUtterance:
             result.append(cls(actual=True, **document))
         return result
 
+    @classmethod
+    async def get_all(cls, db):
+        result = []
+        async for document in db[cls.collection_name].find():
+            result.append(cls(**document))
+        return result
+
 
 class BotUtterance:
     collection_name = 'bot_utterance'
@@ -104,6 +113,7 @@ class BotUtterance:
     @classmethod
     async def prepare_collection(cls, db):
         await db[cls.collection_name].create_index('_dialog_id')
+        await db[cls.collection_name].create_index('date_time')
 
     def to_dict(self):
         return {
@@ -137,6 +147,13 @@ class BotUtterance:
         result = []
         async for document in db[cls.collection_name].find({'_dialog_id': dialog_id}):
             result.append(cls(actual=True, **document))
+        return result
+
+    @classmethod
+    async def get_all(cls, db):
+        result = []
+        async for document in db[cls.collection_name].find():
+            result.append(cls(**document))
         return result
 
 
@@ -177,7 +194,8 @@ class Dialog:
                 ('_user_id', pymongo.ASCENDING),
                 ('_active', pymongo.DESCENDING),
                 ('date_start', pymongo.DESCENDING),
-                ('date_finish', pymongo.DESCENDING)
+                ('date_finish', pymongo.DESCENDING),
+
             ]
         )
 
@@ -186,7 +204,10 @@ class Dialog:
             'id': self.id,
             'utterances': [i.to_dict() for i in self.utterances],
             'human': self.human.to_dict(),
-            'bot': self.bot.to_dict()
+            'bot': self.bot.to_dict(),
+            'channel_type': self.channel_type,
+            'date_start': self.date_start,
+            'date_finish': self.date_finish,
         }
 
     async def load_external_info(self, db):
@@ -221,6 +242,23 @@ class Dialog:
         return result
 
     @classmethod
+    async def get_all(cls, db):
+        humans = {i._id: i for i in await Human.get_all(db)}
+        bots = {i._id: i for i in await Bot.get_all(db)}
+        utterances = defaultdict(list)
+        for doc in await HumanUtterance.get_all(db):
+            utterances[doc._dialog_id].append(doc)
+        for doc in await BotUtterance.get_all(db):
+            utterances[doc._dialog_id].append(doc)
+        result = []
+        async for document in db[cls.collection_name].find():
+            dialog = cls(actual=True, human=humans[document['_human_id']], **document)
+            dialog.bot = bots[document['_bot_id']]
+            dialog.utterances = sorted(utterances[document['_id']], key=lambda x: x._in_dialog_id)
+            result.append(dialog)
+        return result
+
+    @classmethod
     async def get_by_id(cls, db, dialog_id):
         dialog = await db[cls.collection_name].find_one({'_id': ObjectId(dialog_id)})
         if dialog:
@@ -243,6 +281,10 @@ class Dialog:
     async def get_or_create_by_ext_id(cls, db, telegram_id, channel_type):
         human = await Human.get_or_create(db, telegram_id)
         return await cls.get_or_create_by_user(db, human, channel_type)
+
+    @classmethod
+    async def get_channels(cls, db):
+        return await db[cls.collection_name].distinct('channel_type')
 
     def add_human_utterance(self):
         ind = 0
@@ -268,8 +310,9 @@ class Dialog:
                 '_human_id': self._human_id,
                 '_bot_id': self._bot_id,
                 '_active': self._active,
-                'channel_type': self.channel_type
-            })
+                'channel_type': self.channel_type,
+                }
+            )
             dialog = await db[self.collection_name].insert_one(data)
             self._id = dialog.inserted_id
         else:
@@ -406,6 +449,13 @@ class Bot:
             if bot:
                 return cls(**bot)
         return cls()
+
+    @classmethod
+    async def get_all(cls, db):
+        result = []
+        async for document in db[cls.collection_name].find():
+            result.append(cls(**document))
+        return result
 
     async def save(self, db):
         is_changed = self.prev_state != self.get_state()

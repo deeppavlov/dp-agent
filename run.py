@@ -10,7 +10,7 @@ from core.agent import Agent
 from core.cmd_client import run_cmd
 from core.connectors import EventSetOutputConnector
 from core.db import DataBase
-from core.http_api import init_app
+from http_api.api import init_app
 from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
@@ -74,7 +74,7 @@ def main():
             run_cmd(agent, pipeline_config.session, pipeline_config.workers, args.debug)
 
         elif args.channel == 'http_client':
-            app = init_app(agent, pipeline_config.session, pipeline_config.workers, args.debug)
+            app = init_app(agent, pipeline_config.session, pipeline_config.workers, response_logger, args.debug)
             web.run_app(app, port=args.port)
     except Exception as e:
         raise e
