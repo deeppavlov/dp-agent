@@ -1,18 +1,22 @@
 class Service:
     def __init__(self, name, connector_func, state_processor_method=None,
                  batch_size=1, tags=None, names_previous_services=None,
+                 names_required_previous_services=None,
                  workflow_formatter=None, dialog_formatter=None, response_formatter=None,
                  label=None):
         self.name = name
         self.batch_size = batch_size
         self.state_processor_method = state_processor_method
         self.names_previous_services = names_previous_services or set()
+        self.names_required_previous_services = names_required_previous_services or set()
         self.tags = tags or []
         self.workflow_formatter = workflow_formatter
         self.dialog_formatter = dialog_formatter
         self.response_formatter = response_formatter
         self.connector_func = connector_func
         self.previous_services = set()
+        self.required_previous_services = set()
+        self.dependent_services = set()
         self.next_services = set()
         self.label = label or self.name
 
