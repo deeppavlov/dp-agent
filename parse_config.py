@@ -127,10 +127,15 @@ class PipelineConfigParser:
         names_previous_services = set()
         for sn in data.get('previous_services', set()):
             names_previous_services.update(self.services_names.get(sn, set()))
+        names_required_previous_services = set()
+        for sn in data.get('required_previous_services', set()):
+            names_required_previous_services.update(self.services_names.get(sn, set()))
         tags = data.get('tags', [])
         self.services.append(
             Service(name=service_name, connector_func=connector.send, state_processor_method=sm_method, tags=tags,
-                    names_previous_services=names_previous_services, workflow_formatter=workflow_formatter,
+                    names_previous_services=names_previous_services,
+                    names_required_previous_services=names_required_previous_services,
+                    workflow_formatter=workflow_formatter,
                     dialog_formatter=dialog_formatter, response_formatter=response_formatter, label=name)
         )
 

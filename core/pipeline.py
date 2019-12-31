@@ -24,7 +24,7 @@ class Pipeline:
     def process_service_names(self):
         wrong_names = defaultdict(list)
         for service in self.services.values():
-            for name_prev_service in service.names_previous_services:
+            for name_prev_service in service.names_previous_services.union(service.names_required_previous_services):
                 if name_prev_service not in self.services:
                     wrong_names[service.name].append(name_prev_service)
                     continue
@@ -52,7 +52,7 @@ class Pipeline:
             raise ValueError('service should be a responder')
         endpoints = self.get_endpoint_services()
         service.previous_services = set(endpoints)
-        service.previous_service_names = {s.name for s in endpoints}
+        service.names_previous_services = {s.name for s in endpoints}
         self.services[service.name] = service
 
         for s in endpoints:
@@ -67,3 +67,34 @@ class Pipeline:
 
         for s in starting_services:
             self.services[s.name].previous_services.add(service)
+
+    def topological_sort(self):
+        order, nodes, state = [], set(self.services.keys()), {}
+
+        def dfs(node, path):
+            state[node] = 0
+            for ns in self.services[node].next_services:
+                ns_status = state.get(ns.name, None)
+                if ns_status == 0:
+                    raise ValueError(f'Pipeline cycle was found {path}')
+                elif ns_status == 1:
+                    continue
+                nodes.discard(ns.name)
+                dfs(ns.name, path + [ns.name])
+            order.append(node)
+            state[node] = 1
+
+        starting_node = [i for i in self.services.values() if i.is_input()][0]
+        nodes.discard(starting_node.name)
+        dfs(starting_node.name, [])
+        return order
+
+    def fill_dependent_service_chains_and_required_services(self):
+        for sn in self.topological_sort():
+            service = self.services[sn]
+            for i in service.names_required_previous_services:
+                req = self.services[i]
+                service.required_previous_services.add(req)
+                req.dependent_services.add(service)
+                for ds in service.dependent_services:
+                    req.dependent_services.add(ds)
