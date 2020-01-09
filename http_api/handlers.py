@@ -96,7 +96,7 @@ class PagesHandler:
 
 class WSstatsHandler:
     def __init__(self):
-        self.update_time = 0.2
+        self.update_time = 0.5
 
     @aiohttp_jinja2.template('services_ws_highcharts.html')
     async def ws_page(self, request):
