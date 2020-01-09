@@ -15,7 +15,7 @@ class WorkflowManager:
     def add_workflow_record(self, dialog: Dialog, deadline_timestamp: Optional[float] = None, **kwargs) -> None:
         if str(dialog.id) in self.workflow_records.keys():
             raise ValueError(f'dialog with id {dialog.id} is already in workflow')
-        workflow_record = {'dialog': dialog, 'services': defaultdict(dict), 'tasks': []}
+        workflow_record = {'dialog': dialog, 'services': defaultdict(dict), 'tasks': set()}
         if deadline_timestamp:
             workflow_record['deadline_timestamp'] = deadline_timestamp
         workflow_record.update(kwargs)
@@ -41,9 +41,8 @@ class WorkflowManager:
         }
 
         workflow_record['services'][service.name]['pending_tasks'].add(task_id)                                                   
-        workflow_record['tasks'].append(task_id)
+        workflow_record['tasks'].add(task_id)
         self.tasks[task_id] = task_data
-
         return task_id
 
     def skip_service(self, dialog_id: str, service: Service) -> None:
@@ -74,13 +73,19 @@ class WorkflowManager:
         task = self.tasks.pop(task_id, None)
         if not task:
             return None, None
+
         workflow_record = self.workflow_records.get(task['dialog'], None)
         if not workflow_record:
-            return None, None
+            workflow_record = task.pop('workflow_record', None)
+            return workflow_record, task
+
+        workflow_record['tasks'].discard(task_id)
         workflow_record['services'][task['service'].name]['pending_tasks'].discard(task_id)
+
         if not workflow_record['services'][task['service'].name]['pending_tasks']:
             workflow_record['services'][task['service'].name]['done'] = True
         workflow_record['services'][task['service'].name][task_id]['agent_done_time'] = time()
+
         if isinstance(response, Exception):
             workflow_record['services'][task['service'].name][task_id]['error'] = True
         else:
@@ -92,8 +97,8 @@ class WorkflowManager:
         workflow_record = self.workflow_records.pop(dialog_id, None)
         if not workflow_record:
             return None
-        for i in workflow_record['tasks']:
-            self.tasks.pop(i, None)
+        for i in workflow_record.pop('tasks', set()):
+            self.tasks[i]['workflow_record'] = workflow_record
 
         return workflow_record
         

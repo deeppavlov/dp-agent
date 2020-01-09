@@ -1,35 +1,14 @@
 import asyncio
-
-from aiohttp import web
-from string import hexdigits
+from collections import defaultdict
 from datetime import datetime
+from string import hexdigits
+
+import aiohttp_jinja2
+import jinja2
+from aiohttp import WSMsgType, web
+
 from state_formatters.output_formatters import (http_api_output_formatter,
                                                 http_debug_output_formatter)
-
-
-async def init_app(agent, session, consumers, debug=False):
-    app = web.Application()
-    handler = ApiHandler(debug)
-    if not consumers:
-        consumers = []
-    consumers = [asyncio.ensure_future(i.call_service(agent.process)) for i in consumers]
-    async def on_startup(app):
-        app['consumers'] = consumers
-        app['agent'] = agent
-        app['client_session'] = session
-
-    async def on_shutdown(app):
-        for c in app['consumers']:
-            c.cancel()
-        if app['client_session']:
-            await app['client_session'].close()
-
-    app.router.add_post('/', handler.handle_api_request)
-    app.router.add_get('/dialogs/{dialog_id}', handler.dialog)
-    app.router.add_get('/user/{user_telegram_id}', handler.dialogs_by_user)
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
-    return app
 
 
 class ApiHandler:
@@ -48,22 +27,25 @@ class ApiHandler:
             if 'content-type' not in request.headers or not request.headers['content-type'].startswith('application/json'):
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
             data = await request.json()
+
             user_id = data.pop('user_id')
             payload = data.pop('payload', '')
 
             if not user_id:
                 raise web.HTTPBadRequest(reason='user_id key is required')
-            
+
             command_performed = await handle_command(payload, user_id, request.app['agent'].state_manager)
             if command_performed:
                 return web.json_response({})
 
-            response = await register_msg(utterance=payload, user_telegram_id=user_id,
-                                          user_device_type=data.pop('user_device_type', 'http'),
-                                          date_time=datetime.now(),
-                                          location=data.pop('location', ''),
-                                          channel_type='http_client',
-                                          message_attrs=data,  require_response=True)
+            response = await asyncio.shield(
+                register_msg(utterance=payload, user_telegram_id=user_id,
+                             user_device_type=data.pop('user_device_type', 'http'),
+                             date_time=datetime.now(),
+                             location=data.pop('location', ''),
+                             channel_type='http_client',
+                             message_attrs=data, require_response=True)
+            )
 
             if response is None:
                 raise RuntimeError('Got None instead of a bot response.')
@@ -71,7 +53,6 @@ class ApiHandler:
                 return web.json_response(http_debug_output_formatter(response['dialog'].to_dict()))
             else:
                 return web.json_response(http_api_output_formatter(response['dialog'].to_dict()))
-
 
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager
@@ -88,3 +69,47 @@ class ApiHandler:
         user_telegram_id = request.match_info['user_telegram_id']
         dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
         return web.json_response([i.to_dict() for i in dialogs])
+
+
+class PagesHandler:
+    def __init__(self, debug=False):
+        self.debug = debug
+
+    @aiohttp_jinja2.template('base.html')
+    async def ping(self, request):
+        return {}
+
+    @aiohttp_jinja2.template('dialogslist.html')
+    async def dialoglist(self, request):
+        def dialg_to_dict(dialog):
+            return {
+                'id': dialog.id,
+                'channel_type': dialog.channel_type,
+                'start': min([i.date_time for i in dialog.utterances]).strftime("%d-%m-%Y %H:%M"),
+                'finish': max([i.date_time for i in dialog.utterances])
+            }
+
+        state_manager = request.app['agent'].state_manager
+        dialogs = await state_manager.get_all_dialogs()
+        return {'dialogs': [dialg_to_dict(i) for i in dialogs]}
+
+
+class WSstatsHandler:
+    def __init__(self):
+        self.update_time = 0.5
+
+    @aiohttp_jinja2.template('services_ws_highcharts.html')
+    async def ws_page(self, request):
+        return {}
+
+    async def index(self, request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        request.app['websockets'].append(ws)
+        logger_stats = request.app['logger_stats']
+        while True:
+            data = dict(logger_stats.get_current_load())
+            await ws.send_json(data)
+            await asyncio.sleep(self.update_time)
+
+        return ws
