@@ -1,11 +1,14 @@
 import asyncio
 from collections import defaultdict
 from importlib import import_module
+from os import getenv
 from typing import Dict, List
 
 import aiohttp
 
-from core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector, AgentGatewayToServiceConnector
+from core.connectors import (AgentGatewayToServiceConnector, AioQueueConnector,
+                             HTTPConnector, QueueListenerBatchifyer)
+from core.db import DataBase
 from core.service import Service, simple_workflow_formatter
 from core.state_manager import StateManager
 from core.transport.mapping import GATEWAYS_MAP
@@ -168,3 +171,27 @@ class PipelineConfigParser:
             else:  # grouped services
                 for sk, sv in v.items():
                     self.make_service(k, sk, sv)
+
+
+class DbConfigParser:
+    def __init__(self, config):
+        self.config = config
+        self.db = self.parse_config()
+
+    def parse_config(self):
+        result = {}
+        for k, v in self.config.items():
+            if isinstance(v, dict) and 'env' in v:
+                env_value = getenv(v['env'])
+                if not env_value:
+                    raise ValueError(f"Database: environment variable {v['env']} is empty")
+                result[k]
+            elif isinstance(v, str) or isinstance(v, int):
+                result[k] = v
+            else:
+                raise ValueError(f'Database: parameter {k} is not int, string, or represents an environment variable')
+        diff = set(['host', 'port', 'name']) - set(result.keys())
+        if diff:
+            raise ValueError(f'Database: some parameters are not presented in db config: {diff}')
+
+        return DataBase(**result)
