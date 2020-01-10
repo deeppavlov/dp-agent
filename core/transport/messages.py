@@ -1,7 +1,9 @@
-from typing import TypeVar, Any, Dict
+from typing import Any, Dict, TypeVar
 
 
 class MessageBase:
+    agent_name: str
+    msg_type: str
 
     def __init__(self, msg_type: str, agent_name: str):
         self.msg_type = msg_type
@@ -19,7 +21,6 @@ TMessageBase = TypeVar('TMessageBase', bound=MessageBase)
 
 
 class ServiceTaskMessage(MessageBase):
-    agent_name: str
     payload: Dict
 
     def __init__(self, agent_name: str, payload: Dict) -> None:
@@ -28,7 +29,6 @@ class ServiceTaskMessage(MessageBase):
 
 
 class ServiceResponseMessage(MessageBase):
-    agent_name: str
     response: Any
     task_id: str
 
@@ -38,8 +38,20 @@ class ServiceResponseMessage(MessageBase):
         self.response = response
 
 
+class ServiceErrorMessage(MessageBase):
+    formatted_exc: str
+
+    def __init__(self, task_id: str, agent_name: str, formatted_exc: str) -> None:
+        super().__init__('error', agent_name)
+        self.task_id = task_id
+        self.formatted_exc = formatted_exc
+
+    @property
+    def exception(self) -> Exception:
+        return Exception(self.formatted_exc)
+
+
 class ToChannelMessage(MessageBase):
-    agent_name: str
     channel_id: str
     user_id: str
     response: str
@@ -52,7 +64,6 @@ class ToChannelMessage(MessageBase):
 
 
 class FromChannelMessage(MessageBase):
-    agent_name: str
     channel_id: str
     user_id: str
     utterance: str
@@ -70,7 +81,8 @@ _message_wrappers_map = {
     'service_task': ServiceTaskMessage,
     'service_response': ServiceResponseMessage,
     'to_channel_message': ToChannelMessage,
-    'from_channel_message': FromChannelMessage
+    'from_channel_message': FromChannelMessage,
+    'error': ServiceErrorMessage
 }
 
 

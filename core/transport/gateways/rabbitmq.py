@@ -9,7 +9,7 @@ from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Mess
 
 from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ChannelGatewayBase
 from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
-from core.transport.messages import TMessageBase, get_transport_message
+from core.transport.messages import TMessageBase, ServiceErrorMessage, get_transport_message
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'
 AGENT_OUT_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_out'
@@ -127,6 +127,11 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
             logger.debug(f'Received service response message {str(message_in.to_json())}')
             await self._loop.create_task(self._on_service_callback(task_id=message_in.task_id,
                                                                    response=message_in.response))
+
+        elif isinstance(message_in, ServiceErrorMessage):
+            logger.debug(f'Received service error message {str(message_in.to_json())}')
+            await self._loop.create_task(self._on_service_callback(task_id=message_in.task_id,
+                                                                   response=message_in.exception))
 
         elif isinstance(message_in, FromChannelMessage):
             logger.debug(f'Received message from channel {str(message_in.to_json())}')
