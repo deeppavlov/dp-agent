@@ -70,6 +70,6 @@ def ranking_chitchat_formatter_in(dialog: Dict) -> List:
     }]
 
 
-def confidence_formatter(payload):
+def confidence_formatter_out(payload):
     return [{"text": payload[0],
             "confidence": payload[1]}]
