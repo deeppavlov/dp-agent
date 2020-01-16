@@ -1,5 +1,4 @@
 import motor.motor_asyncio
-from core.transform_config import DB_HOST, DB_PORT, DB_NAME
 
 
 class DataBase:
@@ -16,5 +15,3 @@ class DataBase:
 
     def get_db(self):
         return self.db
-
-db = DataBase(DB_HOST, DB_PORT, DB_NAME).get_db()

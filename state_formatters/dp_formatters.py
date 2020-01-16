@@ -1,141 +1,62 @@
-from typing import List, Any
-import json
+from typing import Dict, Any, List
 
 
-def base_input_formatter(state: List):
-    """This state_formatter takes the most popular fields from Agent state and returns them as dict values:
-        * last utterances: a list of last utterance from each dialog in the state
-        * last_annotations: a list of last annotation from each last utterance
-        * utterances_histories: a list of lists of all utterances from all dialogs
-        * annotations_histories: a list of lists of all annotations from all dialogs
-        * dialog_ids: a list of all dialog ids
-        * user_ids: a list of all user ids, each dialog have a unique human participant id
-    Args:
-        state: dialog state
+def base_last_utterances_formatter_in(dialog: Dict, model_args_names=('x',)):
+    return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]
 
-    Returns: formatted dialog state
+def base_hypotheses_formatter_in(dialog: Dict, model_args_names=('x',)):
+    return [{model_args_names[0]: [i['text']]} for i in dialog['utterances'][-1]['hypotheses']]
 
-    """
-    utterances_histories = []
-    last_utts = []
-    annotations_histories = []
-    last_annotations = []
-    dialog_ids = []
-    user_ids = []
+def all_hypotheses_formatter_in(dialog: Dict):
+    return[{'hypotheses': dialog['utterances'][-1]['hypotheses']}]
 
-    for dialog in state:
-        utterances_history = []
-        annotations_history = []
-        for utterance in dialog['utterances']:
-            utterances_history.append(utterance['text'])
-            annotations_history.append(utterance['annotations'])
+def chitchat_formatter_in(dialog: Dict, model_args_names=('q',)):
+    return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]
 
-        last_utts.append(utterances_history[-1])
-        utterances_histories.append(utterances_history)
-        last_annotations.append(annotations_history[-1])
-        annotations_histories.append(annotations_history)
+def odqa_formatter_in(dialog: Dict, model_args_names=('question_raw',)):
+    return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]
 
-        dialog_ids.append(dialog['id'])
-        user_ids.extend([utt['user']['id'] for utt in state[0]['utterances']])
+def chitchat_example_formatter_in(dialog: Dict,
+                               model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs')):
+    return {
+        model_args_names[0]: [dialog['utterances'][-1]['text']],
+        model_args_names[1]: [dialog['utterances'][-1]['annotations']],
+        model_args_names[2]: [[utt['text'] for utt in dialog['utterances']]],
+        model_args_names[3]: [dialog]
+    }
 
-    return {'dialogs': state,
-            'last_utterances': last_utts,
-            'last_annotations': last_annotations,
-            'utterances_histories': utterances_histories,
-            'annotation_histories': annotations_histories,
-            'dialog_ids': dialog_ids,
-            'user_ids': user_ids}
-
-
-def last_utterances(payload, model_args_names):
-    utterances = base_input_formatter(payload)['last_utterances']
-    return {model_args_names[0]: utterances}
-
-
-def base_skill_output_formatter(payload):
-    """Works with a single batch instance
-
-    Args:
-       payload: one batch instance
-
-    Returns: a formatted batch instance
-
-    """
-    return payload
-
-
-def base_annotator_formatter(payload: Any, model_args_names=('x',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
-        return payload
-
-
-def ner_formatter(payload: Any, model_args_names=('x',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
+def ner_formatter_out(payload: List):
+    if len(payload) == 2:
         return {'tokens': payload[0],
                 'tags': payload[1]}
+    else:
+        raise ValueError("Payload doesn't contain all required fields")
 
+def sentiment_formatter_out(payload: List):
+    return payload
 
-def sentiment_formatter(payload: Any, model_args_names=('x',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
-        return [el for el in payload]
-
-
-def chitchat_odqa_formatter(payload: Any, model_args_names=('x',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
+def chitchat_odqa_formatter_out(payload: List):
+    if payload:
         class_name = payload[0]
         if class_name in ['chit-chat']:
             response = ['ranking_chitchat_2stage']
         else:
             response = ['odqa']
         return response
+    else:
+        raise ValueError('Empty payload provided')
 
 
-def odqa_formatter(payload: Any, model_args_names=('question_raw',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
+def add_confidence_formatter_out(payload: List, confidence=0.5):
+    if payload:
+        return [{"text": payload[0], "confidence": 0.5}]
+    else:
+        raise ValueError('Empty payload provided')
+
+def chitchat_example_formatter_out(payload: List):
+    if len(payload) == 3:
         return [{"text": payload[0],
-                 "confidence": 0.5}]
-
-
-def chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
-    if mode == 'in':
-        return last_utterances(payload, model_args_names)
-    if mode == 'out':
-        return [{"text": payload[0],
-                 "confidence": 0.5}]
-
-
-def ranking_chitchat_formatter(payload: Any, model_args_names=('q',), mode='in'):
-    if mode == 'in':
-        dialogs = base_input_formatter(payload)
-        return {
-            "last_utterances": dialogs['last_utterances'],
-            "utterances_histories": [json.dumps(i, ensure_ascii=False) for i in dialogs['utterances_histories']],
-        }
-    if mode == 'out':
-        return [{"text": payload[0],
-                 "confidence": payload[1]}]
-
-
-def chitchat_example_formatter(payload: Any,
-                               model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs'),
-                               mode='in'):
-    if mode == 'in':
-        parsed = base_input_formatter(payload)
-        return {model_args_names[0]: parsed['last_utterances'],
-                model_args_names[1]: parsed['last_annotations'],
-                model_args_names[2]: parsed['utterances_histories'],
-                model_args_names[3]: parsed['dialogs']}
-    if mode == 'out':
-        return {"text": payload[0],
                 "confidence": payload[1],
-                "name": payload[2]}
+                "name": payload[2]}]
+    else:
+        raise ValueError("Payload doesn't contain all required fields")
