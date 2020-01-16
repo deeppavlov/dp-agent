@@ -1,4 +1,5 @@
 from typing import Dict, Any, List
+import json
 
 
 def base_last_utterances_formatter_in(dialog: Dict, model_args_names=('x',)):
@@ -60,3 +61,15 @@ def chitchat_example_formatter_out(payload: List):
                 "name": payload[2]}]
     else:
         raise ValueError("Payload doesn't contain all required fields")
+
+
+def ranking_chitchat_formatter_in(dialog: Dict) -> List:
+    return [{
+        'last_utterances': dialog['utterances'][-1]['text'],
+        'utterances_histories': [json.dumps([i['text'] for i in dialog['utterances']], ensure_ascii=False)]
+    }]
+
+
+def confidence_formatter(payload):
+    return [{"text": payload[0],
+            "confidence": payload[1]}]
