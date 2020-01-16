@@ -14,7 +14,7 @@ from state_formatters import all_formatters
 
 
 class PipelineConfigParser:
-    def __init__(self, state_manager, config):
+    def __init__(self, state_manager: StateManager, config: Dict):
         self.config = config
         self.state_manager = state_manager
         self.services = []
@@ -85,7 +85,7 @@ class PipelineConfigParser:
         self.workers.extend(workers)
         self.connectors[name] = connector
 
-    def make_service(self, group, name, data: Dict):
+    def make_service(self, group: str, name: str, data: Dict):
         connector_data = data.get('connector', None)
         service_name = ".".join([i for i in [group, name] if i])
         if 'workflow_formatter' in data and not data['workflow_formatter']:
@@ -160,6 +160,7 @@ class PipelineConfigParser:
                     elif not isinstance(sv['connector'], str):
                         raise ValueError({f'connector in pipeline.{service_name} is declared incorrectly'})
                     self.services_names[k].add(service_name)
+                    self.services_names[service_name].add(service_name)
 
     def fill_services(self):
         for k, v in self.config['services'].items():
