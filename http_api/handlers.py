@@ -1,11 +1,9 @@
 import asyncio
-from collections import defaultdict
 from datetime import datetime
 from string import hexdigits
 
 import aiohttp_jinja2
-import jinja2
-from aiohttp import WSMsgType, web
+from aiohttp import web
 
 from state_formatters.output_formatters import (http_api_output_formatter,
                                                 http_debug_output_formatter)
@@ -24,7 +22,8 @@ class ApiHandler:
         response = {}
         register_msg = request.app['agent'].register_msg
         if request.method == 'POST':
-            if 'content-type' not in request.headers or not request.headers['content-type'].startswith('application/json'):
+            if 'content-type' not in request.headers \
+                    or not request.headers['content-type'].startswith('application/json'):
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
             data = await request.json()
 

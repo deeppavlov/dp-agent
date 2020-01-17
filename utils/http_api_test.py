@@ -57,7 +57,7 @@ async def perform_test_dialogue(session, url, uuid, payloads):
         start_time = time()
         async with session.post(url, json=request_body, timeout=None) as resp:
             resp.raise_for_status()
-                
+
             response = await resp.json()
             end_time = time()
             if response['user_id'] != uuid:

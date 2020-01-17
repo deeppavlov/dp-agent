@@ -1,5 +1,4 @@
 import asyncio
-import os
 
 import aiohttp_jinja2
 import jinja2
@@ -14,6 +13,7 @@ async def init_app(agent, session, consumers, logger_stats, debug=False):
     pages = PagesHandler(debug)
     stats = WSstatsHandler()
     consumers = [asyncio.ensure_future(i.call_service(agent.process)) for i in consumers]
+
     async def on_startup(app):
         app['consumers'] = consumers
         app['agent'] = agent
@@ -34,7 +34,6 @@ async def init_app(agent, session, consumers, logger_stats, debug=False):
     app.router.add_get('/dialogs', pages.dialoglist)
     app.router.add_get('/debug/current_load', stats.ws_page)
     app.router.add_get('/debug/current_load/ws', stats.index)
-    app.add_routes([web.static('/static', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'))])
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader('http_api', 'templates'))

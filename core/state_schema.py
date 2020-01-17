@@ -311,8 +311,7 @@ class Dialog:
                 '_bot_id': self._bot_id,
                 '_active': self._active,
                 'channel_type': self.channel_type,
-                }
-            )
+            })
             dialog = await db[self.collection_name].insert_one(data)
             self._id = dialog.inserted_id
         else:
@@ -332,7 +331,7 @@ class Human:
     fieldlist = ['persona', 'attributes', 'profile']
 
     def __init__(self, telegram_id, _id=None, persona=None,
-            attributes=None, profile=None):
+                 attributes=None, profile=None):
         self._id = _id
         self.temp_id = None
         if not _id:
@@ -402,10 +401,14 @@ class Human:
             self._id = user_obj.inserted_id
             self.temp_id = None
         elif is_changed:
-            user_obj = await db[self.collection_name].update_one({'_id': self._id},
-                {'$set': {'persona': self.persona,
-                'profile': self.profile, 'attributes': self.attributes}}
-            )
+            user_obj = await db[self.collection_name].update_one({
+                '_id': self._id},
+                {'$set': {
+                    'persona': self.persona,
+                    'profile': self.profile,
+                    'attributes': self.attributes
+                }
+            })
         return self._id
 
 
@@ -466,9 +469,13 @@ class Bot:
             self._id = bot_obj.inserted_id
             self.temp_id = None
         elif is_changed:
-            bot_obj = await db[self.collection_name].update_one({'_id': self._id},
-                {'$set': {'persona': self.persona, 'attributes': self.attributes}}
-            )
+            bot_obj = await db[self.collection_name].update_one({
+                '_id': self._id},
+                {'$set': {
+                    'persona': self.persona,
+                    'attributes': self.attributes
+                }
+            })
         return self._id
 
 

@@ -40,7 +40,7 @@ class WorkflowManager:
             'agent_send_time': time(), 'agent_done_time': None
         }
 
-        workflow_record['services'][service.name]['pending_tasks'].add(task_id)                                                   
+        workflow_record['services'][service.name]['pending_tasks'].add(task_id)
         workflow_record['tasks'].add(task_id)
         self.tasks[task_id] = task_data
         return task_id
@@ -101,4 +101,3 @@ class WorkflowManager:
             self.tasks[i]['workflow_record'] = workflow_record
 
         return workflow_record
-        

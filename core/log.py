@@ -107,7 +107,7 @@ class LocalResponseLogger(BaseResponseLogger):
 
     def log_end(self, task_id: str, workflow_record: dict, service: Service) -> None:
         end_time = datetime.utcnow()
-        
+
         if service.is_responder():
             self._services_load['agent'] -= 1
             start_time = self._tasks_buffer.pop(workflow_record['dialog'].id, None)

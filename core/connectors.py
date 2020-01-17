@@ -29,7 +29,6 @@ class HTTPConnector:
             )
 
 
-
 class AioQueueConnector:
     def __init__(self, queue):
         self.queue = queue
@@ -86,7 +85,6 @@ class ConfidenceResponseSelectorConnector:
             task_id=payload['task_id'],
             response=best_skill
         )
-
 
 
 class EventSetOutputConnector:

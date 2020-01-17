@@ -1,7 +1,7 @@
 class Service:
     def __init__(self, name, connector_func, state_processor_method=None,
                  batch_size=1, tags=None, names_previous_services=None,
-                 workflow_formatter=None, dialog_formatter=None, response_formatter=None, 
+                 workflow_formatter=None, dialog_formatter=None, response_formatter=None,
                  label=None):
         self.name = name
         self.batch_size = batch_size

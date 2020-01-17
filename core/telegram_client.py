@@ -19,6 +19,7 @@ class TelegramMessageProcessor:
         )
         await message.answer(response['dialog']['utterances'][-1]['text'])
 
+
 def run_tg(token, proxy, agent):
     loop = asyncio.get_event_loop()
     bot = Bot(token=token, loop=loop, proxy=proxy)

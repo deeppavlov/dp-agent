@@ -9,6 +9,7 @@ from core.workflow_manager import WorkflowManager
 
 class Agent:
     _response_logger: BaseResponseLogger
+
     def __init__(self,
                  pipeline: Pipeline,
                  state_manager: StateManager,
