@@ -10,19 +10,19 @@ from core.agent import Agent
 from core.cmd_client import run_cmd
 from core.connectors import EventSetOutputConnector
 from core.db import DataBase
-from http_api.api import init_app
 from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
 from core.service import Service
 from core.state_manager import StateManager
-from core.telegram_client import run_tg
 from core.workflow_manager import WorkflowManager
+from http_api.api import init_app
 from parse_config import PipelineConfigParser
 
 service_logger = logging.getLogger('service_logger')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-pl', '--pipeline_config', help='service name for service run mode', type=str, default='pipeline_conf.json')
+parser.add_argument('-pl', '--pipeline_config', help='service name for service run mode', type=str,
+                    default='pipeline_conf.json')
 parser.add_argument('-db', '--db_config', help='service name for service run mode', type=str, default='db_conf.json')
 parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
                     choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
@@ -30,7 +30,8 @@ parser.add_argument('-p', '--port', help='port for http client, default 4242', d
 parser.add_argument("-px", "--proxy", help="proxy for telegram client", type=str, default='')
 parser.add_argument('-t', '--token', help='token for telegram client', type=str)
 
-parser.add_argument('-rl', '--response_logger', help='run agent with services response logging', action='store_true')
+parser.add_argument('-rl', '--response_logger', help='run agent with services response logging',
+                    action='store_true')
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
 args = parser.parse_args()
 
@@ -58,7 +59,7 @@ def main():
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
     endpoint_srv = Service('responder', EventSetOutputConnector('responder').send,
-                        sm.save_dialog, 1, ['responder'])
+                           sm.save_dialog, 1, ['responder'])
 
     pipeline = Pipeline(pipeline_config.services)
     pipeline.add_responder_service(endpoint_srv)

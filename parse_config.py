@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict
 from importlib import import_module
-from typing import Dict, List
+from typing import Dict
 
 import aiohttp
 
@@ -49,7 +49,7 @@ class PipelineConfigParser:
         else:
             module = self.imported_modules[module_name]
         return module
-        
+
     def make_connector(self, name: str, data: Dict):
         workers = []
         if data['protocol'] == 'http':
@@ -78,10 +78,11 @@ class PipelineConfigParser:
             elif len(params) == 2:
                 connector_class = getattr(self.get_external_module(params[0]), params[1])
             else:
-                raise ValueError(f"Expected class description in a `module.submodules:ClassName` form, but got `{data['class_name']}`")
+                raise ValueError(f"Expected class description in a `module.submodules:ClassName` form, "
+                                 f"but got `{data['class_name']}`")
             others = {k: v for k, v in data.items() if k not in {'protocol', 'class_name'}}
             connector = connector_class(**others)
-        
+
         self.workers.extend(workers)
         self.connectors[name] = connector
 
@@ -99,7 +100,7 @@ class PipelineConfigParser:
             connector = self.connectors.get(service_name, None)
         if not connector:
             raise ValueError(f'connector in pipeline.{service_name} is not declared')
-        
+
         sm_data = data.get('state_manager_method', None)
         if sm_data:
             sm_method = getattr(self.state_manager, sm_data, None)
@@ -107,7 +108,7 @@ class PipelineConfigParser:
                 raise ValueError(f"state manager doesn't have a method {sm_data} (declared in {service_name})")
         else:
             sm_method = None
-        
+
         dialog_formatter = None
         response_formatter = None
 
@@ -149,7 +150,7 @@ class PipelineConfigParser:
                 elif not isinstance(v['connector'], str):
                     raise ValueError({f'connector in pipeline.{k} is declared incorrectly'})
                 self.services_names[k].add(k)
-            else: # grouped services
+            else:  # grouped services
                 for sk, sv in v.items():
                     service_name = f'{k}.{sk}'
                     if isinstance(sv['connector'], dict):
