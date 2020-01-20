@@ -29,6 +29,9 @@ class Service:
     def is_input(self):
         return 'input' in self.tags
 
+    def is_last_chance(self):
+        return 'last_chance' in self.tags
+
     def apply_workflow_formatter(self, payload):
         if not self.workflow_formatter:
             return payload

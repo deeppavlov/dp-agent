@@ -55,39 +55,41 @@ class Agent:
         self._response_logger.log_end(task_id, workflow_record, service)
 
         if isinstance(response, Exception):
-            self.flush_record(workflow_record['dialog'].id)
-            raise response
+            # Skip all services, which are depends on failured one
+            for i in service.dependent_services:
+                self.workflow_manager.skip_service(workflow_record['dialog'].id, i)
+        else:
+            response_data = service.apply_response_formatter(response)
+            # Updating workflow with service response
+            if service.state_processor_method:
+                await service.state_processor_method(
+                    dialog=workflow_record['dialog'], payload=response_data,
+                    label=service.label,
+                    message_attrs=kwargs.pop('message_attrs', {}), ind=task_data['ind']
+                )
 
-        response_data = service.apply_response_formatter(response)
-        # Updating workflow with service response
-        if service.state_processor_method:
-            await service.state_processor_method(
-                dialog=workflow_record['dialog'], payload=response_data,
-                label=service.label,
-                message_attrs=kwargs.pop('message_attrs', {}), ind=task_data['ind']
-            )
+            # Processing the case, when service is a skill selector
+            if service and service.is_sselector():
+                skipped_services = {s.name for s in service.next_services} - set(response_data)
+                
+                for s in skipped_services:
+                    self.workflow_manager.skip_service(workflow_record['dialog'].id, s)
 
-        # Flush record  and return zero next services if service is is_responder
-        if service.is_responder():
-            if not workflow_record.get('hold_flush'):
-                self.flush_record(workflow_record['dialog'].id)
-            return
+            # Flush record  and return zero next services if service is is_responder
+            elif service.is_responder():
+                if not workflow_record.get('hold_flush'):
+                    self.flush_record(workflow_record['dialog'].id)
+                return
 
-        # Calculating next steps
+            # Calculating next steps
         done, waiting, skipped = self.workflow_manager.get_services_status(workflow_record['dialog'].id)
-        next_services = self.pipeline.get_next_services(done.union(skipped), waiting)
-        # Processing the case, when service is a skill selector
-        if service and service.is_sselector():
-            selected_services = response_data
-            result = []
-            for service in next_services:
-                if service.label not in selected_services:
-                    self.workflow_manager.skip_service(workflow_record['dialog'].id, service)
-                else:
-                    result.append(service)
-            next_services = result
-        # send dialog workflow record to further logging operations:
+        next_services = self.pipeline.get_next_services(done, waiting, skipped)
 
+<<<<<<< HEAD
+=======
+        # send dialog workflow record to further logging operations:
+        service_requests = []
+>>>>>>> extend pipeline with last chance service
         for service in next_services:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):
