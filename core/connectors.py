@@ -121,7 +121,7 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
     _url: str
     _service_name: str
 
-    def __init__(self, service_config: dict) -> None:
+    def __init__(self, service_config: Dict) -> None:
         super().__init__(service_config)
         self._session = aiohttp.ClientSession()
         self._service_name = service_config['name']
@@ -136,3 +136,14 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
             responses_batch = await resp.json()
 
         return responses_batch
+
+
+class LastChanceConnector:
+    def __init__(self, response_text):
+        self.response_text = response_text
+
+    async def send(self, payload: Dict, callback: Callable):
+        await callback(
+                task_id=payload['task_id'],
+                response=self.response_text
+            )

@@ -57,6 +57,13 @@ class StateManager:
         dialog.utterances[-1].annotations = payload.get('annotations', {})
         dialog.utterances[-1].user = dialog.bot.to_dict()
 
+    async def add_failure_bot_utterance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
+        dialog.add_bot_utterance()
+        dialog.utterances[-1].text = payload
+        dialog.utterances[-1].active_skill = label
+        dialog.utterances[-1].confidence = 0
+        dialog.utterances[-1].user = dialog.bot.to_dict()
+
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         await dialog.save(self._db)
 
