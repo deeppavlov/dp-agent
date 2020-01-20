@@ -1,0 +1,15 @@
+services:
+  ranking_chitchat_2stage:
+    build:
+      args:
+        SKILL_NAME: ranking_chitchat_2stage
+      context: ./skills/empty_skill/
+      dockerfile: Dockerfile
+
+  odqa:
+    build:
+      args:
+        SKILL_NAME: odqa
+      context: ./skills/empty_skill/
+      dockerfile: Dockerfile
+version: '3.7'

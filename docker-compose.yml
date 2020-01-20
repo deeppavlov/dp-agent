@@ -58,24 +58,6 @@ services:
     - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
     - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
     - .:/base/dp-agent
-  # chitchat_odqa:
-  #   build:
-  #     args:
-  #       BASE_IMAGE: deeppavlov/base-cpu:0.6.1
-  #       SKILL_CONFIG: rusentiment_bigru_superconv
-  #       SKILL_PORT: 2082
-  #     context: ./
-  #     dockerfile: dp/dockerfile_skill
-  #   container_name: chitchat_odqa
-  #   environment:
-  #   - CUDA_VISIBLE_DEVICES=""
-  #   ports:
-  #   - 2082:2082
-  #   tty: true
-  #   volumes:
-  #   - ${EXTERNAL_FOLDER}/dp_logs:/logs
-  #   - ${EXTERNAL_FOLDER}/.deeppavlov:/root/.deeppavlov
-  #   - ${EXTERNAL_FOLDER}/tfhub:/tmp/tfhub
   mongo:
     command: mongod
     image: mongo:4.0.0

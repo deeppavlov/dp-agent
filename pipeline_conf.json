@@ -4,7 +4,7 @@
         "chitchat_odqa":{
             "connector": {
                 "protocol": "http",
-                "url": "http://127.0.0.1:2082/model"
+                "url": "http://chitchat_odqa:2082/model"
             },
             "dialog_formatter": "base_last_utterances_formatter_in",
             "response_formatter": "chitchat_odqa_formatter_out",
@@ -14,7 +14,7 @@
             "odqa": {
                 "connector": {
                     "protocol": "http",
-                    "url": "http://127.0.0.1:2080/model"
+                    "url": "http://odqa:2080/model"
                 },
                 "dialog_formatter": "odqa_formatter_in",
                 "response_formatter": "add_confidence_formatter_out",
@@ -24,7 +24,7 @@
             "ranking_chitchat_2stage": {
                 "connector": {
                     "protocol": "http",
-                    "url": "http://127.0.0.1:2085/model"
+                    "url": "http://ranking_chitchat_2stage:2085/model"
                 },
                 "dialog_formatter": "ranking_chitchat_formatter_in",
                 "response_formatter": "confidence_formatter_out",
