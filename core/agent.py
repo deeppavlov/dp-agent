@@ -70,7 +70,7 @@ class Agent:
 
             # Processing the case, when service is a skill selector
             if service and service.is_sselector():
-                skipped_services = {s.name for s in service.next_services} - set(response_data)
+                skipped_services = {s for s in service.next_services if s.label not in set(response_data)}
                 
                 for s in skipped_services:
                     self.workflow_manager.skip_service(workflow_record['dialog'].id, s)
@@ -81,15 +81,10 @@ class Agent:
                     self.flush_record(workflow_record['dialog'].id)
                 return
 
-            # Calculating next steps
+        # Calculating next steps
         done, waiting, skipped = self.workflow_manager.get_services_status(workflow_record['dialog'].id)
         next_services = self.pipeline.get_next_services(done, waiting, skipped)
 
-<<<<<<< HEAD
-=======
-        # send dialog workflow record to further logging operations:
-        service_requests = []
->>>>>>> extend pipeline with last chance service
         for service in next_services:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):

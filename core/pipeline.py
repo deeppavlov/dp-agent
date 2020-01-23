@@ -13,8 +13,8 @@ class Pipeline:
         if wrong_links:
             print('wrong links in config were detected: ', dict(wrong_links))
 
-        self.add_responder_service(responder_service)
         self.add_input_service(input_service)
+        self.add_responder_service(responder_service)
         self.fill_dependent_service_chains_and_required_services()
         self.add_last_chance_service(last_chance_service)
 
