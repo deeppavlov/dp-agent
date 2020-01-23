@@ -19,6 +19,7 @@ class PipelineConfigParser:
         self.state_manager = state_manager
         self.services = []
         self.services_names = defaultdict(set)
+        self.last_chance_service = None
         self.connectors = {}
         self.workers = []
         self.session = None
@@ -131,13 +132,16 @@ class PipelineConfigParser:
         for sn in data.get('required_previous_services', set()):
             names_required_previous_services.update(self.services_names.get(sn, set()))
         tags = data.get('tags', [])
-        self.services.append(
-            Service(name=service_name, connector_func=connector.send, state_processor_method=sm_method, tags=tags,
-                    names_previous_services=names_previous_services,
-                    names_required_previous_services=names_required_previous_services,
-                    workflow_formatter=workflow_formatter,
-                    dialog_formatter=dialog_formatter, response_formatter=response_formatter, label=name)
-        )
+        service = Service(
+            name=service_name, connector_func=connector.send, state_processor_method=sm_method, tags=tags,
+            names_previous_services=names_previous_services,
+            names_required_previous_services=names_required_previous_services,
+            workflow_formatter=workflow_formatter, dialog_formatter=dialog_formatter,
+            response_formatter=response_formatter, label=name)
+        if service.is_last_chance():
+            self.last_chance_service = service
+        else:
+            self.services.append(service)
 
     def fill_connectors(self):
         for k, v in self.config['connectors'].items():

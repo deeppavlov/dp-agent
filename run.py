@@ -62,11 +62,12 @@ def main():
     responder_srv = Service('responder', EventSetOutputConnector('responder').send,
                             sm.save_dialog, 1, ['responder'])
 
-    last_chance_srv = Service('last_chance', LastChanceConnector('Sorry, something went wrong').send,
-                              sm.add_bot_utterance_last_chance, 1, ['last_chance'])
+    last_chance_srv = pipeline_config.last_chance_service or Service(
+        'last_chance', LastChanceConnector('Sorry, something went wrong').send,
+        sm.add_bot_utterance_last_chance, 1, ['last_chance'])
 
     pipeline = Pipeline(pipeline_config.services, input_srv, responder_srv, last_chance_srv)
-    pprint(pipeline.__dict__)
+
     response_logger = LocalResponseLogger(args.response_logger)
     agent = Agent(pipeline, sm, WorkflowManager(), response_logger=response_logger)
     if pipeline_config.gateway:

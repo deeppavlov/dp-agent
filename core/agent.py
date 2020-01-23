@@ -71,7 +71,7 @@ class Agent:
             # Processing the case, when service is a skill selector
             if service and service.is_sselector():
                 skipped_services = {s for s in service.next_services if s.label not in set(response_data)}
-                
+
                 for s in skipped_services:
                     self.workflow_manager.skip_service(workflow_record['dialog'].id, s)
 
