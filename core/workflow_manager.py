@@ -61,7 +61,7 @@ class WorkflowManager:
         waiting = set()
         skipped = set()
         for k, v in workflow_record['services'].items():
-            if v['skipped']:
+            if v['skipped'] or v.get('error', False):
                 skipped.add(k)
             elif v['done']:
                 done.add(k)
@@ -88,6 +88,8 @@ class WorkflowManager:
 
         if isinstance(response, Exception):
             workflow_record['services'][task['service'].name][task_id]['error'] = True
+            if not workflow_record['services'][task['service'].name]['pending_tasks']:
+                workflow_record['services'][task['service'].name]['error'] = True
         else:
             workflow_record['services'][task['service'].name][task_id]['done'] = True
         workflow_record['services'][task['service'].name][task_id].update(**kwargs)

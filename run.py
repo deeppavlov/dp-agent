@@ -8,7 +8,7 @@ from aiohttp import web
 
 from core.agent import Agent
 from core.cmd_client import run_cmd
-from core.connectors import EventSetOutputConnector
+from core.connectors import EventSetOutputConnector, LastChanceConnector
 from core.db import DataBase
 from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
@@ -17,6 +17,7 @@ from core.state_manager import StateManager
 from core.workflow_manager import WorkflowManager
 from http_api.api import init_app
 from parse_config import PipelineConfigParser
+
 
 service_logger = logging.getLogger('service_logger')
 
@@ -58,12 +59,14 @@ def main():
     pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
-    endpoint_srv = Service('responder', EventSetOutputConnector('responder').send,
-                           sm.save_dialog, 1, ['responder'])
+    responder_srv = Service('responder', EventSetOutputConnector('responder').send,
+                            sm.save_dialog, 1, ['responder'])
 
-    pipeline = Pipeline(pipeline_config.services)
-    pipeline.add_responder_service(endpoint_srv)
-    pipeline.add_input_service(input_srv)
+    last_chance_srv = pipeline_config.last_chance_service or Service(
+        'last_chance', LastChanceConnector('Sorry, something went wrong').send,
+        sm.add_bot_utterance_last_chance, 1, ['last_chance'])
+
+    pipeline = Pipeline(pipeline_config.services, input_srv, responder_srv, last_chance_srv)
 
     response_logger = LocalResponseLogger(args.response_logger)
     agent = Agent(pipeline, sm, WorkflowManager(), response_logger=response_logger)

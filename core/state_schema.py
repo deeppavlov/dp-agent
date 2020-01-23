@@ -196,7 +196,7 @@ class Dialog:
             ]
         )
         await db[cls.collection_name].create_index(
-            [    
+            [
                 ('date_start', pymongo.DESCENDING),
                 ('date_finish', pymongo.DESCENDING),
             ]
