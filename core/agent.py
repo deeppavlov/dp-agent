@@ -42,7 +42,7 @@ class Agent:
             dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
         task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)
         self._response_logger.log_start(task_id, {'dialog': dialog}, service)
-        await self.process(task_id, utterance, message_attrs=message_attrs)
+        asyncio.create_task(self.process(task_id, utterance, message_attrs=message_attrs))
 
         if require_response:
             await event.wait()
@@ -88,14 +88,11 @@ class Agent:
             next_services = result
         # send dialog workflow record to further logging operations:
 
-        service_requests = []
         for service in next_services:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):
                 task_id = self.workflow_manager.add_task(workflow_record['dialog'].id, service, task_data, ind)
                 self._response_logger.log_start(task_id, workflow_record, service)
-                service_requests.append(
+                asyncio.create_task(
                     service.connector_func(payload={'task_id': task_id, 'payload': task_data}, callback=self.process)
                 )
-
-        await asyncio.gather(*service_requests)

@@ -17,16 +17,16 @@ class HTTPConnector:
             async with self.session.post(self.url, json=payload['payload']) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
-                await callback(
-                    task_id=payload['task_id'],
-                    response=response[0]
-                )
+            asyncio.create_task(callback(
+                task_id=payload['task_id'],
+                response=response[0]
+            ))
         except Exception as e:
             response = e
-            await callback(
+            asyncio.create_task(callback(
                 task_id=payload['task_id'],
                 response=response
-            )
+            ))
 
 
 class AioQueueConnector:
@@ -52,18 +52,16 @@ class QueueListenerBatchifyer:
                 item = await self.queue.get()
                 batch.append(item)
             if batch:
-                tasks = []
                 model_payload = self.glue_tasks(batch)
                 async with self.session.post(self.url, json=model_payload) as resp:
                     response = await resp.json()
                 for task, task_response in zip(batch, response):
-                    tasks.append(
+                    asyncio.create_task(
                         process_callable(
                             task_id=task['task_id'],
                             response=task_response
                         )
                     )
-                await asyncio.gather(*tasks)
             await asyncio.sleep(0.1)
 
     def glue_tasks(self, batch):
