@@ -1,12 +1,12 @@
 services:
-  # ranking_chitchat_2stage:
-  #   build:
-  #     args:
-  #       SERVICE_NAME: ranking_chitchat_2stage
-  #     context: ./services/skills/empty_skill/
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./services/skills/empty_skill:/src
+  ranking_chitchat_2stage:
+    build:
+      args:
+        SERVICE_NAME: ranking_chitchat_2stage
+      context: ./services/skills/empty_skill/
+      dockerfile: Dockerfile
+    volumes:
+      - ./services/skills/empty_skill:/src
   odqa:
     build:
       args:
