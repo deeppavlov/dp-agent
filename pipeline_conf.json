@@ -1,24 +1,44 @@
 {
     "connectors": {},
     "services": {
-        "chitchat_odqa":{
+        "rule_based_selector":{
             "connector": {
                 "protocol": "http",
-                "url": "http://chitchat_odqa:2082/model"
+                "url": "http://rule_based_selector:2086/model"
+            },
+            "dialog_formatter": "base_utterances_formatter_in",
+            "response_formatter": "rule_based_selector_formatter_out",
+            "tags": ["selector"]
+        },
+        "neuro_chitchat_odqa_selector":{
+            "connector": {
+                "protocol": "http",
+                "url": "http://neuro_chitchat_odqa_selector:2082/model"
             },
             "dialog_formatter": "base_last_utterances_formatter_in",
-            "response_formatter": "chitchat_odqa_formatter_out",
+            "response_formatter": "neuro_chitchat_odqa_selector_formatter_out",
+            "previous_services": ["rule_based_selector"],
             "tags": ["selector"]
         },
         "skills": {
+            "greeting_skill": {
+                "connector": {
+                    "protocol": "http",
+                    "url": "http://greeting_skill:2087/model"
+                },
+                "dialog_formatter": "base_last_utterances_formatter_in",
+                "response_formatter": "confidence_formatter_out",
+                "previous_services": ["rule_based_selector"],
+                "state_manager_method": "add_hypothesis"
+            },
             "odqa": {
                 "connector": {
                     "protocol": "http",
                     "url": "http://odqa:2080/model"
                 },
                 "dialog_formatter": "odqa_formatter_in",
-                "response_formatter": "add_confidence_formatter_out",
-                "previous_services": ["chitchat_odqa"],
+                "response_formatter": "add_confidence_with_noanswer_formatter_out",
+                "previous_services": ["neuro_chitchat_odqa_selector"],
                 "state_manager_method": "add_hypothesis"
             },
             "ranking_chitchat_2stage": {
@@ -27,8 +47,8 @@
                     "url": "http://ranking_chitchat_2stage:2085/model"
                 },
                 "dialog_formatter": "ranking_chitchat_formatter_in",
-                "response_formatter": "confidence_formatter_out",
-                "previous_services": ["chitchat_odqa"],
+                "response_formatter": "confidence_with_noanswer_formatter_out",
+                "previous_services": ["neuro_chitchat_odqa_selector"],
                 "state_manager_method": "add_hypothesis"
             }
         },

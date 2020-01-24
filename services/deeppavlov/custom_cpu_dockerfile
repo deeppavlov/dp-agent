@@ -32,11 +32,11 @@ RUN git clone https://github.com/deepmipt/DeepPavlov.git && \
     rm -rf /root/.cache
 
 
-ARG SKILL_CONFIG
-ARG SKILL_PORT
+ARG SERVICE_CONFIG
+ARG SERVICE_PORT
 
-ENV CONFIG=$SKILL_CONFIG
-ENV PORT=$SKILL_PORT
+ENV CONFIG=$SERVICE_CONFIG
+ENV PORT=$SERVICE_PORT
 ENV TFHUB_CACHE_DIR=/tmp/tfhub
 
 VOLUME /tmp/tfhub

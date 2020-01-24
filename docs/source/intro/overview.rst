@@ -92,7 +92,7 @@ change anything.
 * **external** (optional)
     * If the service is running from the **dp-agent** repo. **False** by default.
 * **base_image**
-    * Specify a base docker image name for **dp/dockerfile_skill image**.
+    * Specify a base docker image name for **services/deeppavlov/dockerfile_skill image**.
 * **formatter**
     * The name of a function that converts the Agent state into a service input format
       and converts a service output format into the Agent state
