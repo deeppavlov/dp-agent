@@ -19,6 +19,7 @@ all_formatters = {
     'ranking_chitchat_formatter_in': ranking_chitchat_formatter_in,
     'confidence_formatter_out': confidence_formatter_out,
     'confidence_with_noanswer_formatter_out': confidence_with_noanswer_formatter_out,
+    'odqa_formatter_out': odqa_formatter_out,
 
     'http_api_output_formatter': http_api_output_formatter,
     'all_hypotheses_formatter_in': all_hypotheses_formatter_in

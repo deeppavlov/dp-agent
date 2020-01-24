@@ -118,3 +118,23 @@ def confidence_with_noanswer_formatter_out(payload: List):
     next_payload = copy.deepcopy(payload)
     next_payload[0] = next_payload[0] if next_payload[0] else random.choice(noanswers)
     return confidence_formatter_out(payload=next_payload)
+
+
+doubt_texts = [
+    "Я могу ошибаться, но мне кажется ответом будет",
+    "Я не уверен возможно можно ответить, что",
+    "Возможно можно сазать, что",
+]
+
+
+def odqa_formatter_out(payload: List, confidence=0.5):
+    responses = add_confidence_with_noanswer_formatter_out(payload=payload, confidence=confidence)
+    responses = [
+        (
+            {"text": f"{random.choice(doubt_texts)}: {response['text']}", "confidence": response["confidence"]}
+            if "Извините, я не знаю ответ на это" not in response["text"]
+            else {"text": response["text"], "confidence": response["confidence"]}
+        )
+        for response in responses
+    ]
+    return responses

@@ -37,7 +37,7 @@
                     "url": "http://odqa:2080/model"
                 },
                 "dialog_formatter": "odqa_formatter_in",
-                "response_formatter": "add_confidence_with_noanswer_formatter_out",
+                "response_formatter": "odqa_formatter_out",
                 "previous_services": ["neuro_chitchat_odqa_selector"],
                 "state_manager_method": "add_hypothesis"
             },
