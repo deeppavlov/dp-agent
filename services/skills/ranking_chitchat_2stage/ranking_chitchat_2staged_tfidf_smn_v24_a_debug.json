@@ -1,0 +1,55 @@
+{
+    "info": "Bot+intents+sentiment (v24_a; 09.04.19) Alice V5 Bot.  Alice2Alice + Toloka_Alice_only. Total 203780 dialogs",
+    "chainer": {
+      "in": ["json_dump_of_data"],
+      "pipe": [
+        {
+          "info": "0. Converting list[json string] to list[list[string]]",
+          "class_name": "services.skills.ranking_chitchat_2stage.utils:JSON2StrList",
+          "in": ["json_dump_of_data"],
+          "out": ["last_utterances", "utterances_histories"]
+        }
+      ],
+      "out": ["last_utterances", "utterances_histories"]
+    },
+    "metadata": {
+      "variables": {
+        "ROOT_PATH": "~/.deeppavlov",
+        "DOWNLOADS_PATH": "{ROOT_PATH}/downloads",
+        "MODELS_PATH": "{ROOT_PATH}/models",
+        "SENTIMENT_MODELS_PATH": "{MODELS_PATH}/classifiers/rusentiment_v3",
+        "INTENTS_MODELS_PATH": "{MODELS_PATH}/classifiers/deeppavlov_intents_cnn",
+        "CONFIGS_PATH": "{DEEPPAVLOV_PATH}/configs"
+      },
+      "requirements": [
+        "{DEEPPAVLOV_PATH}/requirements/tf.txt",
+        "{DEEPPAVLOV_PATH}/requirements/gensim.txt",
+        "{DEEPPAVLOV_PATH}/requirements/fasttext.txt"
+      ],
+      "labels": {
+        "server_utils": "ChitChatRanker"
+      },
+      "download": [
+        {
+          "info": "1. Responses ranking model",
+          "url": "http://files.deeppavlov.ai/deeppavlov_data/dev/chitchat_2staged_tfidf_smn_v16.tar.gz",
+          "subdir": "{MODELS_PATH}"
+        },
+        {
+          "info": "2. Sentiment classification model",
+          "url": "http://files.deeppavlov.ai/deeppavlov_data/classifiers/rusentiment_v3.tar.gz",
+          "subdir": "{ROOT_PATH}/models/classifiers"
+        },
+        {
+          "info": "3. Intent classification model",
+          "url": "http://files.deeppavlov.ai/deeppavlov_data/dev/deeppavlov_intents_cnn.tar.gz",
+          "subdir": "{ROOT_PATH}/models/classifiers"
+        },
+        {
+          "info": "FastText embeddings",
+          "url": "http://files.deeppavlov.ai/embeddings/ft_native_300_ru_wiki_lenta_nltk_wordpunct_tokenize/ft_native_300_ru_wiki_lenta_nltk_wordpunct_tokenize.bin",
+          "subdir": "{DOWNLOADS_PATH}/embeddings"
+        }
+      ]
+    }
+  }

@@ -1,13 +1,13 @@
 {
     "info": "Bot+intents+sentiment (v24_a; 09.04.19) Alice V5 Bot.  Alice2Alice + Toloka_Alice_only. Total 203780 dialogs",
     "chainer": {
-      "in": ["last_utterances", "utterances_histories"],
+      "in": ["payload"],
       "pipe": [
         {
           "info": "0. Converting list[json string] to list[list[string]]",
-          "class_name": "skills.ranking_chitchat_2stage.utils:JSON2StrList",
-          "in": ["utterances_histories"],
-          "out": ["utterances_histories"]
+          "class_name": "services.skills.ranking_chitchat_2stage.utils:JSON2StrList",
+          "in": ["payload"],
+          "out": ["last_utterances", "utterances_histories"]
         },
         {
           "info": "1. Replace separators from input string",
