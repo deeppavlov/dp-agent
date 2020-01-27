@@ -26,10 +26,7 @@ class JSON2StrList(Component):
         pass
 
     def __call__(self, json_dump_of_data: List):
-        logger.error(f"json_dump_of_data={json_dump_of_data}")
         payload = [json.loads(pl) for pl in json_dump_of_data]
         last_utterances = [pl["last_utterances"] for pl in payload]
         utterances_histories = [pl["utterances_histories"] for pl in payload]
-        logger.error(f"last_utterances={last_utterances}")
-        logger.error(f"utterances_histories={utterances_histories}")
-        return ["123" for _ in last_utterances], [0.5 for _ in last_utterances]
+        return last_utterances, utterances_histories

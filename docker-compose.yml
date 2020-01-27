@@ -102,8 +102,9 @@ services:
       args:
         PYTHON_BASE_IMAGE: python:3.7-slim-stretch
         COMMIT: feat/agnostic_retrieval_chitchat
+        SERVICE_CONFIG: services/skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v22_a.json
         # SERVICE_CONFIG: services/skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a.json
-        SERVICE_CONFIG: services/skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a_debug.json
+        # SERVICE_CONFIG: services/skills/ranking_chitchat_2stage/ranking_chitchat_2staged_tfidf_smn_v24_a_debug.json
         SERVICE_PORT: 2085
       context: ./
       dockerfile: services/deeppavlov/custom_cpu_dockerfile
