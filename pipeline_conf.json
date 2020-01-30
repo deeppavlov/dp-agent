@@ -4,7 +4,7 @@
         "rule_based_selector":{
             "connector": {
                 "protocol": "http",
-                "url": "http://rule_based_selector:2086/model"
+                "url": "http://10.11.1.251:9005/model"
             },
             "dialog_formatter": "base_utterances_formatter_in",
             "response_formatter": "rule_based_selector_formatter_out",
@@ -13,7 +13,7 @@
         "neuro_chitchat_odqa_selector":{
             "connector": {
                 "protocol": "http",
-                "url": "http://neuro_chitchat_odqa_selector:2082/model"
+                "url": "http://10.11.1.251:9004/model"
             },
             "dialog_formatter": "base_last_utterances_formatter_in",
             "response_formatter": "neuro_chitchat_odqa_selector_formatter_out",
@@ -24,7 +24,7 @@
             "greeting_skill": {
                 "connector": {
                     "protocol": "http",
-                    "url": "http://greeting_skill:2087/model"
+                    "url": "http://10.11.1.251:9006/model"
                 },
                 "dialog_formatter": "base_last_utterances_formatter_in",
                 "response_formatter": "confidence_formatter_out",
@@ -34,7 +34,7 @@
             "odqa": {
                 "connector": {
                     "protocol": "http",
-                    "url": "http://odqa:2080/model"
+                    "url": "http://10.11.1.251:9002/model"
                 },
                 "dialog_formatter": "odqa_formatter_in",
                 "response_formatter": "odqa_formatter_out",
@@ -44,7 +44,7 @@
             "ranking_chitchat_2stage": {
                 "connector": {
                     "protocol": "http",
-                    "url": "http://ranking_chitchat_2stage:2085/model"
+                    "url": "http://10.11.1.251:9003/model"
                 },
                 "dialog_formatter": "ranking_chitchat_formatter_in",
                 "response_formatter": "confidence_with_noanswer_formatter_out",
