@@ -88,10 +88,14 @@ def chitchat_example_formatter_out(payload: List):
 def ranking_chitchat_formatter_in(dialog: Dict) -> List:
     return [
         {
-            "json_dump_of_data": [json.dumps({
-                "last_utterances": dialog["utterances"][-1]["text"],
-                "utterances_histories": [utt["text"] for utt in dialog["utterances"]],
-            })]
+            "json_dump_of_data": [
+                json.dumps(
+                    {
+                        "last_utterances": dialog["utterances"][-1]["text"],
+                        "utterances_histories": [utt["text"] for utt in dialog["utterances"]],
+                    }
+                )
+            ]
         }
     ]
 
@@ -134,7 +138,7 @@ def odqa_formatter_out(payload: List, confidence=0.5):
     responses = [
         (
             {"text": f"{random.choice(doubt_texts)}: {response['text']}", "confidence": response["confidence"]}
-            if "Извините, я не знаю ответ на это" not in response["text"]
+            if response["text"] not in noanswers
             else {"text": response["text"], "confidence": response["confidence"]}
         )
         for response in responses
