@@ -52,7 +52,6 @@ def sentiment_formatter_out(payload: List):
 
 def rule_based_selector_formatter_out(payload: List):
     if payload:
-        print(f"rule_based_selector chooses {payload}")
         return payload
     else:
         raise ValueError("Empty payload provided")
@@ -65,7 +64,6 @@ def neuro_chitchat_odqa_selector_formatter_out(payload: List):
             response = ["ranking_chitchat_2stage"]
         else:
             response = ["odqa"]
-        print(f"neuro_chitchat_odqa_selector chooses {payload}")
         return response
     else:
         raise ValueError("Empty payload provided")
