@@ -5,6 +5,7 @@ import logging
 
 import yaml
 from aiohttp import web
+import os
 
 from core.agent import Agent
 from core.cmd_client import run_cmd
@@ -45,6 +46,11 @@ def main():
             db_data = yaml.load(db_config)
         else:
             raise ValueError('unknown format for db_config')
+
+    if db_data.pop('env', False):
+        for k, v in db_data.items():
+            db_data[k] = os.getenv(v)
+
     db = DataBase(**db_data)
 
     sm = StateManager(db.get_db())

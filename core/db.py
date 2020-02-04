@@ -10,6 +10,8 @@ class DataBase:
         return cls._inst
 
     def __init__(self, host, port, name):
+        if isinstance(port, str):
+            port = int(port)
         self.client = motor.motor_asyncio.AsyncIOMotorClient(host, port)
         self.db = self.client[name]
 
