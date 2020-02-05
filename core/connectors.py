@@ -139,11 +139,12 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
 
 
 class LastChanceConnector:
-    def __init__(self, response_text):
+    def __init__(self, response_text, annotations=None):
         self.response_text = response_text
+        self.annotations = annotations or {}
 
     async def send(self, payload: Dict, callback: Callable):
         await callback(
             task_id=payload['task_id'],
-            response=self.response_text
+            response={'text': self.response_text, 'annotations': self.annotations}
         )
