@@ -75,19 +75,18 @@ class WorkflowManager:
                 workflow_record['services'][service.name] = {'pending_tasks': set(), 'done': False, 'skipped': True}
 
     def get_services_status(self, dialog_id: str) -> List:
-        workflow_record = self.workflow_records.get(dialog_id, None)
-        if not workflow_record:
-            return None, None, None
         done = set()
         waiting = set()
         skipped = set()
-        for k, v in workflow_record['services'].items():
-            if v['skipped'] or v.get('error', False):
-                skipped.add(k)
-            elif v['done']:
-                done.add(k)
-            else:
-                waiting.add(k)
+        workflow_record = self.workflow_records.get(dialog_id, None)
+        if workflow_record:
+            for k, v in workflow_record['services'].items():
+                if v['skipped'] or v.get('error', False):
+                    skipped.add(k)
+                elif v['done']:
+                    done.add(k)
+                else:
+                    waiting.add(k)
         return done, waiting, skipped
 
     def complete_task(self, task_id, response, **kwargs) -> Dict:
@@ -97,8 +96,7 @@ class WorkflowManager:
 
         workflow_record = self.workflow_records.get(task['dialog'], None)
         if not workflow_record:
-            workflow_record = task.pop('workflow_record', None)
-            return workflow_record, task
+            return None, task
 
         workflow_record['tasks'].pop(task_id, None)
         workflow_record['services'][task['service'].name]['pending_tasks'].discard(task_id)

@@ -114,10 +114,11 @@ class LocalResponseLogger(BaseResponseLogger):
             if start_time is not None and not cancelled:
                 self._services_response_time['agent'][start_time] = (end_time - start_time).total_seconds()
         elif not service.is_input():
-            self._services_load[service.label] -= 1
             start_time = self._tasks_buffer.pop(task_id, None)
-            if start_time is not None and not cancelled:
-                self._services_response_time[service.label][start_time] = (end_time - start_time).total_seconds()
+            if start_time is not None:
+                self._services_load[service.label] -= 1
+                if not cancelled:
+                    self._services_response_time[service.label][start_time] = (end_time - start_time).total_seconds()
         self._cleanup(end_time)
         if self._enabled:
             self._log(end_time, task_id, workflow_record, service, 'end\t')

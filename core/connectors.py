@@ -17,16 +17,16 @@ class HTTPConnector:
             async with self.session.post(self.url, json=payload['payload']) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
-            asyncio.create_task(callback(
+            await callback(
                 task_id=payload['task_id'],
                 response=response[0]
-            ))
+            )
         except Exception as e:
             response = e
-            asyncio.create_task(callback(
+            await callback(
                 task_id=payload['task_id'],
                 response=response
-            ))
+            )
 
 
 class AioQueueConnector:
@@ -93,11 +93,11 @@ class EventSetOutputConnector:
         event = payload['payload'].get('event', None)
         if not event or not isinstance(event, asyncio.Event):
             raise ValueError("'event' key is not presented in payload")
-        event.set()
         await callback(
             task_id=payload['task_id'],
             response=" "
         )
+        event.set()
 
 
 class AgentGatewayToChannelConnector:
@@ -138,7 +138,7 @@ class ServiceGatewayHTTPConnector(ServiceGatewayConnectorBase):
         return responses_batch
 
 
-class LastChanceConnector:
+class PredefinedTextConnector:
     def __init__(self, response_text, annotations=None):
         self.response_text = response_text
         self.annotations = annotations or {}

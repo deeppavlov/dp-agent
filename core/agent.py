@@ -57,6 +57,8 @@ class Agent:
 
     async def process(self, task_id, response: Any = None, **kwargs):
         workflow_record, task_data = self.workflow_manager.complete_task(task_id, response, **kwargs)
+        if not workflow_record:
+            return
         service = task_data['service']
 
         self._response_logger.log_end(task_id, workflow_record, service)
@@ -91,6 +93,7 @@ class Agent:
         # Calculating next steps
         done, waiting, skipped = self.workflow_manager.get_services_status(workflow_record['dialog'].id)
         next_services = self.pipeline.get_next_services(done, waiting, skipped)
+
         await self.create_processing_tasks(workflow_record, next_services)
 
     async def create_processing_tasks(self, workflow_record, next_services):
@@ -114,7 +117,7 @@ class Agent:
         workflow_record = self.workflow_manager.get_workflow_record(dialog_id)
         if not workflow_record:
             return
-        next_services = [self.pipeline.last_chance_service]
+        next_services = [self.pipeline.timeout_service]
         for k, v in self.workflow_manager.get_pending_tasks(dialog_id).items():
             v['task_object'].cancel()
             self._response_logger.log_end(k, workflow_record, v['task_data']['service'], True)
