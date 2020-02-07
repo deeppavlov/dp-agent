@@ -27,6 +27,9 @@ async def init_app(agent, session, consumers, logger_stats, debug=False):
             c.cancel()
         if app['client_session']:
             await app['client_session'].close()
+        tasks = asyncio.all_tasks()
+        for task in tasks:
+            task.cancel()
 
     app.router.add_post('', handler.handle_api_request)
     app.router.add_get('/api/dialogs/{dialog_id}', handler.dialog)
