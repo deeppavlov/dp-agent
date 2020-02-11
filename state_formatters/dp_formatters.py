@@ -21,6 +21,10 @@ def odqa_formatter_in(dialog: Dict, model_args_names=('question_raw',)):
     return [{model_args_names[0]: [dialog['utterances'][-1]['text']]}]
 
 
+def telegram_selector_formatter_in(dialog: Dict):
+    return [dialog['human']['attributes']['active_skill']]
+
+
 def chitchat_example_formatter_in(dialog: Dict,
                                   model_args_names=("utterances", 'annotations', 'u_histories', 'dialogs')):
     return {

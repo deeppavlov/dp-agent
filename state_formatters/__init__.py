@@ -14,5 +14,6 @@ all_formatters = {
     'base_hypotheses_formatter_in': base_hypotheses_formatter_in,
     'http_debug_output_formatter': http_debug_output_formatter,
     'http_api_output_formatter': http_api_output_formatter,
-    'all_hypotheses_formatter_in': all_hypotheses_formatter_in
+    'all_hypotheses_formatter_in': all_hypotheses_formatter_in,
+    'telegram_selector_formatter_in': telegram_selector_formatter_in
 }
