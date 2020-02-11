@@ -20,7 +20,7 @@ class ActiveDialog:
 
 
 class TelegramMessageProcessor:
-    def __init__(self, agent: Agent, pipeline_data, token, proxy):
+    def __init__(self, agent: Agent, pipeline_data: dict, token: str, proxy: str) -> None:
         self._agent: Agent = agent
         self._skill_list: List[str] = list(pipeline_data['services']['skills'].keys())
         self._active_dialogs: Dict[int, ActiveDialog] = dict()
@@ -45,28 +45,35 @@ class TelegramMessageProcessor:
 
     async def process_callback(self, callback_query: CallbackQuery):
         user_tg_id, skill_name = callback_query.from_user.id, callback_query.data
+        await self.bot.answer_callback_query(callback_query.id)
+
         if user_tg_id in self._active_dialogs:
             dialog = await self._agent.state_manager.get_or_create_dialog_by_tg_id(self._active_dialogs[user_tg_id].id, 'telegram')
+
+            # Handling error that is raised when we are trying to update already saved dialog with zero utterances.
             if not dialog.utterances and self._active_dialogs[user_tg_id].skill:
-                await self.bot.answer_callback_query(callback_query.id)
                 await self.bot.send_message(user_tg_id,
                                             'Please, send at least one message before switching active skill.')
                 return
+
             dialog.human.attributes['active_skill'] = skill_name
             await self._agent.state_manager.save_dialog(dialog, {}, '')
             self._active_dialogs[user_tg_id].skill = skill_name
-            await self.bot.answer_callback_query(callback_query.id)
             await self.bot.send_message(user_tg_id, f'Selected {skill_name} skill.')
             log.info(f'{user_tg_id} selected {skill_name} skill')
+
         else:
-            await self.bot.answer_callback_query(callback_query.id)
-            await self.bot.send_message(user_tg_id, 'You are not in a dialog right now. Send /begin to start dialog.')
+            await self.send_not_in_dialog_msg(user_tg_id)
 
     async def handle_message(self, message):
         user_tg_id = message.from_user.id
         dialog: Optional[ActiveDialog] = self._active_dialogs.get(user_tg_id)
 
-        if dialog and dialog.skill:
+        if dialog is None:
+            await self.send_not_in_dialog_msg(user_tg_id)
+            return
+
+        if dialog.skill is not None:
             response = await self._agent.register_msg(
                 utterance=message.text,
                 user_telegram_id=dialog.id,
@@ -76,8 +83,7 @@ class TelegramMessageProcessor:
             )
             await message.answer(response['dialog'].utterances[-1].text)
         else:
-            await message.answer('This is Agent skill selection telegram API. Send /begin to start dialog.',
-                                 reply_markup=self.begin_end_kb)
+            await message.answer('Please select skill to chat with.')
 
     async def handle_begin(self, message):
         user_tg_id = message.from_user.id
@@ -93,16 +99,22 @@ class TelegramMessageProcessor:
 
     async def handle_end(self, message):
         user_tg_id = message.from_user.id
+
         if user_tg_id in self._active_dialogs:
             params = self._active_dialogs.pop(user_tg_id)
             await message.answer(f'Your dialog with {params.skill} skill is finished. Dialog ID is {params.id}.')
             log.info(f'user {user_tg_id} finished dialog with ID {params.id}')
         else:
-            await message.answer('You are not in a dialog right now. Send /begin to start dialog.')
+            await self.send_not_in_dialog_msg(user_tg_id)
 
     async def handle_help(self, message) -> None:
-        await message.answer('This is Agent skill selection telegram API. Send /begin to start dialog.',
+        await message.answer('This is single skill communication Agent telegram API. Send /begin to start dialog.',
                              reply_markup=self.begin_end_kb)
+
+    async def send_not_in_dialog_msg(self, user_tg_id):
+        await self.bot.send_message(user_tg_id,
+                                    'You are not in a dialog now. Send /begin to start dialog.',
+                                    reply_markup=self.begin_end_kb)
 
 
 def run_tg(token, proxy, agent, pipeline_data) -> None:
