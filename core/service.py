@@ -9,7 +9,7 @@ class Service:
         self.state_processor_method = state_processor_method
         self.names_previous_services = names_previous_services or set()
         self.names_required_previous_services = names_required_previous_services or set()
-        self.tags = set(tags) or set()
+        self.tags = set(tags or [])
         self.workflow_formatter = workflow_formatter
         self.dialog_formatter = dialog_formatter
         self.response_formatter = response_formatter
