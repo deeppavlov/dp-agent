@@ -1,4 +1,3 @@
-import asyncio
 from typing import Dict
 
 from core.state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
@@ -60,10 +59,10 @@ class StateManager:
     async def add_bot_utterance_last_chance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
-            dialog.utterances[-1].text = payload
-            dialog.utterances[-1].active_skill = 'last_chance'
+            dialog.utterances[-1].text = payload['text']
+            dialog.utterances[-1].active_skill = label
             dialog.utterances[-1].confidence = 0
-            dialog.utterances[-1].annotations = {}
+            dialog.utterances[-1].annotations = payload['annotations']
             dialog.utterances[-1].user = dialog.bot.to_dict()
 
     async def add_failure_bot_utterance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:

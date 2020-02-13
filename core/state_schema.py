@@ -175,6 +175,8 @@ class Dialog:
         self._bot_id = _bot_id
         self._active = _active
         self.utterances = []
+        self.human_utterances = []
+        self.bot_utterances = []
         self.version = version or STATE_API_VERSION
         self._dict = {}
         self.actual = actual
@@ -208,6 +210,8 @@ class Dialog:
         return {
             'id': self.id,
             'utterances': [i.to_dict() for i in self.utterances],
+            'human_utterances': [i.to_dict() for i in self.human_utterances],
+            'bot_utterances': [i.to_dict() for i in self.bot_utterances],
             'human': self.human.to_dict(),
             'bot': self.bot.to_dict(),
             'channel_type': self.channel_type,
@@ -217,9 +221,9 @@ class Dialog:
 
     async def load_external_info(self, db):
         if self._id:
-            human_utterances = await HumanUtterance.get_many(db, self._id)
-            bot_utterances = await BotUtterance.get_many(db, self._id)
-            self.utterances = sorted(chain(human_utterances, bot_utterances), key=lambda x: x._in_dialog_id)
+            self.human_utterances = await HumanUtterance.get_many(db, self._id)
+            self.bot_utterances = await BotUtterance.get_many(db, self._id)
+            self.utterances = sorted(chain(self.human_utterances, self.bot_utterances), key=lambda x: x._in_dialog_id)
             self.bot = await Bot.get_or_create(db, self._bot_id)
 
     @classmethod
@@ -295,13 +299,17 @@ class Dialog:
         ind = 0
         if self.utterances:
             ind = self.utterances[-1]._in_dialog_id + 1
-        self.utterances.append(HumanUtterance(_in_dialog_id=ind))
+        utterance_obj = HumanUtterance(_in_dialog_id=ind)
+        self.utterances.append(utterance_obj)
+        self.human_utterances.append(utterance_obj)
 
     def add_bot_utterance(self):
         ind = 0
         if self.utterances:
             ind = self.utterances[-1]._in_dialog_id + 1
-        self.utterances.append(BotUtterance(_in_dialog_id=ind))
+        utterance_obj = BotUtterance(_in_dialog_id=ind)
+        self.utterances.append(utterance_obj)
+        self.bot_utterances.append(utterance_obj)
 
     async def save(self, db, force=False):
         self._human_id = await self.human.save(db)

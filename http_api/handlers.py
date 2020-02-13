@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 from string import hexdigits
+from time import time
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -10,8 +11,9 @@ from state_formatters.output_formatters import (http_api_output_formatter,
 
 
 class ApiHandler:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, response_time_limit=5):
         self.debug = debug
+        self.response_time_limit = response_time_limit
 
     async def handle_api_request(self, request):
         async def handle_command(payload, user_id, state_manager):
@@ -29,6 +31,8 @@ class ApiHandler:
 
             user_id = data.pop('user_id')
             payload = data.pop('payload', '')
+            if self.response_time_limit:
+                deadline_timestamp = time() + self.response_time_limit
 
             if not user_id:
                 raise web.HTTPBadRequest(reason='user_id key is required')
@@ -43,7 +47,8 @@ class ApiHandler:
                              date_time=datetime.now(),
                              location=data.pop('location', ''),
                              channel_type='http_client',
-                             message_attrs=data, require_response=True)
+                             message_attrs=data, require_response=True,
+                             deadline_timestamp=deadline_timestamp)
             )
 
             if response is None:

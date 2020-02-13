@@ -105,19 +105,20 @@ class LocalResponseLogger(BaseResponseLogger):
         if self._enabled:
             self._log(start_time, task_id, workflow_record, service, 'start')
 
-    def log_end(self, task_id: str, workflow_record: dict, service: Service) -> None:
+    def log_end(self, task_id: str, workflow_record: dict, service: Service, cancelled=False) -> None:
         end_time = datetime.utcnow()
 
         if service.is_responder():
             self._services_load['agent'] -= 1
             start_time = self._tasks_buffer.pop(workflow_record['dialog'].id, None)
-            if start_time is not None:
+            if start_time is not None and not cancelled:
                 self._services_response_time['agent'][start_time] = (end_time - start_time).total_seconds()
         elif not service.is_input():
-            self._services_load[service.label] -= 1
             start_time = self._tasks_buffer.pop(task_id, None)
             if start_time is not None:
-                self._services_response_time[service.label][start_time] = (end_time - start_time).total_seconds()
+                self._services_load[service.label] -= 1
+                if not cancelled:
+                    self._services_response_time[service.label][start_time] = (end_time - start_time).total_seconds()
         self._cleanup(end_time)
         if self._enabled:
             self._log(end_time, task_id, workflow_record, service, 'end\t')

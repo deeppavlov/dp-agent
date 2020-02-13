@@ -1,14 +1,14 @@
 import argparse
-import asyncio
 import json
 import logging
 
 import yaml
 from aiohttp import web
+import os
 
 from core.agent import Agent
 from core.cmd_client import run_cmd
-from core.connectors import EventSetOutputConnector, LastChanceConnector
+from core.connectors import EventSetOutputConnector, PredefinedTextConnector
 from core.db import DataBase
 from core.log import LocalResponseLogger
 from core.pipeline import Pipeline
@@ -45,6 +45,11 @@ def main():
             db_data = yaml.load(db_config)
         else:
             raise ValueError('unknown format for db_config')
+
+    if db_data.pop('env', False):
+        for k, v in db_data.items():
+            db_data[k] = os.getenv(v)
+
     db = DataBase(**db_data)
 
     sm = StateManager(db.get_db())
@@ -63,10 +68,13 @@ def main():
                             sm.save_dialog, 1, ['responder'])
 
     last_chance_srv = pipeline_config.last_chance_service or Service(
-        'last_chance', LastChanceConnector('Sorry, something went wrong').send,
+        'last_chance', PredefinedTextConnector('Sorry, something went wrong').send,
         sm.add_bot_utterance_last_chance, 1, ['last_chance'])
+    timeout_srv = pipeline_config.timeout_service or Service(
+        'timeout', PredefinedTextConnector("Sorry, I need to think more on that. Let's talk something else").send,
+        sm.add_bot_utterance_last_chance, 1, ['timeout'])
 
-    pipeline = Pipeline(pipeline_config.services, input_srv, responder_srv, last_chance_srv)
+    pipeline = Pipeline(pipeline_config.services, input_srv, responder_srv, last_chance_srv, timeout_srv)
 
     response_logger = LocalResponseLogger(args.response_logger)
     agent = Agent(pipeline, sm, WorkflowManager(), response_logger=response_logger)
