@@ -34,6 +34,7 @@ parser.add_argument('-t', '--token', help='token for telegram client', type=str)
 parser.add_argument('-rl', '--response_logger', help='run agent with services response logging',
                     action='store_true')
 parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
+parser.add_argument('-tl', '--time_limit', help='response time limit, 0 = no limit', type=int, default=0)
 args = parser.parse_args()
 
 
@@ -86,7 +87,10 @@ def main():
             run_cmd(agent, pipeline_config.session, pipeline_config.workers, args.debug)
 
         elif args.channel == 'http_client':
-            app = init_app(agent, pipeline_config.session, pipeline_config.workers, response_logger, args.debug)
+            app = init_app(
+                agent, pipeline_config.session, pipeline_config.workers,
+                response_logger, args.debug, args.time_limit
+            )
             web.run_app(app, port=args.port)
     except Exception as e:
         raise e

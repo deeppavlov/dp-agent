@@ -79,23 +79,8 @@ class PagesHandler:
     def __init__(self, debug=False):
         self.debug = debug
 
-    @aiohttp_jinja2.template('base.html')
     async def ping(self, request):
-        return {}
-
-    @aiohttp_jinja2.template('dialogslist.html')
-    async def dialoglist(self, request):
-        def dialg_to_dict(dialog):
-            return {
-                'id': dialog.id,
-                'channel_type': dialog.channel_type,
-                'start': min([i.date_time for i in dialog.utterances]).strftime("%d-%m-%Y %H:%M"),
-                'finish': max([i.date_time for i in dialog.utterances])
-            }
-
-        state_manager = request.app['agent'].state_manager
-        dialogs = await state_manager.get_all_dialogs()
-        return {'dialogs': [dialg_to_dict(i) for i in dialogs]}
+        return web.json_response("pong")
 
 
 class WSstatsHandler:
