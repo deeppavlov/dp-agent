@@ -1,12 +1,12 @@
 import unittest
-from core.workflow_manager import WorkflowManager
+from ..core.workflow_manager import WorkflowManager
 from uuid import uuid4
-from pprint import pprint
 
 
 class TestDialog:
     def __init__(self, id):
         self.id = id
+
 
 class TestService:
     def __init__(self, name):
@@ -22,9 +22,6 @@ class TestWorkflowManagerDialog(unittest.TestCase):
     def test_internal_params(self):
         self.assertTrue(self.dialog_id in self.workflow.workflow_records)
         self.assertEqual(1, len(self.workflow.workflow_records))
-
-    def test_get_record(self):
-        self.assertEqual(self.workflow.get_dialog_by_id(self.dialog_id).id, self.dialog_id, 'get_dialog works wrong')
 
     def test_add_another_dialog(self):
         another_dialog_id = uuid4().hex
@@ -107,6 +104,7 @@ class TestWorkflowManagerDialog(unittest.TestCase):
         self.assertEqual(self.dialog_id, workflow_record['dialog'].id)
         self.assertTrue('dialog' in late_task)
         self.assertEqual(self.dialog_id, late_task['dialog'])
+
 
 if __name__ == '__main__':
     unittest.main()

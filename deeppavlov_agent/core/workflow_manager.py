@@ -3,8 +3,8 @@ from uuid import uuid4
 from typing import Optional, Dict, List
 from time import time
 
-from core.state_schema import Dialog
-from core.service import Service
+from .state_schema import Dialog
+from .service import Service
 
 
 class WorkflowManager:

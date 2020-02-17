@@ -6,17 +6,17 @@ import yaml
 from aiohttp import web
 import os
 
-from core.agent import Agent
-from core.cmd_client import run_cmd
-from core.connectors import EventSetOutputConnector, PredefinedTextConnector
-from core.db import DataBase
-from core.log import LocalResponseLogger
-from core.pipeline import Pipeline
-from core.service import Service
-from core.state_manager import StateManager
-from core.workflow_manager import WorkflowManager
-from http_api.api import init_app
-from parse_config import PipelineConfigParser
+from .core.agent import Agent
+from .core.cmd_client import run_cmd
+from .core.connectors import EventSetOutputConnector, PredefinedTextConnector
+from .core.db import DataBase
+from .core.log import LocalResponseLogger
+from .core.pipeline import Pipeline
+from .core.service import Service
+from .core.state_manager import StateManager
+from .core.workflow_manager import WorkflowManager
+from .http_api.api import init_app
+from .parse_config import PipelineConfigParser
 
 
 service_logger = logging.getLogger('service_logger')

@@ -6,8 +6,8 @@ from time import time
 import aiohttp_jinja2
 from aiohttp import web
 
-from state_formatters.output_formatters import (http_api_output_formatter,
-                                                http_debug_output_formatter)
+from ..state_formatters.output_formatters import (http_api_output_formatter,
+                                                  http_debug_output_formatter)
 
 
 class ApiHandler:
@@ -31,6 +31,8 @@ class ApiHandler:
 
             user_id = data.pop('user_id')
             payload = data.pop('payload', '')
+
+            deadline_timestamp = None
             if self.response_time_limit:
                 deadline_timestamp = time() + self.response_time_limit
 
