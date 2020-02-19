@@ -1,10 +1,10 @@
 import argparse
 import json
 import logging
+import os
 
 import yaml
 from aiohttp import web
-import os
 
 from .core.agent import Agent
 from .core.cmd_client import run_cmd
@@ -17,7 +17,6 @@ from .core.state_manager import StateManager
 from .core.workflow_manager import WorkflowManager
 from .http_api.api import init_app
 from .parse_config import PipelineConfigParser
-
 
 service_logger = logging.getLogger('service_logger')
 
