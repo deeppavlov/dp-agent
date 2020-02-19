@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import aiohttp
 
-from core.transport.base import ServiceGatewayConnectorBase
+from .transport.base import ServiceGatewayConnectorBase
 
 
 class HTTPConnector:

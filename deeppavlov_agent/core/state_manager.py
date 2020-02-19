@@ -1,6 +1,6 @@
 from typing import Dict
 
-from core.state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
+from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
 
 
 class StateManager:

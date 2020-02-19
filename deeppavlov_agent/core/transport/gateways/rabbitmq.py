@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Callable
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
-from core.transport.base import AgentGatewayBase, ServiceGatewayBase, ChannelGatewayBase
-from core.transport.messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
-from core.transport.messages import TMessageBase, ServiceErrorMessage, get_transport_message
+from ..base import AgentGatewayBase, ServiceGatewayBase, ChannelGatewayBase
+from ..messages import ServiceTaskMessage, ServiceResponseMessage, ToChannelMessage, FromChannelMessage
+from ..messages import TMessageBase, ServiceErrorMessage, get_transport_message
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_in'
 AGENT_OUT_EXCHANGE_NAME_TEMPLATE = '{agent_namespace}_e_out'

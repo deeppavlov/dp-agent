@@ -5,12 +5,12 @@ from typing import Dict
 
 import aiohttp
 
-from core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector, AgentGatewayToServiceConnector
-from core.service import Service, simple_workflow_formatter
-from core.state_manager import StateManager
-from core.transport.mapping import GATEWAYS_MAP
-from core.transport.settings import TRANSPORT_SETTINGS
-from state_formatters import all_formatters
+from .core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector, AgentGatewayToServiceConnector
+from .core.service import Service, simple_workflow_formatter
+from .core.state_manager import StateManager
+from .core.transport.mapping import GATEWAYS_MAP
+from .core.transport.settings import TRANSPORT_SETTINGS
+from .state_formatters import all_formatters
 
 
 class PipelineConfigParser:

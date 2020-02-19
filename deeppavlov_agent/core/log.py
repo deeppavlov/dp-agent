@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from core.service import Service
+from .service import Service
 
 agent_path = Path(__file__).resolve().parents[1]
 

@@ -1,5 +1,5 @@
-from core.transport.gateways.rabbitmq import RabbitMQAgentGateway, RabbitMQServiceGateway, RabbitMQChannelGateway
-from core.connectors import ServiceGatewayHTTPConnector
+from .gateways.rabbitmq import RabbitMQAgentGateway, RabbitMQServiceGateway, RabbitMQChannelGateway
+from ..connectors import ServiceGatewayHTTPConnector
 
 GATEWAYS_MAP = {
     'AMQP': {

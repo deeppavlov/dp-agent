@@ -4,7 +4,7 @@ import aiohttp_jinja2
 import jinja2
 from aiohttp import web
 
-from http_api.handlers import ApiHandler, PagesHandler, WSstatsHandler
+from .handlers import ApiHandler, PagesHandler, WSstatsHandler
 
 
 async def init_app(agent, session, consumers, logger_stats, debug=False, response_time_limit=0):
@@ -39,5 +39,5 @@ async def init_app(agent, session, consumers, logger_stats, debug=False, respons
     app.router.add_get('/debug/current_load/ws', stats.index)
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
-    aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader('http_api', 'templates'))
+    aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader('deeppavlov_agent.http_api', 'templates'))
     return app
