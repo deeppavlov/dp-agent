@@ -35,3 +35,9 @@ Welcome to DeepPavlov Agent documentation!
    :caption: State Formatters
 
    state_formatters/formatters
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Configuration files
+
+   config/config
