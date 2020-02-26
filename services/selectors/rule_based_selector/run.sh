@@ -1,0 +1,1 @@
+gunicorn --workers=2 server:app -b 0.0.0.0:5000 --reload
