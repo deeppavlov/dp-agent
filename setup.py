@@ -24,10 +24,16 @@ def read_requirements():
 
 setuptools.setup(
     name='deeppavlov_agent',
-    version='2.0.0',
+    version='2.0',
     include_package_data=True,
+    description='An open source library, allowing you to create data processing systems based on a sequence graph, '
+                'alongside with saving sample processing results in database.',
+    long_description='An open source library, allowing you to create data processing systems based on a sequence '
+                     'graph, alongside with saving sample processing results in database. '
+                     'Possible application is chatbots or other NLP systems which combine multiple skills.',
+    keywords=['chatbots', 'microservices', 'dialog systems', 'NLP'],
     packages=setuptools.find_packages(exclude=('docs',)),
     python_requires='>=3.7',
-    url="https://https://github.com/deepmipt/dp-agent",
+    url="https://github.com/deepmipt/dp-agent",
     **read_requirements()
 )
