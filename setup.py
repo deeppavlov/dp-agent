@@ -24,7 +24,7 @@ def read_requirements():
 
 setuptools.setup(
     name='deeppavlov_agent',
-    version='2.0',
+    version='2.0.1',
     include_package_data=True,
     description='An open source library, allowing you to create data processing systems based on a sequence graph, '
                 'alongside with saving sample processing results in database.',
