@@ -215,8 +215,8 @@ class Dialog:
             'human': self.human.to_dict(),
             'bot': self.bot.to_dict(),
             'channel_type': self.channel_type,
-            'date_start': self.date_start,
-            'date_finish': self.date_finish,
+            'date_start': str(self.date_start),
+            'date_finish': str(self.date_finish),
         }
 
     async def load_external_info(self, db):
