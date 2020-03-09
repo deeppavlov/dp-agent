@@ -1,16 +1,16 @@
 Agent Configuration
 ======================
 
-You can provide pipeline and database configuration for agent with config files. Both json and yml formats are acceptible.
+You can provide pipeline and database configuration for agent with config files. Both ``json`` and ``yml`` formats are acceptable.
 
 **Config Description**
 
 **Database**
 
-Database configuration parameters are provided via db_conf file. Currently, agent runs on Mongo DB.
+Database configuration parameters are provided via ``db_conf`` file. Currently, agent runs on Mongo DB.
 
-All default values are taken from `Mongo DB documentation <mongo-docs_>`__. Please refer to these docs if you need to
-change anything. 
+All default values are taken from `Mongo DB documentation <https://docs.mongodb.com/manual/>`__. Please refer to these docs if you need to
+change anything.
 
 Sample database config:
 
@@ -24,7 +24,7 @@ Sample database config:
         }
 
 * **env**
-    * If set to **false** (or not mentioned), exact parameters values will be used for db initialization. Otherwise, agent will try to get an environmental variable by name, associated with parameter.
+    * If set to **false** (or not mentioned), exact parameters values will be used for db initialisation. Otherwise, agent will try to get an environmental variable by name, associated with parameter.
 * **host**
     * A database host, or env variable, where database host name is stored
 * **port**
@@ -35,12 +35,12 @@ Sample database config:
 
 **Pipeline**
 
-Pipeline configuration parameters are provided via pipeline_conf file. There are two different sections in config, which are used to configure Connectors and Services
+Pipeline configuration parameters are provided via ``pipeline_conf`` file. There are two different sections in config, which are used to configure Connectors and Services
 
 **Services Config**
 
 Service represents a single node of pipeline graph, or single step in processing of user message.
-In pipeline_conf all services are grouped under "service" key.
+In ``pipeline_conf`` all services are grouped under "service" key.
 Sample service config:
 
     .. code-block:: json
@@ -75,9 +75,9 @@ Sample service config:
     * Optional parameter. Exact service output will be sent to state manager method, if that parameter is not presented
 * **connector**
     * Function, which represents a connector to service. Can be configured here, or in Connectors
-    * You can link a connector from `connectors` section by typing ``connectors.<connector name>`` 
+    * You can link a connector from `connectors` section by typing ``connectors.<connector name>``
 * **previous_services**
-    * List of name of services, which should be completed (or skipped, or errored) before sending data to current service
+    * List of name of services, which should be completed (or skipped, or respond with an error) before sending data to current service
     * Should contain either groups names or service names
 * **required_previous_services**
     * List of names of services, which must be correctly completed before this service since their results are used in current service
@@ -95,7 +95,7 @@ Sample service config:
 **Connectors config**
 
 Connector represents a function, where tasks are sent in order to process. Can be implementation of some data transfer protocol or model implemented in python.
-Since agent is based on asyncronous execution, and can be slowed down by blocking syncronous parts, it is strongly advised to implement computational heavy services separate from agent, and use some protocols (like http) for data transfer.
+Since agent is based on asynchronous execution, and can be slowed down by blocking synchronous parts, it is strongly advised to implement computational heavy services separate from agent, and use some protocols (like http) for data transfer.
 
 There are several possibilities, to configure connector:
 
@@ -117,7 +117,7 @@ There are several possibilities, to configure connector:
     * **url**
         * Actual url, where an external service api is accessible. Should be in format ``http://<host>:<port>/<path>``
     * **batch_size**
-        * Represents a maximum task count, which will be sent to a service in a batch. If not presented is enterpreted as 1
+        * Represents a maximum task count, which will be sent to a service in a batch. If not presented is interpreted as 1
         * If the value is 1, an `HTTPConnector <https://github.com/deepmipt/dp-agent/blob/master/deeppavlov_agent/core/connectors.py#L10>`__ class is used.
         * If the value is more than one, agent will use `AioQueueConnector <https://github.com/deepmipt/dp-agent/blob/master/deeppavlov_agent/core/connectors.py#L32>`__. That connector sends data to asyncio queue. Same time, worker `QueueListenerBatchifyer <https://github.com/deepmipt/dp-agent/blob/master/deeppavlov_agent/core/connectors.py#L40>`__, which collects data from queue, assembles batches and sends them to a service.
 
@@ -128,7 +128,7 @@ There are several possibilities, to configure connector:
 
         {"connector name": {
                 "protocol": "python",
-                "class_name": "class name in 'ython module name:class name' format",
+                "class_name": "class name in 'python module name:class name' format",
                 "other parameter 1": "",
                 "other parameter 2": ""
             }

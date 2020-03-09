@@ -297,20 +297,14 @@ Agent can run both from container and from a local machine. The default Agent po
 
      All additional items will be stored into the ``attributes`` field of a ``HumanUtterance``.
 
-4.  **Modify the default response format of the Agent server**
-
-     If you need the Agent server to return something different than ``user_id`` and ``reponse``, try the
-     :ref:`output formatters <output-formatters>`.
-
-5. **View dialogs in the database through GET requests**
+4. **View dialogs in the database through GET requests**
 
     The result is returned in json format which can be easily prettifyed with various browser extensions.
 
-    Three main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
+    Two main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
 
-     * http://localhost:4242/dialogs - provides list of all dialogs (without utterances)
-     * http://localhost:4242/dialogs/all - provides list of all dialogs (with utterances)
-     * http://localhost:4242/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
+     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog
+     * http://localhost:4242/api/user/<dialog_id> - provides all dialogs with user
 
 
 Analyzing the data
@@ -346,79 +340,6 @@ For example:
     .. code:: bash
 
          python -m utils.get_db_data Dialog User
-
-Testing HTTP API and automatic processing of predefined dialogs
-=================================================================
-
-In order to process predefined dialogs or generate a random one from predefined list of phrases
-you can use `utils/http_api_script.py` script.
-
-Make sure that ``aiohttp`` is installed:
-
-    .. code:: bash
-
-        pip install aiohttp==3.5.4
-
-**Processing a predefined dialog**
-
-In this mode the script will pass predefined dialogs from the file ``-df`` to the agent's API.
-
-1. Create a JSON file with a dialog. You can find an example in ``utils/ru_test_dialogs.json``:
-    
-    .. code:: javascript
-
-          {
-              "uuid1": ["phrase1.1", "phrase1.2", "..."],
-              "uuid2": ["phrase2.1", "phrase2.2", "..."],
-              "uuid3": ["phrase3.1", "phrase3.2", "..."],
-          }
-
-2. Run:
-
-    .. code:: bash
-
-         python utils/http_api_test.py -u <api url> -df <dialogs file path>
-
-
-3. The command line arguments are:
-    
-    * -u --url - url address of the agent's API
-    * -df --datafile - path to a file with predefined dialogs
-
-**Processing a random dialog from predefined phrases**
-
-In this mode the script will generate ``-uc`` dialogs with ``-pc`` phrases in each. Phrases will be selected randomly from the phrase file ``-pf`` and passed to the agent's API.
-
-1. Create a file with sample phrases. This is a simple text file with one phrase per line.
-
-   You can find an example in ``utils/ru_test_phrases.txt``:
-
-2. Run:
-
-    .. code:: bash
-
-         python utils/http_api_test.py -u <api url> -pf <phrases file path> -uc <user count> -pc <phrase per dialog count>
-
-3. The command line arguments are:
-    
-    * -u --url - url address of the agent's API
-    * -pf --phrasefile - path to a file with predefined sample phrases
-    * -uc --usercount - number of users taking part in the dialogs
-    * -pc --phrasecount - number of phrases in each dialog
-
-
-
-Testing Agent in a batch mode
-=============================
-
-To test how the Agent replies if it receives a list of utterances, use ``utils/agent_test.py``. Pass a file with
-a list of utterances as input. Use the existing ``utils/ru_test_phrases.py`` or create your own file:
-
-
-    .. code:: bash
-
-         python utils/agent_batch_test.py utils/ru_test_phrases.py
-
 
 
 .. _config file: https://github.com/deepmipt/dp-agent/blob/master/config.py
