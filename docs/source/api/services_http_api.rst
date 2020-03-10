@@ -1,4 +1,4 @@
-There are 5 types of dialog services that can be connected to the `Agent's dialog pipeline <dialog-pipeline_>`__:
+There are 5 types of dialog services that can be connected to the agent's dialog pipeline:
 
     *  **Annotators**
     *  **Skill Selector**
@@ -13,7 +13,7 @@ Input Format
 All services get a standardized Agent State as input. The input format is described `here <state_>`__.
 
 To reformat Agent State format into your service's input format, you need to write a **formatter** function and
-specify it's name into the Agent's `config file <config file>`__. You can use our DeepPavlov `formatters <formatters>`__
+specify it's name into the Agent's config.
 as example.
 
 Output Format
@@ -124,9 +124,4 @@ utterance shown to the user, and the original skill answer will go to the ``orig
         "Goodbye, Joe!"
 
 
-.. _dialog-pipeline: https://deeppavlov-agent.readthedocs.io/en/latest/intro/overview.html#architecture-overview
 .. _state: https://deeppavlov-agent.readthedocs.io/en/latest/_static/api.html
-.. _config file: https://github.com/deepmipt/dp-agent/blob/master/config.py
-.. _formatters: https://github.com/deepmipt/dp-agent/blob/master/state_formatters/dp_formatters.py
-.. _user_state_api: https://deeppavlov-agent.readthedocs.io/en/latest/api/user_state_api.html
-

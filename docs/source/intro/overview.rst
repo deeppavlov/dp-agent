@@ -41,218 +41,40 @@ so the platform should have the following characteristics:
   It has separate `documentation <state_>`__.
 
 
-Ready Agent from the box
-========================
+Installation
+============
 
-To demonstrate the abilities of the platform, we included in this repo some basic skills and selectors
-made on DeepPavlov_. Currently all these services are made only for **Russian language**.
-
-Services Configuration
-======================
-
-You can configure services at the Agent `config file`_.
-
-**Config Description**
-
-**Database**
-
-All default values are taken from `Mongo DB documentation <mongo-docs_>`__. Please refer to these docs if you need to
-change anything.
-
-* **DB_NAME**
-    * An name of the database. Default name is **"test"**
-* **DB_HOST**
-    * A database host, **"127.0.0.1"** by default
-* **DB_PORT**
-    * A database port, **"27017"** by default
-* **DB_PATH**
-    * A database data path. Default path is **"/data/db"**.
-
-    Please make sure that this path exists on your machine and has valid permissions.
-
-
-**Services**
-
-* **name**
-    * An arbitrary and unique name of the service
-* **protocol**
-    * A web protocol, **"http"** by default
-* **host**
-    * A service host machine name, **"127.0.0.1"** by default
-* **port**
-    * A port on a service host machine
-* **endpoint**
-    * A service URL endpoint, **"/model"** by default
-* **url** (optional)
-    * A service url. By default it is generated from **protocol + host + port +  endpoint**
-* **path**
-    * A path to the agent service config file, currently valid only for DeepPavlov skills
-* **env**
-    * Environment variables dictionary
-* **external** (optional)
-    * If the service is running from the **dp-agent** repo. **False** by default.
-* **base_image**
-    * Specify a base docker image name for **dp/dockerfile_skill image**.
-* **formatter**
-    * The name of a function that converts the Agent state into a service input format
-      and converts a service output format into the Agent state
-* **batch_size** (optional)
-    A size of input batch for the services. By default it's always 1, but for neural services it is usually makes more
-    sense to increase it for better performance.
-
-
-Notice that you can leave **SKILL_SELECTORS** and **RESPONSE_SELECTORS** empty. If you do so, all
-skills are selected at each user utterance and the final response is selected by the skills' confidence.
-
-Also you can include in the Agent configuration any external service running on some other machine.
-
-Services Deployment
-===================
-1. Create a new **Python 3.7.4** virtual environment.
-
-2. Install requirements for Docker config generator:
-
-    .. code:: bash
-
-        pip install -r gen_requirements.txt
-
-3. Install and configure Docker_ (version 19.03.2 or later) and Docker-compose_ (version 1.19.0 or later).
-
-4. (optional) Install nvidia-docker_ if you wish to run some services on GPU.
-
-   To be able to run GPU-based docker files please make sure about two things on your host system:
-
-    * Your nvidia driver has to support the CUDA version installed in the GPU-based docker file.
-    * Please notice that ``docker-compose.yml`` of **3.7** version doesn't officially support `runtime: nvidia`
-      option anymore, so you have to manually edit ``/etc/docker/daemon.json`` on your system. Read in the
-      nvidia-container-runtime_  documentation how to do it.
-
-5. Create a directory for storing downloaded data, such as pre-trained models.
-   It should be located outside the agent project's home directory.
-
-6. Setup an **EXTERNAL_FOLDER** variable with the path to data directory. This pat will be used by Agent to download models' data:
-
-    .. code:: bash
-
-        EXTERNAL_FOLDER=<path to data directory>
-
-7. (optional) If you want to communicate with the Agent via Telegram, setup the following environment variables:
-
-   .. code:: bash
-
-       TELEGRAM_TOKEN=<token>
-       TELEGRAM_PROXY=socks5://<user>:<password>@<path:port>
-
-   Here's an example of values:
-
-   .. code:: bash
-
-       TELEGRAM_TOKEN=123456789:AAGCiO0QFb_I-GXL-CbJDw7--JQbHkiQyYA
-       TELEGRAM_PROXY=socks5://tgproxy:tgproxy_pwd@123.45.67.89:1447
-
-   If you run the Agent via docker, put this variables into a file and configure it's path under ``AGENT_ENV_FILE``
-   variable in the `config file`_. This file name is automatically picked up when the docker-compose file
-   is being generated.
-
-8. Configure all skills, skill selectors, response selectors, annotators and database connection in the `config file`_.
-
-   If you want a minimal configuration, you need only one skill.
-
-9. Generate a `Docker environment configuration`_  by running the command:
-
-    .. code:: bash
-
-        python generate_composefile.py
-
-    This configuration represents the choice of skills from the previous step.
-    Re-generate it every time you change `config file`_.
-
-10. Run the Docker environment with:
+Deeppavlov agent requires python >= 3.7 and can be installed from pip.
 
      .. code:: bash
 
-         docker-compose up --build
+         pip install deeppavlov_agent
 
-   Now you have a working environment with the following services:
-
-   * DeepPavlov Agent (``agent``)
-   * MongoDB (``mongo``)
-   * A service for each skill, selector or other component.
-
-   In this shell you will now see the logs from all working services.
 
 Running the Agent
 =================
 
 Agent can run both from container and from a local machine. The default Agent port is **4242**.
+The launch command is:
 
-**Container**
--------------
+     .. code:: bash
 
-1. Connect to agent's container:
+         python -m deeppavlov_agent.run -ch http_client -p 4242 -pl pipeline_conf.json -db db_conf.json -rl -d 
 
-    .. code:: bash
+Command parameters are:
 
-        docker exec -it agent /bin/bash
+    * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``
+    * -p - port for http_client. Defaults to 4242
+    * -pl - pipeline config path
+    * -d - database config path
+    * -rl - include response logger
+    * -d - launch in debug mode (additional data in http output)
 
-    (more information on docker-exec_)
-
-2. Start communicating with the chatbot from the agent's container console:
-
-    .. code:: bash
-
-        python -m core.run
-
-**Local machine**
------------------
-
-1. (optional) Please consider setting your locale according your input language to avoid decoding errors while communicating agent via command line.
-   For example:
-
-    .. code:: bash
-
-        export LANG="C.UTF-8"
-        export LC_ALL="C.UTF-8"
-        stty iutf8
-
-    `stty iutf8` fixes decoding errors that occure when using backspace with utf-8 symbols.
-
-2. Setup **DPA_LAUNCHING_ENV** environment variable:
-
-    .. code:: bash
-
-        export DPA_LAUNCHING_ENV="local"
-
-3. Install Agent requirements:
-
-    .. code:: bash
-
-        pip install -r gen_requirements.txt
-
-4. Start communicating with the chatbot from the console:
-
-    .. code:: bash
-
-        python -m core.run
-
-    or via the Telegram:
-
-    .. code:: bash
-
-        python -m core.run -ch telegram
 
 **HTTP api server**
 -------------------
 
-1. **Run the agent api server from both container and local environment**
-
-    .. code:: bash
-
-        python -m core.run -ch http_client [-p 4242]
-
-    In both cases api will be accessible on your localhost
-
-2. **Web server accepts POST requests with application/json content-type**
+1. **Web server accepts POST requests with application/json content-type**
 
     Request should be in form:
 
@@ -283,7 +105,7 @@ Agent can run both from container and from a local machine. The default Agent po
 
     In case of wrong format, HTTP errors will be returned.
 
-3.  **Arbitrary input format of the Agent Server**
+2.  **Arbitrary input format of the Agent Server**
 
      If you want to pass anything except
      ``user_id`` and ``payload``, just pass it as an additional key-value item, for example:
@@ -297,21 +119,26 @@ Agent can run both from container and from a local machine. The default Agent po
 
      All additional items will be stored into the ``attributes`` field of a ``HumanUtterance``.
 
-4. **View dialogs in the database through GET requests**
+3. **View dialogs in the database through GET requests**
 
     The result is returned in json format which can be easily prettifyed with various browser extensions.
 
     Two main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
 
-     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog
-     * http://localhost:4242/api/user/<dialog_id> - provides all dialogs with user
+     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
+     * http://localhost:4242/api/user/<user_id> - provides all dialogs by user_id
+
+4. **Additional load analytics**
+
+    You can view actual data on quantity of tasks in processing and average response time for both agent and separate services.
+    Data is provided in real time on page http://localhost:4242/debug/current_load
 
 
 Analyzing the data
 ==================
 
 All conversations with the Agent are stored to a Mongo DB. When they are dumped, they have
-the same format as the Agent's state_. Someone may need to dump and analyze the whole dialogs,
+the same format as the Agent's. Someone may need to dump and analyze the whole dialogs,
 or users, or annotations. For now, the following Mongo collections are available and can be
 dumped separately:
 
@@ -323,32 +150,5 @@ dumped separately:
     * Utterance (HumanUtterance & BotUtterance)
     * Dialog
 
-To dump a DB collection, make sure that ``mongoengine`` is installed:
 
-    .. code:: bash
-
-        pip install mongoengine==0.17.0
-
-Then run:
-
-    .. code:: bash
-
-         python -m utils.get_db_data [collections]
-
-For example:
-
-    .. code:: bash
-
-         python -m utils.get_db_data Dialog User
-
-
-.. _config file: https://github.com/deepmipt/dp-agent/blob/master/config.py
-.. _DeepPavlov: https://github.com/deepmipt/DeepPavlov
-.. _Docker: https://docs.docker.com/install/
-.. _Docker-compose: https://docs.docker.com/compose/install/
-.. _nvidia-docker: https://github.com/NVIDIA/nvidia-docker
-.. _Docker environment configuration: https://github.com/deepmipt/dp-agent/blob/master/docker-compose.yml
-.. _docker-exec: https://docs.docker.com/engine/reference/commandline/exec/
 .. _state: https://deeppavlov-agent.readthedocs.io/en/latest/_static/api.html
-.. _mongo-docs: https://docs.mongodb.com/manual/tutorial/manage-mongodb-processes/
-.. _nvidia-container-runtime: https://github.com/NVIDIA/nvidia-container-runtime

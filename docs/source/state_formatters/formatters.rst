@@ -1,9 +1,7 @@
 **Formatters** are the functions that allow converting the input and output API of services into Agent's API.
-In the provided example `configuraton file <config_>`__ you can find that each service has its own formatter
-functions:
 
 Defining the formatters
-=====================
+=======================
 
 There are two main formatter types: which extracts data from dict representation of dialogs and formats it to
 service accessible form (dialog formatter), and which extracts data from service response and formats it prior
