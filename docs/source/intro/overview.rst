@@ -1,45 +1,49 @@
 Architecture Overview
 =====================
 
-**DeepPavlov Agent** helps production chatbot developers to organize multiple NLP models in a single pipeline.
-Modern chatbots usually solve different tasks (like chitchat, goal-oriented, question answering) simultaneously,
-so the platform should have the following characteristics:
+Modern virtual assistants such as Amazon Alexa and Google assistants integrate and orchestrate different
+conversational skills to address a wide spectrum of user's tasks.
+**DeepPavlov Agent** is a framework for development of scalable production ready *multi-skill virtual assistants*,
+complex dialogue systems and chatbots.
 
-    * be stable at highload environment
-    * save and pass the chatbot state_ across all the connected models
+Key features:
+
+    * scalability and reliability in highload environment due to micro-service architecture
+    * ease of adding and orchestrating conversational skills 
+    * shared memory of dialog state_ and NLP annotations accessible to all skills
 
 .. image:: ../_static/Agent_Pipeline_v2.png
    :height: 600
    :align: center
-   :alt: Architecture
+   :alt: Diagram of DeepPavlov Agent Architecture
 
-**Key concepts in DeepPavlov Agent architecture:**
+**Core concepts of DeepPavlov Agent architecture:**
 
 * ``Utterance`` is a single message produced by a human or a bot;
 
-* ``Service`` is any NLP model that can be inferred as a REST service.
+* ``Service`` is a NLP model or any other external service that supports a REST API.
 
-  There are different types of services:
+  DeepPavlov Agent orchestrates following types of services:
 
-    * ``Annotator`` is a service for utterance preprocessing. It can be some basic text preprocessing like
-      coreference resolution, named entity recognition, spell correction, etc.;
+    * ``Annotator`` is a service for NLP preprocessing of an utterance. It can implement some basic
+    text processing like spell correction, named entity recognition, etc.;
 
-    * ``Skill`` is a service producing a bot reply to a user utterance;
+    * ``Skill`` is a service producing a conversational response for a current dialogue state;
 
-    * ``Skill Selector`` is a service choosing which bunch of available skills should be responsible
-      for producing possible bot replies;
+    * ``Skill Selector`` is a service that selects a subset of available skills
+      for producing candidate responses;
 
-    * ``Response Selector`` is a service choosing a single bot reply from the available replies;
+    * ``Response Selector`` is a service selecting out of available candidates a response to be sent to the user;
 
-    * ``Postprocessor`` is a service postprocessing a bot utterance. It can make some basic things
-      like adding a user name to the reply, inserting emojis, etc.;
+    * ``Postprocessor`` is a service postprocessing a response utterance. It can make some basic things
+      like adding a user name, inserting emojis, etc.
 
-* ``Postprocessed Response`` is a final postprocessed bot utterance that is shown to the user.
+* ``Postprocessed Response`` is a final postprocessed conversational agent utterance that is shown to the user.
 
-* ``State`` is current dialogs between users and a bot serialized as **json**. State is used to pass information
-  across the services and contains all possibly needed information about the current dialogs.
-  It has separate `documentation <state_>`__.
-
+* ``State`` stores current dialogs between users and a conversational agent as well as other 
+  infromation serialized in a **json** format. State is used to share information
+  across the services and stores all required information about the current dialogs.
+  Dialogue state is documented `here <state_>`__.
 
 Installation
 ============
