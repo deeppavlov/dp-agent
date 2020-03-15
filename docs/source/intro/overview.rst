@@ -3,7 +3,7 @@ Architecture Overview
 
 Modern virtual assistants such as Amazon Alexa and Google assistants integrate and orchestrate different
 conversational skills to address a wide spectrum of user's tasks.
-**DeepPavlov Agent** is a framework for development of scalable production ready *multi-skill virtual assistants*,
+**DeepPavlov Agent** is a framework for development of scalable and production ready *multi-skill virtual assistants*,
 complex dialogue systems and chatbots.
 
 Key features:
