@@ -41,7 +41,7 @@ Key features:
   Dialogue state is documented `here <state_>`__.
 
 .. image:: ../_static/Agent_Pipeline_v2.png
-   :height: 600
+   :height: 400
    :align: center
    :alt: Diagram of DeepPavlov Agent Architecture
 
