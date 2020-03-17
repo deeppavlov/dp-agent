@@ -3,7 +3,7 @@ Architecture Overview
 
 Modern virtual assistants such as Amazon Alexa and Google assistants integrate and orchestrate different
 conversational skills to address a wide spectrum of user's tasks.
-**DeepPavlov Agent** is a framework for development of scalable production ready *multi-skill virtual assistants*,
+**DeepPavlov Agent** is a framework for development of scalable and production ready *multi-skill virtual assistants*,
 complex dialogue systems and chatbots.
 
 Key features:
@@ -11,11 +11,6 @@ Key features:
     * scalability and reliability in highload environment due to micro-service architecture
     * ease of adding and orchestrating conversational skills 
     * shared memory of dialog state_ and NLP annotations accessible to all skills
-
-.. image:: ../_static/Agent_Pipeline_v2.png
-   :height: 600
-   :align: center
-   :alt: Diagram of DeepPavlov Agent Architecture
 
 **Core concepts of DeepPavlov Agent architecture:**
 
@@ -45,6 +40,11 @@ Key features:
   across the services and stores all required information about the current dialogs.
   Dialogue state is documented `here <state_>`__.
 
+.. image:: ../_static/Agent_Pipeline_v2.png
+   :height: 400
+   :align: center
+   :alt: Diagram of DeepPavlov Agent Architecture
+
 Installation
 ============
 
@@ -58,8 +58,8 @@ Deeppavlov agent requires python >= 3.7 and can be installed from pip.
 Running the Agent
 =================
 
-Agent can run both from container and from a local machine. The default Agent port is **4242**.
-The launch command is:
+Agent can be run inside a container or on a local machine. The default Agent port is **4242**.
+To launch the agent enter:
 
      .. code:: bash
 
@@ -67,12 +67,12 @@ The launch command is:
 
 Command parameters are:
 
-    * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``
-    * -p - port for http_client. Defaults to 4242
-    * -pl - pipeline config path
-    * -d - database config path
-    * -rl - include response logger
-    * -d - launch in debug mode (additional data in http output)
+    * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``;
+    * -p - port for http_client, default value is 4242;
+    * -pl - pipeline config path;
+    * -d - database config path;
+    * -rl - include response logger;
+    * -d - launch in debug mode (additional data in http output).
 
 
 **HTTP api server**
@@ -98,7 +98,7 @@ Command parameters are:
              --data '{"user_id":"xyz","payload":"hello"}' \
              http://localhost:4242
 
-    Agent will return a json response:
+    Agent returns a json response:
 
     .. code:: javascript
 
@@ -111,7 +111,7 @@ Command parameters are:
 
 2.  **Arbitrary input format of the Agent Server**
 
-     If you want to pass anything except
+     If you want to send anything to the Agent, except
      ``user_id`` and ``payload``, just pass it as an additional key-value item, for example:
 
      .. code:: bash
@@ -121,30 +121,30 @@ Command parameters are:
              --data '{"user_id":"xyz","payload":"hello", "my_custom_dialog_id": 111}' \
              http://localhost:4242
 
-     All additional items will be stored into the ``attributes`` field of a ``HumanUtterance``.
+     All additional items will be stored in the Agents ``state`` into the ``attributes`` field of a ``HumanUtterance``. 
+     Dialogue state is documented `here <state_>`__
 
-3. **View dialogs in the database through GET requests**
+3. **Retrieve dialogs from the database through GET requests**
 
-    The result is returned in json format which can be easily prettifyed with various browser extensions.
+    Dialogs' history is returned in json format which can be easily prettifyed with various browser extensions.
 
-    Two main web pages are provided (examples are shown for the case when agent is running on http://localhost:4242):
+    Logs can be accessed at (examples are shown for the case when the agent is running on http://localhost:4242):
 
-     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog (dialog_id can be seen on /dialogs page)
+     * http://localhost:4242/api/dialogs/ list of ``dialog_id``s
+     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog (``dialog_id`` can be seen on /dialogs page)
      * http://localhost:4242/api/user/<user_id> - provides all dialogs by user_id
 
-4. **Additional load analytics**
+4. **Load analytics**
 
-    You can view actual data on quantity of tasks in processing and average response time for both agent and separate services.
-    Data is provided in real time on page http://localhost:4242/debug/current_load
+    Number of processing tasks and average response time for both the agent and separate services are 
+    provided in a real time on the page http://localhost:4242/debug/current_load .
 
 
 Analyzing the data
 ==================
 
-All conversations with the Agent are stored to a Mongo DB. When they are dumped, they have
-the same format as the Agent's. Someone may need to dump and analyze the whole dialogs,
-or users, or annotations. For now, the following Mongo collections are available and can be
-dumped separately:
+History of the agent's ``state`` for all dialogues is stored to a Mongo DB. The state_ includes utterences from user with corresponding responses. It also includes all the additional data generated by agent's services. 
+Following Mongo collections can be dumped separately:
 
     * Human
     * Bot
