@@ -1,7 +1,7 @@
 Welcome to DeepPavlov Agent documentation!
 ==========================================
 
-**DeepPavlov Agent** is a platform for creating multi-skill chatbots.
+**DeepPavlov Agent** is a framework for development of scalable and production ready multi-skill virtual assistants, complex dialogue systems and chatbots.
 
 .. toctree::
    :glob:
@@ -35,3 +35,9 @@ Welcome to DeepPavlov Agent documentation!
    :caption: State Formatters
 
    state_formatters/formatters
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Configuration files
+
+   config/config
