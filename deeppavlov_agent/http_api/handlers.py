@@ -44,7 +44,7 @@ class ApiHandler:
                 return web.json_response({})
 
             response = await asyncio.shield(
-                register_msg(utterance=payload, user_telegram_id=user_id,
+                register_msg(utterance=payload, user_external_id=user_id,
                              user_device_type=data.pop('user_device_type', 'http'),
                              date_time=datetime.now(),
                              location=data.pop('location', ''),
@@ -72,8 +72,8 @@ class ApiHandler:
 
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
-        user_telegram_id = request.match_info['user_telegram_id']
-        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
+        user_external_id = request.match_info['user_external_id']
+        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_external_id)
         return web.json_response([i.to_dict() for i in dialogs])
 
 

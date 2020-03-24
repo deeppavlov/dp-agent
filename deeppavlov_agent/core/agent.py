@@ -27,11 +27,11 @@ class Agent:
             workflow_record['timeout_response_task'].cancel()
         return workflow_record
 
-    async def register_msg(self, utterance: str, user_telegram_id: Hashable,
+    async def register_msg(self, utterance: str, user_external_id: Hashable,
                            user_device_type: Any, location: Any,
                            channel_type: str, deadline_timestamp=None,
                            require_response=False, **kwargs):
-        dialog = await self.state_manager.get_or_create_dialog_by_tg_id(user_telegram_id, channel_type)
+        dialog = await self.state_manager.get_or_create_dialog_by_tg_id(user_external_id, channel_type)
         dialog_id = str(dialog.id)
         service = self.pipeline.get_service_by_name('input')
         message_attrs = kwargs.pop('message_attrs', {})

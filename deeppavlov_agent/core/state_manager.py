@@ -75,20 +75,20 @@ class StateManager:
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         await dialog.save(self._db)
 
-    async def get_or_create_dialog_by_tg_id(self, user_telegram_id, channel_type):
-        return await Dialog.get_or_create_by_ext_id(self._db, user_telegram_id, channel_type)
+    async def get_or_create_dialog_by_tg_id(self, user_external_id, channel_type):
+        return await Dialog.get_or_create_by_ext_id(self._db, user_external_id, channel_type)
 
     async def get_dialog_by_id(self, dialog_id):
         return await Dialog.get_by_id(self._db, dialog_id)
 
-    async def get_dialogs_by_user_ext_id(self, user_telegram_id):
-        return await Dialog.get_many_by_ext_id(self._db, user_telegram_id)
+    async def get_dialogs_by_user_ext_id(self, user_external_id):
+        return await Dialog.get_many_by_ext_id(self._db, user_external_id)
 
     async def get_all_dialogs(self):
         return await Dialog.get_all(self._db)
 
-    async def drop_active_dialog(self, user_telegram_id):
-        user = await Human.get_or_create(self._db, user_telegram_id)
+    async def drop_active_dialog(self, user_external_id):
+        user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.drop_active(self._db, user._id)
 
     async def prepare_db(self):
