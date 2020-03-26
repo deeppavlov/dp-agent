@@ -1,11 +1,10 @@
 Agent Configuration
-======================
+====================
 
 You can provide pipeline and database configuration for agent with config files. Both ``json`` and ``yml`` formats are acceptable.
 
-**Config Description**
-
-**Database**
+Database Config Description
+===========================
 
 Database configuration parameters are provided via ``db_conf`` file. Currently, agent runs on Mongo DB.
 
@@ -33,11 +32,14 @@ Sample database config:
     * An name of the database, or env variable, where name of the database is stored
 
 
-**Pipeline**
+Pipeline Config Description
+===========================
 
 Pipeline configuration parameters are provided via ``pipeline_conf`` file. There are two different sections in config, which are used to configure Connectors and Services
 
+
 **Services Config**
+-------------------
 
 Service represents a single node of pipeline graph, or single step in processing of user message.
 In ``pipeline_conf`` all services are grouped under "service" key.
@@ -92,7 +94,9 @@ Sample service config:
     * **timeout** - this tag marks a timeout service, which will engage if deadline timestamp is presented and processing time exceeds it
     * **last_chance** - this tag marks a last chance service, which will engage if other services in pipeline have finished executing with an error, and further processing became impossible
 
+
 **Connectors config**
+---------------------
 
 Connector represents a function, where tasks are sent in order to process. Can be implementation of some data transfer protocol or model implemented in python.
 Since agent is based on asynchronous execution, and can be slowed down by blocking synchronous parts, it is strongly advised to implement computational heavy services separate from agent, and use some protocols (like http) for data transfer.
@@ -105,7 +109,7 @@ There are several possibilities, to configure connector:
 
         {"connector name": {
                 "protocol": "http",
-                "url": "connector url"
+                "url": "connector url",
                 "batch_size": "batch size for the service"
             }
         }
