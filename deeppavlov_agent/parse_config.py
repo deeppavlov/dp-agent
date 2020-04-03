@@ -89,6 +89,13 @@ class PipelineConfigParser:
         self.connectors[name] = connector
 
     def make_service(self, group: str, name: str, data: Dict):
+        def check_ext_module(class_name):
+            params = class_name.split(':')
+            formatter_class = None
+            if len(params) == 2:
+                formatter_class = getattr(self.get_external_module(params[0]), params[1])
+            return formatter_class
+
         connector_data = data.get('connector', None)
         service_name = ".".join([i for i in [group, name] if i])
         if 'workflow_formatter' in data and not data['workflow_formatter']:
@@ -117,15 +124,20 @@ class PipelineConfigParser:
         dialog_formatter_name = data.get('dialog_formatter', None)
         response_formatter_name = data.get('response_formatter', None)
         if dialog_formatter_name:
-            if dialog_formatter_name in dialog_formatter_name:
+            if dialog_formatter_name in all_formatters:
                 dialog_formatter = all_formatters[dialog_formatter_name]
             else:
+                dialog_formatter = check_ext_module(dialog_formatter_name)
+            if not dialog_formatter:
                 raise ValueError(f"formatter {dialog_formatter_name} doesn't exist (declared in {service_name})")
         if response_formatter_name:
             if response_formatter_name in all_formatters:
                 response_formatter = all_formatters[response_formatter_name]
             else:
+                response_formatter = check_ext_module(response_formatter_name)
+            if not response_formatter:
                 raise ValueError(f"formatter {response_formatter_name} doesn't exist (declared in {service_name})")
+
         names_previous_services = set()
         for sn in data.get('previous_services', set()):
             names_previous_services.update(self.services_names.get(sn, set()))
