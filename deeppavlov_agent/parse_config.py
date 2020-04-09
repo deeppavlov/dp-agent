@@ -14,7 +14,7 @@ from .state_formatters import all_formatters
 
 
 class PipelineConfigParser:
-    def __init__(self, state_manager: StateManager, config: Dict):
+    def __init__(self, state_manager: StateManager, config: Dict, connectors_module, formatters_module):
         self.config = config
         self.state_manager = state_manager
         self.services = []
@@ -26,6 +26,9 @@ class PipelineConfigParser:
         self.session = None
         self.gateway = None
         self.imported_modules = {}
+
+        self.connectors_module = connectors_module
+        self.formatters_module = formatters_module
 
         self.fill_connectors()
         self.fill_services()
@@ -76,12 +79,20 @@ class PipelineConfigParser:
         elif data['protocol'] == 'python':
             params = data['class_name'].split(':')
             if len(params) == 1:
-                connector_class = getattr(self.get_external_module('core.connectors'), params[0])
+                if self.connectors_module:
+                    connector_class = getattr(self.connectors_module, params[0], None)
+                    module_provided_str = f'in {self.connectors_module.__name__} connectors module'
+                else:
+                    connector_class = getattr(self.get_external_module('core.connectors'), params[0], None)
+                    module_provided_str = 'in deeppavlov_agent.core.connectors module'
+                if not connector_class:
+                    raise ValueError(f"Connector's python class {data['class_name']} from {name} "
+                                     f"connector was not found ({module_provided_str})")
             elif len(params) == 2:
-                connector_class = getattr(self.get_external_module(params[0]), params[1])
+                connector_class = getattr(self.get_external_module(params[0]), params[1], None)
             else:
                 raise ValueError(f"Expected class description in a `module.submodules:ClassName` form, "
-                                 f"but got `{data['class_name']}`")
+                                 f"but got `{data['class_name']}` (in {name} connector)")
             others = {k: v for k, v in data.items() if k not in {'protocol', 'class_name'}}
             connector = connector_class(**others)
 
@@ -93,7 +104,9 @@ class PipelineConfigParser:
             params = class_name.split(':')
             formatter_class = None
             if len(params) == 2:
-                formatter_class = getattr(self.get_external_module(params[0]), params[1])
+                formatter_class = getattr(self.get_external_module(params[0]), params[1], None)
+            elif len(params) == 1 and self.formatters_module:
+                formatter_class = getattr(self.formatters_module, params[0], None)
             return formatter_class
 
         connector_data = data.get('connector', None)
