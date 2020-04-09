@@ -6,13 +6,10 @@ from time import time
 import aiohttp_jinja2
 from aiohttp import web
 
-from ..state_formatters.output_formatters import (http_api_output_formatter,
-                                                  http_debug_output_formatter)
-
 
 class ApiHandler:
-    def __init__(self, debug=False, response_time_limit=5):
-        self.debug = debug
+    def __init__(self, output_formatter, response_time_limit=5):
+        self.output_formatter = output_formatter
         self.response_time_limit = response_time_limit
 
     async def handle_api_request(self, request):
@@ -55,10 +52,7 @@ class ApiHandler:
 
             if response is None:
                 raise RuntimeError('Got None instead of a bot response.')
-            if self.debug:
-                return web.json_response(http_debug_output_formatter(response['dialog'].to_dict()))
-            else:
-                return web.json_response(http_api_output_formatter(response['dialog'].to_dict()))
+            return web.json_response(self.output_formatter(response['dialog'].to_dict()))
 
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager

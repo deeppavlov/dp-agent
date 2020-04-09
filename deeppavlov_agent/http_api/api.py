@@ -7,7 +7,8 @@ from aiohttp import web
 from .handlers import ApiHandler, PagesHandler, WSstatsHandler
 
 
-async def init_app(agent, session, consumers, logger_stats, debug=False, response_time_limit=0):
+async def init_app(agent, session, consumers, logger_stats, output_formatter,
+                   debug=False, response_time_limit=0):
     app = web.Application()
     handler = ApiHandler(debug, response_time_limit)
     pages = PagesHandler(debug)
