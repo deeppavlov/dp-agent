@@ -10,7 +10,7 @@ from .handlers import ApiHandler, PagesHandler, WSstatsHandler
 async def init_app(agent, session, consumers, logger_stats, output_formatter,
                    debug=False, response_time_limit=0):
     app = web.Application()
-    handler = ApiHandler(debug, response_time_limit)
+    handler = ApiHandler(output_formatter, response_time_limit)
     pages = PagesHandler(debug)
     stats = WSstatsHandler()
     consumers = [asyncio.ensure_future(i.call_service(agent.process)) for i in consumers]
