@@ -19,20 +19,10 @@ from .parse_config import PipelineConfigParser
 
 
 def setup_agent():
-    user_settings = None
-    try:
-        user_settings = import_module('settings')
-    except ModuleNotFoundError:
-        logging.info('settings.py has not found. Default settings are used')
-
-    if user_settings:
-        db_config_file = getattr(user_settings, 'DB_CONFIG', None) or DB_CONFIG
-        pipeline_config_file = getattr(user_settings, 'PIPELINE_CONFIG', None) or PIPELINE_CONFIG
-
-    with open(db_config_file, 'r') as db_config:
-        if db_config_file.endswith('.json'):
+    with open(DB_CONFIG, 'r') as db_config:
+        if DB_CONFIG.endswith('.json'):
             db_data = json.load(db_config)
-        elif db_config_file.endswith('.yml'):
+        elif DB_CONFIG.endswith('.yml'):
             db_data = yaml.load(db_config)
         else:
             raise ValueError('unknown format for db_config')
@@ -45,10 +35,10 @@ def setup_agent():
 
     sm = STATE_MANAGER_CLASS(db.get_db())
 
-    with open(pipeline_config_file, 'r') as pipeline_config:
-        if pipeline_config_file.endswith('.json'):
+    with open(PIPELINE_CONFIG, 'r') as pipeline_config:
+        if PIPELINE_CONFIG.endswith('.json'):
             pipeline_data = json.load(pipeline_config)
-        elif pipeline_config_file.endswith('.yml'):
+        elif PIPELINE_CONFIG.endswith('.yml'):
             pipeline_data = yaml.load(pipeline_config)
         else:
             raise ValueError('unknown format for pipeline_config')

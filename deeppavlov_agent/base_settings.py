@@ -6,34 +6,69 @@ from .state_formatters.output_formatters import (
     http_debug_output_formatter
 )
 
-# Common parameters
-DEBUG = True
 
-# Basic agent configuration parameters
+# Default parameters
+BASE_PARAMETERS = {
+    'debug': True,
+    'state_manager_class': StateManager,
+    'workflow_manager_class': WorkflowManager,
+    'db_class': DataBase,
+    'pipeline_config': 'pipeline_conf.json',
+    'db_config': 'db_conf.json',
+    'overwrite_last_chance': None,
+    'overwrite_timeout': None,
+    'formatters_module': None,
+    'connectors_module': None,
+    'response_logger': True,
+    'time_limit': 0,
+    'output_formatter': http_api_output_formatter,
+    'debug_output_formatter': http_debug_output_formatter,
+    'port': 4242,
+    'telegram_token': '',
+    'telegram_proxy': ''
+}
+
+# Replasing constants with ones from user settings
+
+def setup_parameter(name, user_settings):
+    if not user_settings:
+        return BASE_PARAMETERS[name]
+    return getattr(user_settings, name, None) or BASE_PARAMETERS[name]
+
+user_settings = None
+try:
+    user_settings = import_module('settings')
+except ModuleNotFoundError:
+    logging.info('settings.py was not found. Default settings are used')
+
+# Set up common parameters
+DEBUG = setup_parameter('debug', user_settings)
+
+# Basic agent configuration parameters (some are currently unavailable)
 STATE_MANAGER_CLASS = StateManager
 WORKFLOW_MANAGER_CLASS = WorkflowManager
 DB_CLASS = DataBase
 
-PIPELINE_CONFIG = 'pipeline_conf.json'
-DB_CONFIG = 'db_conf.json'
+PIPELINE_CONFIG = setup_parameter('pipeline_config', user_settings)
+DB_CONFIG = setup_parameter('db_config', user_settings)
 
-OVERWRITE_LAST_CHANCE = None
-OVERWRITE_TIMEOUT = None
+OVERWRITE_LAST_CHANCE = setup_parameter('overwrite_last_chance', user_settings)
+OVERWRITE_TIMEOUT = setup_parameter('overwrite_timeout', user_settings)
 
-FORMATTERS_MODULE = None
-CONNECTORS_MODULE = None
+FORMATTERS_MODULE = setup_parameter('formatters_module', user_settings)
+CONNECTORS_MODULE = setup_parameter('connectors_module', user_settings)
 
 RESPONSE_LOGGER = True
 
 # HTTP app configuraion parameters
-TIME_LIMIT = 0  # Without engaging the timeout by default
+TIME_LIMIT = setup_parameter('time_limit', user_settings)  # Without engaging the timeout by default
 
-OUTPUT_FORMATTER = http_api_output_formatter
-DEBUG_OUTPUT_FORMATTER = http_debug_output_formatter
+OUTPUT_FORMATTER = setup_parameter('output_formatter', user_settings)
+DEBUG_OUTPUT_FORMATTER = setup_parameter('debug_output_formatter', user_settings)
 
 # HTTP api run parameters
-PORT = 4242
+PORT = setup_parameter('port', user_settings)
 
 # Telegram client configuration parameters
-TELEGRAM_TOKEN = ''
-TELEGRAM_PROXY = ''
+TELEGRAM_TOKEN = setup_parameter('telegram_token', user_settings)
+TELEGRAM_PROXY = setup_parameter('telegram_proxy', user_settings)
