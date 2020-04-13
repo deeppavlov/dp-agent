@@ -5,7 +5,9 @@ from typing import Dict
 
 import aiohttp
 
-from .core.connectors import AioQueueConnector, QueueListenerBatchifyer, HTTPConnector, AgentGatewayToServiceConnector
+from .core.connectors import (AgentGatewayToServiceConnector,
+                              AioQueueConnector, HTTPConnector,
+                              QueueListenerBatchifyer)
 from .core.service import Service, simple_workflow_formatter
 from .core.state_manager import StateManager
 from .core.transport.mapping import GATEWAYS_MAP

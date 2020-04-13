@@ -41,7 +41,7 @@ def setup_parameter(name, user_settings):
 
 user_settings = None
 try:
-    user_settings = import_module('settings')
+    user_settings = import_module('dp_agent_settings')
 except ModuleNotFoundError:
     logging.info('settings.py was not found. Default settings are used')
 
