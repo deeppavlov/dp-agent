@@ -1,11 +1,11 @@
+import logging
+from importlib import import_module
+
 from .core.db import DataBase
 from .core.state_manager import StateManager
 from .core.workflow_manager import WorkflowManager
-from .state_formatters.output_formatters import (
-    http_api_output_formatter,
-    http_debug_output_formatter
-)
-
+from .state_formatters.output_formatters import (http_api_output_formatter,
+                                                 http_debug_output_formatter)
 
 # Default parameters
 BASE_PARAMETERS = {
@@ -25,15 +25,19 @@ BASE_PARAMETERS = {
     'debug_output_formatter': http_debug_output_formatter,
     'port': 4242,
     'telegram_token': '',
-    'telegram_proxy': ''
+    'telegram_proxy': '',
 }
 
 # Replasing constants with ones from user settings
 
 def setup_parameter(name, user_settings):
-    if not user_settings:
-        return BASE_PARAMETERS[name]
-    return getattr(user_settings, name, None) or BASE_PARAMETERS[name]
+    res = None
+    if user_settings:
+        res = getattr(user_settings, name, None)
+    if res is None:
+        res = BASE_PARAMETERS[name]
+    return res
+
 
 user_settings = None
 try:

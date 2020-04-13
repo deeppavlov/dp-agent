@@ -8,7 +8,6 @@ from .base_settings import (
     WORKFLOW_MANAGER_CLASS, OVERWRITE_LAST_CHANCE, OVERWRITE_TIMEOUT,
     FORMATTERS_MODULE, CONNECTORS_MODULE, RESPONSE_LOGGER
 )
-from importlib import import_module
 
 from .core.agent import Agent
 from .core.connectors import EventSetOutputConnector
