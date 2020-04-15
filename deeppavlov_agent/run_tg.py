@@ -1,4 +1,4 @@
-from .base_settings import TELEGRAM_TOKEN, TELEGRAM_PROXY
+from .settings import TELEGRAM_TOKEN, TELEGRAM_PROXY
 from .core.telegram_client import run_tg
 from .setup_agent import setup_agent
 

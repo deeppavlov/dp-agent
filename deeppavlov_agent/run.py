@@ -17,6 +17,7 @@ from .core.state_manager import StateManager
 from .core.workflow_manager import WorkflowManager
 from .http_api.api import init_app
 from .parse_config import PipelineConfigParser
+from .state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
 
 service_logger = logging.getLogger('service_logger')
 
@@ -61,7 +62,7 @@ def main():
             pipeline_data = yaml.load(pipeline_config)
         else:
             raise ValueError('unknown format for pipeline_config')
-    pipeline_config = PipelineConfigParser(sm, pipeline_data)
+    pipeline_config = PipelineConfigParser(sm, pipeline_data, None, None)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
     responder_srv = Service('responder', EventSetOutputConnector('responder').send,
@@ -86,9 +87,15 @@ def main():
             run_cmd(agent, pipeline_config.session, pipeline_config.workers, args.debug)
 
         elif args.channel == 'http_client':
+            if args.debug:
+                output_formatter = http_debug_output_formatter
+            else:
+                output_formatter = http_api_output_formatter
             app = init_app(
-                agent, pipeline_config.session, pipeline_config.workers,
-                response_logger, args.debug, args.time_limit
+                agent=agent, session=pipeline_config.session,
+                consumers=pipeline_config.workers, logger_stats=response_logger,
+                output_formatter=output_formatter, debug=args.debug,
+                response_time_limit=args.time_limit
             )
             web.run_app(app, port=args.port)
     except Exception as e:

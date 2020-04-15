@@ -1,14 +1,14 @@
 import json
-import os
-import yaml
 import logging
+import os
 
-from .base_settings import (
-    PIPELINE_CONFIG, DB_CONFIG, STATE_MANAGER_CLASS, DB_CLASS,
-    WORKFLOW_MANAGER_CLASS, OVERWRITE_LAST_CHANCE, OVERWRITE_TIMEOUT,
-    FORMATTERS_MODULE, CONNECTORS_MODULE, RESPONSE_LOGGER
-)
+import yaml
 
+from .settings import (CONNECTORS_MODULE, DB_CLASS, DB_CONFIG,
+                            FORMATTERS_MODULE, OVERWRITE_LAST_CHANCE,
+                            OVERWRITE_TIMEOUT, PIPELINE_CONFIG,
+                            RESPONSE_LOGGER, STATE_MANAGER_CLASS,
+                            WORKFLOW_MANAGER_CLASS)
 from .core.agent import Agent
 from .core.connectors import EventSetOutputConnector
 from .core.log import LocalResponseLogger
