@@ -28,8 +28,8 @@ BASE_PARAMETERS = {
     'telegram_proxy': '',
 }
 
-# Replasing constants with ones from user settings
 
+# Replasing constants with ones from user settings
 def setup_parameter(name, user_settings):
     res = None
     if user_settings:

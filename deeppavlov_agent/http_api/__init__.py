@@ -2,7 +2,7 @@
 
 from .api import init_app
 
-from ..base_settings import (
+from ..settings import (
     TIME_LIMIT, OUTPUT_FORMATTER, DEBUG_OUTPUT_FORMATTER, DEBUG, RESPONSE_LOGGER
 )
 
