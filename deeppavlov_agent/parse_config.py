@@ -16,7 +16,7 @@ from .state_formatters import all_formatters
 
 
 class PipelineConfigParser:
-    def __init__(self, state_manager: StateManager, config: Dict, connectors_module, formatters_module):
+    def __init__(self, state_manager: StateManager, config: Dict):
         self.config = config
         self.state_manager = state_manager
         self.services = []
@@ -29,11 +29,18 @@ class PipelineConfigParser:
         self.gateway = None
         self.imported_modules = {}
 
-        self.connectors_module = connectors_module
-        self.formatters_module = formatters_module
+        self.connectors_module = self.setup_module_from_config('connectors_module')
+        self.formatters_module = self.setup_module_from_config('formatters_module')
 
         self.fill_connectors()
         self.fill_services()
+
+    def setup_module_from_config(self, name_var):
+        module = None
+        connectors_module_name = self.config.get(name_var, None)
+        if connectors_module_name:
+            module = import_module(connectors_module_name)
+        return module
 
     def get_session(self):
         if not self.session:

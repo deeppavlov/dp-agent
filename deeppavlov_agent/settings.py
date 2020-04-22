@@ -59,9 +59,6 @@ DB_CONFIG = setup_parameter('db_config', user_settings)
 OVERWRITE_LAST_CHANCE = setup_parameter('overwrite_last_chance', user_settings)
 OVERWRITE_TIMEOUT = setup_parameter('overwrite_timeout', user_settings)
 
-FORMATTERS_MODULE = setup_parameter('formatters_module', user_settings)
-CONNECTORS_MODULE = setup_parameter('connectors_module', user_settings)
-
 RESPONSE_LOGGER = True
 
 # HTTP app configuraion parameters

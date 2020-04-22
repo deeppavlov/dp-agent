@@ -3,8 +3,7 @@ import os
 
 import yaml
 
-from .settings import (CONNECTORS_MODULE, DB_CLASS, DB_CONFIG,
-                       FORMATTERS_MODULE, OVERWRITE_LAST_CHANCE,
+from .settings import (DB_CLASS, DB_CONFIG, OVERWRITE_LAST_CHANCE,
                        OVERWRITE_TIMEOUT, PIPELINE_CONFIG,
                        RESPONSE_LOGGER, STATE_MANAGER_CLASS,
                        WORKFLOW_MANAGER_CLASS)
@@ -21,7 +20,7 @@ def setup_agent():
         if DB_CONFIG.endswith('.json'):
             db_data = json.load(db_config)
         elif DB_CONFIG.endswith('.yml'):
-            db_data = yaml.load(db_config)
+            db_data = yaml.load(db_config, Loader=yaml.FullLoader)
         else:
             raise ValueError('unknown format for db_config')
 
@@ -36,11 +35,11 @@ def setup_agent():
     with open(PIPELINE_CONFIG, 'r') as pipeline_config:
         if PIPELINE_CONFIG.endswith('.json'):
             pipeline_data = json.load(pipeline_config)
-        elif PIPELINE_CONFIG.endswith('.yml'):
+        elif PIPELINE_CONFIG.endswith('.yml', Loader=yaml.FullLoader):
             pipeline_data = yaml.load(pipeline_config)
         else:
             raise ValueError('unknown format for pipeline_config')
-    pipeline_config = PipelineConfigParser(sm, pipeline_data, CONNECTORS_MODULE, FORMATTERS_MODULE)
+    pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
     responder_srv = Service('responder', EventSetOutputConnector('responder').send,
