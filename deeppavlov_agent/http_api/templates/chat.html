@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dialogs list{% endblock %}
+{% block head %}
+{{ super() }}
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+{% endblock %}
+{% block content %}
+<div class="input-group mb-3">
+  <div class="input-group-prepend">
+    <span class="input-group-text" id="basic-addon1">User Id</span>
+  </div>
+  <input type="text" class="form-control" placeholder="User Id" aria-label="User_id" aria-describedby="basic-addon1" id="user_id">
+</div>
+<div class="input-group mb-3">
+  <div class="input-group-prepend">
+    <span class="input-group-text" id="basic-addon2">Text</span>
+  </div>
+  <input type="text" class="form-control" placeholder="Text" aria-label="Text" aria-describedby="basic-addon2" id="payload">
+  <button id="send", type="submit" class="btn btn-primary">Send</button>
+</div>
+
+<div id="dialog">
+</div>
+
+<script type="text/javascript">
+    var socket = new WebSocket('ws://' + window.location.host + '/chat/ws');
+
+    socket.onopen = function() {
+        update_ui();
+    };
+
+    socket.onclose = function() {
+      update_ui();
+      alert('service is unavailable');
+    };
+
+    function update_ui() {
+      if (socket == null) {
+        $('#send').prop("disabled", true);
+      } else {
+        $('#send').prop("disabled", false);
+      }
+    };
+
+    $('#send').on('click', function() {
+      var payload = $('#payload').val();
+      var user_id = $('#user_id').val();
+
+      socket.send(JSON.stringify({"user_id": user_id, "payload": payload}));
+      $('#payload').val('').focus();
+      update_table(payload, user_id);
+      $('#send').prop("disabled", true);
+      $('#user_id').prop("readonly", true);
+      return false;
+    });
+
+    function update_table(text, id, active_skill, debug) {
+        var dialog = document.getElementById('dialog');
+        var index = dialog.childElementCount;
+        var message = id;
+        var collapse = document.createElement('div');
+        collapse.setAttribute("id", "collapse" + index);
+        collapse.setAttribute("class", "collapse");
+        collapse.setAttribute("data-parent", "#dialog");
+        collapse.setAttribute("aria-labelledby", "heading" + index);
+        if (active_skill == undefined) {
+            message = message + ': ' +  text;
+            active_skill = '';
+        } else {
+            message = message + ' (' + active_skill + '): ' +  text;
+        }
+
+        if (debug != undefined) {
+            var cardBody = document.createElement('div');
+            cardBody.setAttribute("class", "card-body");
+            cardBody.innerHTML = JSON.stringify(debug, undefined, 2);
+            collapse.append(cardBody);
+            
+        }
+
+        var card = document.createElement('div');
+        card.setAttribute("class", "card");
+
+        var header = document.createElement('div');
+        header.setAttribute("class", "card-header");
+        header.setAttribute("id", "heading" + index);
+        var h = document.createElement('h5');
+        h.setAttribute("class", "mb-0");
+
+        var button = document.createElement('button');
+        button.setAttribute("class", "btn btn-link collapsed");
+        button.setAttribute("data-toggle", "collapse");
+        button.setAttribute("data-target", "#collapse" + index);
+        button.setAttribute("aria-expanded", "true");
+        button.setAttribute("aria-controls", "collapse" + index);
+        button.innerHTML = message;
+
+        h.append(button);
+        header.append(h);
+
+        card.append(header);
+        if (collapse.childElementCount == 1) {
+          card.append(collapse);
+        }
+
+        dialog.prepend(card);
+        $('#send').prop("disabled", false);
+    }
+
+    socket.onmessage = function(event) {
+        data = JSON.parse(event.data);
+        update_table(data.response, 'bot', data.active_skill, data.debug_output)
+    };
+
+</script>
+{% endblock %}

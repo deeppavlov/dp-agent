@@ -77,12 +77,18 @@ class QueueListenerBatchifyer:
 
 class ConfidenceResponseSelectorConnector:
     async def send(self, payload: Dict, callback: Callable):
-        response = payload['payload']['hypotheses']
-        best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
-        await callback(
-            task_id=payload['task_id'],
-            response=best_skill
-        )
+        try:
+            response = payload['payload']['utterances'][-1]['hypotheses']
+            best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
+            await callback(
+                task_id=payload['task_id'],
+                response=best_skill
+            )
+        except Exception as e:
+            await callback(
+                task_id=payload['task_id'],
+                response=e
+            )
 
 
 class EventSetOutputConnector:
@@ -147,4 +153,15 @@ class PredefinedTextConnector:
         await callback(
             task_id=payload['task_id'],
             response={'text': self.response_text, 'annotations': self.annotations}
+        )
+
+
+class PredefinedOutputConnector:
+    def __init__(self, output):
+        self.output = output
+
+    async def send(self, payload: Dict, callback: Callable):
+        await callback(
+            task_id=payload['task_id'],
+            response=self.output
         )

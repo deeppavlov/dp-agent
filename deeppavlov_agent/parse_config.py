@@ -7,12 +7,20 @@ import aiohttp
 
 from .core.connectors import (AgentGatewayToServiceConnector,
                               AioQueueConnector, HTTPConnector,
-                              QueueListenerBatchifyer)
+                              QueueListenerBatchifyer, PredefinedOutputConnector,
+                              PredefinedTextConnector, ConfidenceResponseSelectorConnector)
 from .core.service import Service, simple_workflow_formatter
 from .core.state_manager import StateManager
 from .core.transport.mapping import GATEWAYS_MAP
 from .core.transport.settings import TRANSPORT_SETTINGS
 from .state_formatters import all_formatters
+
+
+built_in_connectors = {
+    "PredefinedOutputConnector": PredefinedOutputConnector,
+    "PredefinedTextConnector": PredefinedTextConnector,
+    "ConfidenceResponseSelectorConnector": ConfidenceResponseSelectorConnector
+}
 
 
 class PipelineConfigParser:
@@ -29,8 +37,17 @@ class PipelineConfigParser:
         self.gateway = None
         self.imported_modules = {}
 
-        self.connectors_module = self.setup_module_from_config('connectors_module')
-        self.formatters_module = self.setup_module_from_config('formatters_module')
+        connectors_module_name = self.config.get('connectors_module', None)
+        if connectors_module_name:
+            self.connectors_module = import_module(connectors_module_name)
+        else:
+            self.connectors_module = None
+
+        formatters_module_name = self.config.get('formatters_module', None)
+        if formatters_module_name:
+            self.formatters_module = import_module(formatters_module_name)
+        else:
+            self.formatters_module = None
 
         self.fill_connectors()
         self.fill_services()
@@ -88,12 +105,13 @@ class PipelineConfigParser:
         elif data['protocol'] == 'python':
             params = data['class_name'].split(':')
             if len(params) == 1:
-                if self.connectors_module:
+                if params[0] in built_in_connectors:
+                    connector_class = built_in_connectors[params[0]]
+                    module_provided_str = 'in deeppavlov_agent built in connectors'
+                elif self.connectors_module:
                     connector_class = getattr(self.connectors_module, params[0], None)
                     module_provided_str = f'in {self.connectors_module.__name__} connectors module'
-                else:
-                    connector_class = getattr(self.get_external_module('core.connectors'), params[0], None)
-                    module_provided_str = 'in deeppavlov_agent.core.connectors module'
+
                 if not connector_class:
                     raise ValueError(f"Connector's python class {data['class_name']} from {name} "
                                      f"connector was not found ({module_provided_str})")
@@ -181,9 +199,10 @@ class PipelineConfigParser:
             self.services.append(service)
 
     def fill_connectors(self):
-        for k, v in self.config['connectors'].items():
-            v.update({'connector_name': k})
-            self.make_connector(f'connectors.{k}', v)
+        if 'connectors' in self.config:
+            for k, v in self.config['connectors'].items():
+                v.update({'connector_name': k})
+                self.make_connector(f'connectors.{k}', v)
 
         # collect residual connectors, form skill names
         for k, v in self.config['services'].items():
