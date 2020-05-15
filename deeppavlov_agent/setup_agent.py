@@ -22,7 +22,7 @@ def setup_agent():
         elif DB_CONFIG.endswith('.yml'):
             db_data = yaml.load(db_config, Loader=yaml.FullLoader)
         else:
-            raise ValueError('unknown format for db_config')
+            raise ValueError(f'unknown format for db_config file: {DB_CONFIG}')
 
     if db_data.pop('env', False):
         for k, v in db_data.items():
@@ -38,7 +38,7 @@ def setup_agent():
         elif PIPELINE_CONFIG.endswith('.yml', Loader=yaml.FullLoader):
             pipeline_data = yaml.load(pipeline_config)
         else:
-            raise ValueError('unknown format for pipeline_config')
+            raise ValueError(f'unknown format for pipeline_config file: {PIPELINE_CONFIG}')
     pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])
