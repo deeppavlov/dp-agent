@@ -7,8 +7,6 @@ def main():
     agent, session, workers = setup_agent()
     try:
         run_tg(TELEGRAM_TOKEN, TELEGRAM_PROXY, agent)
-    except Exception as e:
-        raise e
     finally:
         session.close()
         for i in workers:
