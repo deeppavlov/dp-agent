@@ -79,7 +79,7 @@ class ConfidenceResponseSelectorConnector:
     async def send(self, payload: Dict, callback: Callable):
         try:
             response = payload['payload']['utterances'][-1]['hypotheses']
-            best_skill = sorted(response, key=lambda x: x['confidence'], reverse=True)[0]
+            best_skill = max(response, key=lambda x: x['confidence'])
             await callback(
                 task_id=payload['task_id'],
                 response=best_skill
