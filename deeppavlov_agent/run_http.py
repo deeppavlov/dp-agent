@@ -8,7 +8,7 @@ from .settings import PORT
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--port', help='port for http client, default 4242', type=int)
+    parser.add_argument('-p', '--port', help=f'port for http client, default {PORT}', type=int)
     args = parser.parse_args()
 
     port = args.port or PORT
