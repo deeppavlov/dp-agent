@@ -1,9 +1,9 @@
 import argparse
-
 import asyncio
+
 from aioconsole import ainput
 
-from setup_agent import setup_agent
+from .setup_agent import setup_agent
 
 
 async def message_processor(register_msg):
@@ -19,7 +19,6 @@ async def message_processor(register_msg):
 
 
 def run_cmd(pipeline_configs, debug):
-
     agent, session, workers = setup_agent(pipeline_configs=pipeline_configs)
     loop = asyncio.get_event_loop()
     loop.set_debug(debug)
