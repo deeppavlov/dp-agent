@@ -1,6 +1,6 @@
 import asyncio
 from time import time
-from typing import Any, Hashable
+from typing import Any
 
 from .log import BaseResponseLogger
 from .pipeline import Pipeline

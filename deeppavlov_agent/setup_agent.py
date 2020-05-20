@@ -15,7 +15,7 @@ from .core.service import Service
 from .parse_config import PipelineConfigParser
 
 
-def setup_agent():
+def setup_agent(pipeline_configs=None):
     with open(DB_CONFIG, 'r') as db_config:
         if DB_CONFIG.endswith('.json'):
             db_data = json.load(db_config)
@@ -31,14 +31,26 @@ def setup_agent():
     db = DB_CLASS(**db_data)
 
     sm = STATE_MANAGER_CLASS(db.get_db())
+    if pipeline_configs:
+        pipeline_data = {}
+        for name in pipeline_configs:
+            with open(name, 'r') as pipeline_config:
+                if name.endswith('.json'):
+                    pipeline_data.update(json.load(pipeline_config))
+                elif name.endswith('.yml', Loader=yaml.FullLoader):
+                    pipeline_data.update(yaml.load(pipeline_config))
+                else:
+                    raise ValueError(f'unknown format for pipeline_config file from command line: {name}')
 
-    with open(PIPELINE_CONFIG, 'r') as pipeline_config:
-        if PIPELINE_CONFIG.endswith('.json'):
-            pipeline_data = json.load(pipeline_config)
-        elif PIPELINE_CONFIG.endswith('.yml', Loader=yaml.FullLoader):
-            pipeline_data = yaml.load(pipeline_config)
-        else:
-            raise ValueError(f'unknown format for pipeline_config file: {PIPELINE_CONFIG}')
+    else:
+        with open(PIPELINE_CONFIG, 'r') as pipeline_config:
+            if PIPELINE_CONFIG.endswith('.json'):
+                pipeline_data = json.load(pipeline_config)
+            elif PIPELINE_CONFIG.endswith('.yml', Loader=yaml.FullLoader):
+                pipeline_data = yaml.load(pipeline_config)
+            else:
+                raise ValueError(f'unknown format for pipeline_config file from setitngs: {PIPELINE_CONFIG}')
+
     pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
     input_srv = Service('input', None, sm.add_human_utterance, 1, ['input'])

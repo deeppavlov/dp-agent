@@ -143,5 +143,5 @@ class WSChatHandler:
             else:
                 await ws.close()
                 break
-        
+
         return ws

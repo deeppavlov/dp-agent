@@ -1,5 +1,9 @@
+import argparse
+
 import asyncio
 from aioconsole import ainput
+
+from setup_agent import setup_agent
 
 
 async def message_processor(register_msg):
@@ -14,7 +18,9 @@ async def message_processor(register_msg):
             print('Bot: ', response['dialog'].utterances[-1].text)
 
 
-def run_cmd(agent, session, workers, debug):
+def run_cmd(pipeline_configs, debug):
+
+    agent, session, workers = setup_agent(pipeline_configs=pipeline_configs)
     loop = asyncio.get_event_loop()
     loop.set_debug(debug)
     future = asyncio.ensure_future(message_processor(agent.register_msg))
@@ -32,3 +38,13 @@ def run_cmd(agent, session, workers, debug):
             loop.run_until_complete(session.close())
         loop.stop()
         loop.close()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-pl', '--pipeline_configs', help='Pipeline config (overwrite value, defined in settings)',
+                        type=str, action='append')
+    parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
+    args = parser.parse_args()
+
+    run_cmd(args.pipeline_configs, args.debug)
