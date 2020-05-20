@@ -66,12 +66,12 @@ To launch the agent enter:
 
 Command parameters are:
 
-    * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``;
-    * -p - port for http_client, default value is 4242;
-    * -pl - pipeline config path;
-    * -d - database config path;
-    * -rl - include response logger;
-    * -d - launch in debug mode (additional data in http output).
+    * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``
+    * -p - port for http_client, default value is 4242
+    * -pl - pipeline config path, you can use multiple pipeline configs at the time, next one will update previous
+    * -d - database config path
+    * -rl - include response logger
+    * -d - launch in debug mode (additional data in http output)
 
 
 **HTTP api server**
