@@ -15,6 +15,17 @@ from .core.service import Service
 from .parse_config import PipelineConfigParser
 
 
+def merge_two_configs(d1, d2):
+    for k, v in d2.items():
+        if k in d1:
+            if isinstance(v, dict) and isinstance(d1[k], dict):
+                merge_two_configs(d1[k], v)
+            else:
+                d1[k] = v
+        else:
+            d1[k] = v
+
+
 def setup_agent(pipeline_configs=None):
     with open(DB_CONFIG, 'r') as db_config:
         if DB_CONFIG.endswith('.json'):
@@ -36,9 +47,9 @@ def setup_agent(pipeline_configs=None):
         for name in pipeline_configs:
             with open(name, 'r') as pipeline_config:
                 if name.endswith('.json'):
-                    pipeline_data.update(json.load(pipeline_config))
+                    merge_two_configs(pipeline_data, json.load(pipeline_config))
                 elif name.endswith('.yml', Loader=yaml.FullLoader):
-                    pipeline_data.update(yaml.load(pipeline_config))
+                    merge_two_configs(pipeline_data, yaml.load(pipeline_config, Loader=yaml.FullLoader))
                 else:
                     raise ValueError(f'unknown format for pipeline_config file from command line: {name}')
 
