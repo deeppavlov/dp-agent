@@ -17,7 +17,7 @@ class TelegramMessageProcessor:
             date_time=message.date, location='', channel_type='telegram',
             require_response=True
         )
-        await message.answer(response['dialog']['utterances'][-1]['text'])
+        await message.answer(response['dialog'].utterances[-1].text)
 
 
 def run_tg(token, proxy, agent):

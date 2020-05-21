@@ -21,6 +21,11 @@ class StateManager:
     async def add_annotation(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
         dialog.utterances[-1].annotations[label] = payload
 
+    async def add_annotation_prev_bot_utt(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
+        if len(dialog.utterances) > 1:
+            dialog.utterances[-2].annotations[label] = payload
+            dialog.utterances[-2].actual = False
+
     async def add_hypothesis_annotation(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
         ind = kwargs['ind']
         dialog.utterances[-1].hypotheses[ind]['annotations'][label] = payload
@@ -75,7 +80,7 @@ class StateManager:
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         await dialog.save(self._db)
 
-    async def get_or_create_dialog_by_tg_id(self, user_telegram_id, channel_type):
+    async def get_or_create_dialog(self, user_telegram_id, channel_type, **kwargs):
         return await Dialog.get_or_create_by_ext_id(self._db, user_telegram_id, channel_type)
 
     async def get_dialog_by_id(self, dialog_id):

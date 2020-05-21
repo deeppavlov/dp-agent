@@ -41,3 +41,15 @@ Welcome to DeepPavlov Agent documentation!
    :caption: Configuration files
 
    config/config
+
+.. toctree::
+   :maxdepth: 2
+   :caption: State manager
+
+   built_in/state_manager_method
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Connectors
+
+   built_in/connectors

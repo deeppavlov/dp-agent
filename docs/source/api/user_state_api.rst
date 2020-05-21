@@ -6,7 +6,7 @@ The ``user.user_type`` field stores reference to source of the utterance:
 
      .. code:: javascript
 
-        "utterances": [{"user": {"user_type": "human"}}]
+        {"utterances": [{"user": {"user_type": "human"}}]}
 
 A skill can update any fields in **User** (**Human** or **Bot**) objects. If a **Skill** updates a **Human**,
 the **Human** fields will be changed in this utterance accordingly. If a **Skill** updates a **Bot**, the **Bot** fields will be
@@ -20,4 +20,4 @@ The history of all changes made by skills to users can be looked up at the list 
 
     .. code:: javascript
 
-        "utterances": [{"user": {"user_type": "human"}, "hypotheses": []}]
+        {"utterances": [{"user": {"user_type": "human"}, "hypotheses": []}]}

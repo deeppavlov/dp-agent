@@ -11,8 +11,8 @@ Input Format
 ============
 
 All services should accept an input in an agent ``state`` format. This format is described `here <state_>`__.
-If an input format of a service differs from the agent state format then a **formatter** function should be implemented. 
-This formatter function recieves a request in agent state format and returns a request in format supported by the service. 
+If an input format of a service differs from the agent state format then a **formatter** function should be implemented.
+This formatter function receives a request in agent state format and returns a request in format supported by the service. 
 
 Output Format
 =============
@@ -58,13 +58,13 @@ For example:
 Skill
 =====
 
-Skill service should return a **list of dicts** where each dict corresponds to a single candidate response. 
-Each candidate response entry requires ``text`` and ``confidence`` keys. 
-The Skill can update **Human** or **Bot** profile. 
+Skill service should return a **list of dicts** where each dict corresponds to a single candidate response.
+Each candidate response entry requires ``text`` and ``confidence`` keys.
+The Skill can update **Human** or **Bot** profile.
 To do this, it should pack these attributes into ``human_attributes`` and ``bot_attributes`` keys.
 
 All attributes in ``human_attributes`` and ``bot_attributes`` will overwrite current **Human** and **Bot**
-attribute values in agent state. And if there are no such attributes, 
+attribute values in agent state. And if there are no such attributes,
 they will be stored under ``attributes`` key inside **Human** or **Bot**.
 
 The minimum required response of a skill is a 2-key dictionary:
@@ -72,18 +72,18 @@ The minimum required response of a skill is a 2-key dictionary:
 
     .. code:: json
 
-        [{"text": "hello", 
+        [{"text": "hello",
           "confidence": 0.33}]
 
 But it's possible to extend it with  ``human_attributes`` and ``bot_attributes`` keys:
 
     .. code:: json
 
-        [{"text": "hello", 
-          "confidence": 0.33, 
-          "human_attributes": 
+        [{"text": "hello",
+          "confidence": 0.33,
+          "human_attributes":
             {"name": "Vasily"},
-          "bot_attributes": 
+          "bot_attributes":
             {"persona": ["I like swimming.", "I have a nice swimming suit."]}}]
 
 Everything sent to ``human_attributes`` and ``bot_attributes`` keys will update `user` field in the same
@@ -93,8 +93,8 @@ Also it's possible for a skill to send any additional key to the state:
 
     .. code:: json
 
-        [{"text": "hello", 
-          "confidence": 0.33, 
+        [{"text": "hello",
+          "confidence": 0.33,
           "any_key": "any_value"}]
 
 
@@ -107,17 +107,17 @@ overwritten from the original skill response) and confidence (also might be over
 
  .. code:: json
 
-        {"skill_name": "chitchat", 
-         "text": "Hello, Joe!", 
+        {"skill_name": "chitchat",
+         "text": "Hello, Joe!",
          "confidence": 0.3}
 
 Also it's possible for a Response Selector to overwrite any ``human`` or ``bot`` attributes:
 
  .. code:: json
 
-        {"skill_name": "chitchat", 
-         "text": "Hello, Joe!", 
-         "confidence": 0.3, 
+        {"skill_name": "chitchat",
+         "text": "Hello, Joe!",
+         "confidence": 0.3,
          "human_attributes": {"name": "Ivan"}}
 
 Postprocessor
