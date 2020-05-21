@@ -39,6 +39,7 @@ Pipeline Config Description
 Pipeline configuration parameters are specified in ``pipeline_conf`` file. 
 There are two different sections in ``pipeline_conf`` to configure Connectors and Services.
 
+.. _services-config:
 
 **Services Config**
 -------------------
@@ -80,7 +81,7 @@ Example of a service config:
     * Optional parameter. If not specified then unformatted service output is sent to state manager method.
 * **connector**
     * Specifies a connector to a service. Can be configured here, or in `connectors` section.
-    * You can link a connector from `connectors` section by specifying ``connectors.<connector name>``.
+    * Can be configured as ``<python module name>:<connector's class name>``.
 * **previous_services**
     * List of services to be executed (or skipped, or respond with an error) before sending data to the service.
     * Should contain either group names or service names.
@@ -97,14 +98,16 @@ Example of a service config:
     * **last_chance** - corresponds to last chance service. This service is called if other services in pipeline have returned an error, and further processing is impossible.
 
 
+.. _connectors-config:
+
 **Connectors config**
 ---------------------
 
 Connector represents a function, where tasks are sent in order to process. 
 Can be implementation of some data transfer protocol or model implemented in python.
 Since agent is based on asynchronous execution, and can be slowed down by blocking synchronous parts,
- it is strongly advised to implement computational heavy services separate from agent, 
- and use some protocols (like http) for data transfer.
+it is strongly advised to implement computational heavy services separate from agent, 
+and use some protocols (like http) for data transfer.
 
 There are several possibilities, to configure connector:
 

@@ -3,24 +3,23 @@ from datetime import datetime
 from string import hexdigits
 from time import time
 
+import aiohttp
 import aiohttp_jinja2
 from aiohttp import web
 
-from ..state_formatters.output_formatters import (http_api_output_formatter,
-                                                  http_debug_output_formatter)
+
+async def handle_command(payload, user_id, state_manager):
+    if payload in {'/start', '/close'} and state_manager:
+        await state_manager.drop_active_dialog(user_id)
+        return True
 
 
 class ApiHandler:
-    def __init__(self, debug=False, response_time_limit=5):
-        self.debug = debug
+    def __init__(self, output_formatter, response_time_limit=5):
+        self.output_formatter = output_formatter
         self.response_time_limit = response_time_limit
 
     async def handle_api_request(self, request):
-        async def handle_command(payload, user_id, state_manager):
-            if payload in {'/start', '/close'} and state_manager:
-                await state_manager.drop_active_dialog(user_id)
-                return True
-
         response = {}
         register_msg = request.app['agent'].register_msg
         if request.method == 'POST':
@@ -55,10 +54,7 @@ class ApiHandler:
 
             if response is None:
                 raise RuntimeError('Got None instead of a bot response.')
-            if self.debug:
-                return web.json_response(http_debug_output_formatter(response['dialog'].to_dict()))
-            else:
-                return web.json_response(http_api_output_formatter(response['dialog'].to_dict()))
+            return web.json_response(self.output_formatter(response['dialog'].to_dict()))
 
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager
@@ -93,7 +89,7 @@ class WSstatsHandler:
     async def ws_page(self, request):
         return {}
 
-    async def index(self, request):
+    async def ws_handler(self, request):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         request.app['websockets'].append(ws)
@@ -102,5 +98,50 @@ class WSstatsHandler:
             data = dict(logger_stats.get_current_load())
             await ws.send_json(data)
             await asyncio.sleep(self.update_time)
+
+        return ws
+
+
+class WSChatHandler:
+    def __init__(self, output_formatter):
+        self.output_formatter = output_formatter
+
+    @aiohttp_jinja2.template('chat.html')
+    async def ws_page(self, request):
+        return {}
+
+    async def ws_handler(self, request):
+        register_msg = request.app['agent'].register_msg
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        while True:
+            msg = await ws.receive()
+            if msg.type == aiohttp.WSMsgType.text:
+                data = msg.json()
+                user_id = data.pop('user_id')
+                payload = data.pop('payload', '')
+                deadline_timestamp = None
+                if not user_id:
+                    raise web.HTTPBadRequest(reason='user_id key is required')
+                command_performed = await handle_command(payload, user_id, request.app['agent'].state_manager)
+                if command_performed:
+                    await ws.send_json('command_performed')
+                    continue
+
+                response = await register_msg(
+                    utterance=payload, user_telegram_id=user_id,
+                    user_device_type=data.pop('user_device_type', 'websocket'),
+                    date_time=datetime.now(),
+                    location=data.pop('location', ''),
+                    channel_type='ws_client',
+                    message_attrs=data, require_response=True,
+                    deadline_timestamp=deadline_timestamp
+                )
+                if response is None:
+                    raise RuntimeError('Got None instead of a bot response.')
+                await ws.send_json(self.output_formatter(response['dialog'].to_dict()))
+            else:
+                await ws.close()
+                break
 
         return ws
