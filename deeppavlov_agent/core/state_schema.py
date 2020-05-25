@@ -163,7 +163,7 @@ class Dialog:
 
     def __init__(self, human, channel_type, _human_id=None, _bot_id=None,
                  _id=None, _active=True, version=None, actual=False,
-                 date_start=None, date_finish=None):
+                 date_start=None, date_finish=None, attributes=None):
         self._id = _id
         self.temp_id = None
         if not _id:
@@ -182,6 +182,7 @@ class Dialog:
         self.actual = actual
         self.date_start = date_start
         self.date_finish = date_finish
+        self.attributes = attributes or {}
 
     @property
     def id(self):
@@ -239,11 +240,11 @@ class Dialog:
         return dialog_obj
 
     @classmethod
-    async def get_many_by_ext_id(cls, db, telegram_id=None, human=None):
-        if telegram_id:
-            human = await Human.get_or_create(db, telegram_id)
+    async def get_many_by_ext_id(cls, db, external_id=None, human=None):
+        if external_id:
+            human = await Human.get_or_create(db, external_id)
         if not human:
-            raise ValueError('You should provide either telegram_id or human object')
+            raise ValueError('You should provide either external_id or human object')
         result = []
         async for document in db[cls.collection_name].find({'_human_id': human._id}):
             result.append(cls(actual=True, human=human, **document))
@@ -284,8 +285,20 @@ class Dialog:
             await db[cls.collection_name].update_one({'_id': dialog['_id']}, {'$set': {'_active': False}})
 
     @classmethod
-    async def get_or_create_by_ext_id(cls, db, telegram_id, channel_type):
-        human = await Human.get_or_create(db, telegram_id)
+    async def set_rating_drop_active(cls, db, human_id, rating=None):
+        dialog = await db[cls.collection_name].find_one({'_human_id': human_id, '_active': True})
+        attributes = dialog.attributes
+        if rating:
+            if 'ratings' not in attributes:
+                attributes['ratings'] = []
+            attributes['ratings'].append({'rating': rating, 'human_id': human_id, 'datetime': datetime.now()})
+        
+        if dialog:
+            await db[cls.collection_name].update_one({'_id': dialog['_id']}, {'$set': {'_active': False, 'attributes': attributes}})
+
+    @classmethod
+    async def get_or_create_by_ext_id(cls, db, external_id, channel_type):
+        human = await Human.get_or_create(db, external_id)
         return await cls.get_or_create_by_user(db, human, channel_type)
 
     @classmethod
@@ -340,13 +353,13 @@ class Human:
     collection_name = 'user'
     fieldlist = ['persona', 'attributes', 'profile']
 
-    def __init__(self, telegram_id, _id=None, persona=None,
+    def __init__(self, external_id, _id=None, persona=None,
                  attributes=None, profile=None):
         self._id = _id
         self.temp_id = None
         if not _id:
             self.temp_id = uuid.uuid4().hex
-        self.telegram_id = telegram_id
+        self.external_id = external_id
         self.persona = persona or {}
         self.attributes = attributes or {}
         self.profile = profile or USER_PROFILE.copy()
@@ -361,12 +374,12 @@ class Human:
 
     @classmethod
     async def prepare_collection(cls, db):
-        await db[cls.collection_name].create_index('telegram_id')
+        await db[cls.collection_name].create_index('external_id')
 
     def to_dict(self):
         return {
             'id': self.id,
-            'user_telegram_id': self.telegram_id,
+            'user_external_id': self.external_id,
             'persona': self.persona,
             'profile': self.profile,
             'attributes': self.attributes,
@@ -380,11 +393,11 @@ class Human:
         return flatten_dict(result)
 
     @classmethod
-    async def get_or_create(cls, db, user_telegram_id):
-        user = await db[cls.collection_name].find_one({'telegram_id': user_telegram_id})
+    async def get_or_create(cls, db, external_id):
+        user = await db[cls.collection_name].find_one({'external_id': external_id})
         if user:
             return cls(**user)
-        return cls(telegram_id=user_telegram_id)
+        return cls(external_id=external_id)
 
     @classmethod
     async def get_by_id(cls, db, id):
@@ -404,7 +417,7 @@ class Human:
         is_changed = self.prev_state != self.get_state()
         if not self._id:
             user_obj = await db[self.collection_name].insert_one({
-                'telegram_id': self.telegram_id,
+                'external_id': self.external_id,
                 'persona': self.persona,
                 'profile': self.profile, 'attributes': self.attributes}
             )
