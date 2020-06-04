@@ -7,9 +7,19 @@ from aiohttp import web
 from .handlers import ApiHandler, PagesHandler, WSstatsHandler, WSChatHandler
 
 
+@web.middleware
+async def cors(request, handler):
+    resp = await handler(request)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Max-Age'] = '86400'
+    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    resp.headers['access-control-allow-credentials'] = 'true'
+    return resp
+
+
 async def init_app(agent, session, consumers, logger_stats, output_formatter,
                    debug=False, response_time_limit=0):
-    app = web.Application()
+    app = web.Application(middlewares=[cors])
     handler = ApiHandler(output_formatter, response_time_limit)
     pages = PagesHandler(debug)
     stats = WSstatsHandler()
