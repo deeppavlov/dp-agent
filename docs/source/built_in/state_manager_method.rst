@@ -59,7 +59,7 @@ You can use several state manager methods in your pipeline:
     * ``annotations`` from payload are copyed to ``annotations`` field of bot utterance
     * We expect, that skills will return ``text`` and ``confidence`` fields at least. ``skill_name`` and ``annotations`` are created within ``add_hypothesis`` method
 
-7. **add_bot_utterance**
+7. **add_bot_utterance_last_chance**
     * This method is intended to be associated with a failure processing service, like timeout or last chance responder
     * It is very similar in processing to ``add_bot_utterance``, but it performs an additional check on the type of a last utterance in dialog
     * If the last utterance is a human utterance the method acts as an ``add_bot_utterance`` one
