@@ -34,13 +34,18 @@ async def init_app(agent, session, consumers, logger_stats, output_formatter,
             task.cancel()
 
     app.router.add_post('', handler.handle_api_request)
+    app.router.add_options('', handler.options)
     app.router.add_get('/api/dialogs/{dialog_id}', handler.dialog)
     app.router.add_get('/api/user/{user_telegram_id}', handler.dialogs_by_user)
     app.router.add_get('/ping', pages.ping)
+    app.router.add_options('/ping', pages.options)
     app.router.add_get('/debug/current_load', stats.ws_page)
+    app.router.add_options('/debug/current_load', stats.options)
     app.router.add_get('/debug/current_load/ws', stats.ws_handler)
     app.router.add_get('/chat', chat.ws_page)
+    app.router.add_options('/chat', chat.options)
     app.router.add_get('/chat/ws', chat.ws_handler)
+    
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader('deeppavlov_agent.http_api', 'templates'))

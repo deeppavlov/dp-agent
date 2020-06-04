@@ -68,9 +68,12 @@ class ApiHandler:
 
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
-        user_telegram_id = request.match_info['user_telegram_id']
-        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
+        user_external_id = request.match_info['user_external_id']
+        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_external_id)
         return web.json_response([i.to_dict() for i in dialogs])
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Origin': '*'})
 
 
 class PagesHandler:
@@ -79,6 +82,9 @@ class PagesHandler:
 
     async def ping(self, request):
         return web.json_response("pong")
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Origin': '*'})
 
 
 class WSstatsHandler:
@@ -100,6 +106,9 @@ class WSstatsHandler:
             await asyncio.sleep(self.update_time)
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Origin': '*'})
 
 
 class WSChatHandler:
@@ -129,7 +138,7 @@ class WSChatHandler:
                     continue
 
                 response = await register_msg(
-                    utterance=payload, user_telegram_id=user_id,
+                    utterance=payload, user_external_id=user_id,
                     user_device_type=data.pop('user_device_type', 'websocket'),
                     date_time=datetime.now(),
                     location=data.pop('location', ''),
@@ -145,3 +154,6 @@ class WSChatHandler:
                 break
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Origin': '*'})
