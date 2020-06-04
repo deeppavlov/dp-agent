@@ -41,6 +41,8 @@ async def init_app(agent, session, consumers, logger_stats, output_formatter,
     app.router.add_get('/debug/current_load/ws', stats.ws_handler)
     app.router.add_get('/chat', chat.ws_page)
     app.router.add_get('/chat/ws', chat.ws_handler)
+    app.router.add_post('/rating/dialog', handler.dialog_rating)
+    app.router.add_post('/rating/utterance', handler.utterance_rating)
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     aiohttp_jinja2.setup(app, loader=jinja2.PackageLoader('deeppavlov_agent.http_api', 'templates'))

@@ -68,9 +68,27 @@ class ApiHandler:
 
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
-        user_telegram_id = request.match_info['user_telegram_id']
-        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
+        user_external_id = request.match_info['user_external_id']
+        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_external_id)
         return web.json_response([i.to_dict() for i in dialogs])
+
+    async def dialog_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        dialog_id = data.pop('dialog_id')
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        await state_manager.set_rating_dialog(user_id, dialog_id, rating)
+        return web.Response()
+
+    async def utterance_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        utt_id = data.pop('utt_id')
+        await state_manager.set_rating_utterance(user_id, utt_id, rating)
+        return web.Response()
 
 
 class PagesHandler:

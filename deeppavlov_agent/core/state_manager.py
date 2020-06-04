@@ -1,6 +1,9 @@
 from typing import Dict
 
+from datetime import datetime
+
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
+import logging
 
 
 class StateManager:
@@ -114,6 +117,24 @@ class StateManager:
     async def drop_active_dialog(self, user_external_id):
         user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.drop_active(self._db, user._id)
+
+    async def set_rating_dialog(self, user_external_id, dialog_id, rating):
+        dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
+        if not dialog:
+            return False
+        if 'ratings' not in dialog.attributes:
+            dialog.attributes['ratings'] = []
+        dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        await dialog.save(self._db)
+
+    async def set_rating_utterance(self, user_external_id, utt_id, rating):
+        utt = await BotUtterance.get_by_id(self._db, utt_id)
+        if not utt:
+            return False
+        if 'ratings' not in utt.attributes:
+            utt.attributes['ratings'] = []
+        utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        await utt.save(self._db)
 
     async def drop_and_rating_active_dialog(self, user_external_id, rating):
         user = await Human.get_or_create(self._db, user_external_id)

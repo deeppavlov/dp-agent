@@ -1,4 +1,5 @@
 import uuid
+from hashlib import md5
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -25,19 +26,17 @@ class HumanUtterance:
     collection_name = 'human_utterance'
     fieldlist = ['text', 'user', 'annotations', 'hypotheses']
 
-    def __init__(self, _in_dialog_id, _dialog_id=None, _id=None, text=None, user=None,
+    def __init__(self, _in_dialog_id, _dialog_id=None, _id=None, text=None, user=None, utt_id=None,
                  annotations=None, date_time=None, hypotheses=None, actual=False, attributes=None):
         self._id = _id
-        self.temp_id = None
-        if not _id:
-            self.temp_id = uuid.uuid4().hex
         self._dialog_id = _dialog_id
         self._in_dialog_id = _in_dialog_id
+        self.date_time = date_time or datetime.now()
+        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id)).encode('utf-8')).hexdigest()
         self.text = text or ''
         self.user = user or {}
         self.annotations = annotations or {}
         self.hypotheses = hypotheses or []
-        self.date_time = date_time or datetime.now()
         self.attributes = attributes or {}
 
         self.actual = actual
@@ -46,9 +45,11 @@ class HumanUtterance:
     async def prepare_collection(cls, db):
         await db[cls.collection_name].create_index('_dialog_id')
         await db[cls.collection_name].create_index('date_time')
+        await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
         return {
+            'utt_id': self.utt_id,
             'text': self.text,
             'user': self.user,
             'annotations': self.annotations,
@@ -67,6 +68,7 @@ class HumanUtterance:
             self._id = result.inserted_id
             self.temp_id = None
         else:
+            data.pop('utt_id')
             result = await db[self.collection_name].update_one(
                 {'_id': self._id},
                 {'$set': data}
@@ -87,43 +89,50 @@ class HumanUtterance:
             result.append(cls(**document))
         return result
 
+    @classmethod
+    async def get_by_id(cls, db, utt_id):
+        utt = await db[cls.collection_name].find_one({'id': utt_id})
+        if utt:
+            return cls(**utt)
+
 
 class BotUtterance:
     collection_name = 'bot_utterance'
 
-    def __init__(self, _in_dialog_id, _dialog_id=None, _id=None, text=None,
+    def __init__(self, _in_dialog_id, _dialog_id=None, _id=None, text=None, utt_id=None,
                  user=None, annotations=None, date_time=None, active_skill=None,
-                 confidence=None, orig_text=None, actual=False):
+                 confidence=None, orig_text=None, actual=False, attributes=None):
         self._id = _id
-        self.temp_id = None
-        if not _id:
-            self.temp_id = uuid.uuid4().hex
         self._dialog_id = _dialog_id
         self._in_dialog_id = _in_dialog_id
+        self.date_time = date_time or datetime.now()
+        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id)).encode('utf-8')).hexdigest()
         self.text = text or ''
         self.orig_text = orig_text
         self.active_skill = active_skill or ''
         self.confidence = confidence or 1
         self.user = user or {}
         self.annotations = annotations or {}
-        self.date_time = date_time or datetime.now()
-
         self.actual = actual
+        self.attributes = attributes or {}
 
     @classmethod
     async def prepare_collection(cls, db):
         await db[cls.collection_name].create_index('_dialog_id')
         await db[cls.collection_name].create_index('date_time')
+        await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
         return {
+            'utt_id': self.utt_id,
             'text': self.text,
             'orig_text': self.orig_text,
             'active_skill': self.active_skill,
             'confidence': self.confidence,
             'annotations': self.annotations,
             'date_time': str(self.date_time),
-            'user': self.user
+            'user': self.user,
+            'attributes': self.attributes,
         }
 
     async def save(self, db):
@@ -134,8 +143,8 @@ class BotUtterance:
         if not self._id:
             result = await db[self.collection_name].insert_one(data)
             self._id = result.inserted_id
-            self.temp_id = None
         else:
+            data.pop('utt_id')
             result = await db[self.collection_name].update_one(
                 {'_id': self._id},
                 {'$set': data}
@@ -156,12 +165,18 @@ class BotUtterance:
             result.append(cls(**document))
         return result
 
+    @classmethod
+    async def get_by_id(cls, db, utt_id):
+        utt = await db[cls.collection_name].find_one({'utt_id': utt_id})
+        if utt:
+            return cls(**utt)
+
 
 class Dialog:
     collection_name = 'dialog'
     fieldlist = []
 
-    def __init__(self, human, channel_type, _human_id=None, _bot_id=None,
+    def __init__(self, human, channel_type, dialog_id=None, _human_id=None, _bot_id=None,
                  _id=None, _active=True, version=None, actual=False,
                  date_start=None, date_finish=None, attributes=None):
         self._id = _id
@@ -170,6 +185,7 @@ class Dialog:
             self.temp_id = uuid.uuid4().hex
         self.human = human
         self._human_id = human._id
+        self.dialog_id = dialog_id or md5((str(self._human_id) + str(datetime.now())).encode('utf-8')).hexdigest()
         self.channel_type = channel_type
         self.bot = None
         self._bot_id = _bot_id
@@ -186,9 +202,7 @@ class Dialog:
 
     @property
     def id(self):
-        if self._id:
-            return str(self._id)
-        return self.temp_id
+        return self.dialog_id
 
     @classmethod
     async def prepare_collection(cls, db):
@@ -206,10 +220,11 @@ class Dialog:
         )
         await db[cls.collection_name].create_index('date_start')
         await db[cls.collection_name].create_index('date_finish')
+        await db[cls.collection_name].create_index('dialog_id')
 
     def to_dict(self):
         return {
-            'id': self.id,
+            'dialog_id': self.dialog_id,
             'utterances': [i.to_dict() for i in self.utterances],
             'human_utterances': [i.to_dict() for i in self.human_utterances],
             'bot_utterances': [i.to_dict() for i in self.bot_utterances],
@@ -279,6 +294,17 @@ class Dialog:
         return None
 
     @classmethod
+    async def get_by_dialog_id(cls, db, dialog_id, full=False):
+        dialog = await db[cls.collection_name].find_one({'dialog_id': dialog_id})
+        if dialog:
+            human = await Human.get_by_id(db, dialog['_human_id'])
+            dialog_obj = cls(actual=True, human=human, **dialog)
+            if full:
+                await dialog_obj.load_external_info(db)
+            return dialog_obj
+        return None
+
+    @classmethod
     async def drop_active(cls, db, human_id):
         dialog = await db[cls.collection_name].find_one({'_human_id': human_id, '_active': True})
         if dialog:
@@ -323,13 +349,15 @@ class Dialog:
 
     async def save(self, db, force=False):
         self._human_id = await self.human.save(db)
-        self._bot_id = await self.bot.save(db)
-        data = {}
+        if self.bot:
+            self._bot_id = await self.bot.save(db)
+        data = {'attributes': self.attributes}
         if self.utterances:
             data['date_start'] = self.utterances[0].date_time
             data['date_finish'] = self.utterances[-1].date_time
         if not self._id:
             data.update({
+                'dialog_id': self.dialog_id,
                 '_human_id': self._human_id,
                 '_bot_id': self._bot_id,
                 '_active': self._active,
