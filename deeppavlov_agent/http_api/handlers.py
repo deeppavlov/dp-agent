@@ -43,7 +43,7 @@ class ApiHandler:
                 return web.json_response({})
 
             response = await asyncio.shield(
-                register_msg(utterance=payload, user_telegram_id=user_id,
+                register_msg(utterance=payload, user_external_id=user_id,
                              user_device_type=data.pop('user_device_type', 'http'),
                              date_time=datetime.now(),
                              location=data.pop('location', ''),
