@@ -8,7 +8,7 @@ from .handlers import ApiHandler, PagesHandler, WSstatsHandler, WSChatHandler
 
 
 @web.middleware
-async def cors(request, handler):
+async def cors_mw(request, handler):
     resp = await handler(request)
     resp.headers['Access-Control-Allow-Origin'] = '*'
     resp.headers['Access-Control-Max-Age'] = '86400'
@@ -19,7 +19,7 @@ async def cors(request, handler):
 
 async def init_app(agent, session, consumers, logger_stats, output_formatter,
                    debug=False, response_time_limit=0, cors=None):
-    middlewares = [cors] if cors else []
+    middlewares = [cors_mw] if cors else []
     app = web.Application(middlewares=middlewares)
     handler = ApiHandler(output_formatter, response_time_limit)
     pages = PagesHandler(debug)
