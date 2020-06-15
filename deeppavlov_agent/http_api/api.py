@@ -18,8 +18,9 @@ async def cors(request, handler):
 
 
 async def init_app(agent, session, consumers, logger_stats, output_formatter,
-                   debug=False, response_time_limit=0):
-    app = web.Application(middlewares=[cors])
+                   debug=False, response_time_limit=0, cors=None):
+    middlewares = [cors] if cors else []
+    app = web.Application(middlewares=middlewares)
     handler = ApiHandler(output_formatter, response_time_limit)
     pages = PagesHandler(debug)
     stats = WSstatsHandler()
