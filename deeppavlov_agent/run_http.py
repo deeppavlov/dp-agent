@@ -6,8 +6,8 @@ from .http_api import app_factory
 from .settings import PORT
 
 
-def run_http(port, pipeline_configs=None, debug=None, time_limit=None):
-    app = app_factory(pipeline_configs=pipeline_configs, debug=debug, response_time_limit=time_limit)
+def run_http(port, pipeline_configs=None, debug=None, time_limit=None, cors=None):
+    app = app_factory(pipeline_configs=pipeline_configs, debug=debug, response_time_limit=time_limit, cors=cors)
     web.run_app(app, port=port)
 
 
