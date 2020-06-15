@@ -22,7 +22,7 @@ def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cor
         agent=agent, session=session, consumers=workers,
         logger_stats=response_logger, output_formatter=output_formatter,
         debug=debug or DEBUG, response_time_limit=response_time_limit or TIME_LIMIT,
-        cors=cors or CORS
+        cors=CORS if cors is None else cors
     )
 
     return app

@@ -12,7 +12,8 @@ def main():
     parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
                         choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
     parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
-    parser.add_argument('-c', '--cors', help='whether to add CORS middleware to http_client', action='store_true')
+    parser.add_argument('-c', '--cors', help='whether to add CORS middleware to http_client',
+                        action='store_true', default=None)
     parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
     parser.add_argument('-tl', '--time_limit', help='response time limit, 0 = no limit', type=int, default=0)
     args = parser.parse_args()
