@@ -43,7 +43,7 @@ class ApiHandler:
                 return web.json_response({})
 
             response = await asyncio.shield(
-                register_msg(utterance=payload, user_telegram_id=user_id,
+                register_msg(utterance=payload, user_external_id=user_id,
                              user_device_type=data.pop('user_device_type', 'http'),
                              date_time=datetime.now(),
                              location=data.pop('location', ''),
@@ -75,6 +75,24 @@ class ApiHandler:
 
     async def options(self, request):
         return web.Response(headers={'Access-Control-Allow-Methods': 'POST, OPTIONS'})
+
+    async def dialog_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        dialog_id = data.pop('dialog_id')
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        await state_manager.set_rating_dialog(user_id, dialog_id, rating)
+        return web.Response()
+
+    async def utterance_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        utt_id = data.pop('utt_id')
+        await state_manager.set_rating_utterance(user_id, utt_id, rating)
+        return web.Response()
 
 
 class PagesHandler:
