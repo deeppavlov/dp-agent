@@ -46,7 +46,9 @@ async def init_app(agent, session, consumers, logger_stats, output_formatter,
 
     app.router.add_post('', handler.handle_api_request)
     app.router.add_options('', handler.options)
+    app.router.add_get('/api/dialogs/', handler.dialog_list)
     app.router.add_get('/api/dialogs/{dialog_id}', handler.dialog)
+
     app.router.add_get('/api/user/{user_external_id}', handler.dialogs_by_user)
     app.router.add_get('/ping', pages.ping)
     app.router.add_options('/ping', pages.options)

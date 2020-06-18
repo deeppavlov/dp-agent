@@ -284,6 +284,27 @@ class Dialog:
         return result
 
     @classmethod
+    async def list_ids(cls, db, offset=0, limit=100):
+        """
+        request list of ids for particular page
+        :param db: TODO
+        :param offset: int, since each id we need to retrieve
+        :param limit: int, how many ids to retrieve
+        :return: ?
+        """
+        result = []
+        result_cntr = 0
+        # TODO sorting by -date (from recent to old)
+        async for cntr, document in enumerate(db[cls.collection_name].find()):
+            if cntr<offset:
+                continue
+            result.append(document['_id'])
+            result_cntr += 1
+            if result_cntr >= limit:
+                break
+        return result
+
+    @classmethod
     async def get_by_id(cls, db, dialog_id):
         dialog = await db[cls.collection_name].find_one({'_id': ObjectId(dialog_id)})
         if dialog:
