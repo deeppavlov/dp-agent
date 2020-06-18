@@ -57,7 +57,9 @@ async def init_app(agent, session, consumers, logger_stats, output_formatter,
     app.router.add_options('/chat', chat.options)
     app.router.add_get('/chat/ws', chat.ws_handler)
     app.router.add_post('/rating/dialog', handler.dialog_rating)
+    app.router.add_options('/rating/dialog', handler.options)
     app.router.add_post('/rating/utterance', handler.utterance_rating)
+    app.router.add_options('/rating/utterance', handler.options)
 
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
