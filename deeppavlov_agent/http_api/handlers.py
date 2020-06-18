@@ -67,6 +67,27 @@ class ApiHandler:
             return web.json_response(dialog_obj.to_dict())
         raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
 
+    async def dialog_list(self, request):
+        """Function to get list of dialog ids"""
+        state_manager = request.app['agent'].state_manager
+        # dialog_id = request.match_info['dialog_id']
+        offset = request.rel_url.query['offset']
+        if not offset:
+            offset = 0
+        limit = request.rel_url.query['limit']
+        if not limit:
+            # TODO refactor the shit!
+            limit =100
+        list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit)
+
+        resp_dict = {
+            "dialog_ids": list_ids,
+            # TODO fix last page
+            "next": "?offset=%d" % offset+limit
+        }
+        raise web.json_response(resp_dict)
+
+
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
         user_external_id = request.match_info['user_external_id']
