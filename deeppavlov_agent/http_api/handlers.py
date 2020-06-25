@@ -71,8 +71,8 @@ class ApiHandler:
         """Function to get list of dialog ids"""
         state_manager = request.app['agent'].state_manager
 
-        offset = request.rel_url.query.get('offset', 0)
-        limit = request.rel_url.query.get('limit', 100)
+        offset = int(request.rel_url.query.get('offset', 0))
+        limit = int(request.rel_url.query.get('limit', 100))
         list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit)
 
         next_offset = offset+limit
