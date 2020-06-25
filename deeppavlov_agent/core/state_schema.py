@@ -284,7 +284,7 @@ class Dialog:
         return result
 
     @classmethod
-    async def list_ids(cls, db, offset=0, limit=100):
+    async def list_ids(cls, db, offset=0, limit=10):
         """
         request list of ids for particular page
         :param db: TODO
@@ -295,11 +295,14 @@ class Dialog:
         result = []
         result_cntr = 0
         # TODO sorting by -date (from recent to old)
-        async for cntr, document in enumerate(db[cls.collection_name].find()):
+        cntr = 0
+        async for document in db[cls.collection_name].find():
             if cntr<offset:
+                cntr += 1
                 continue
-            result.append(document['_id'])
+            result.append(str(document['_id']))
             result_cntr += 1
+            cntr += 1
             if result_cntr >= limit:
                 break
         return result

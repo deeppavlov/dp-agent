@@ -70,22 +70,18 @@ class ApiHandler:
     async def dialog_list(self, request):
         """Function to get list of dialog ids"""
         state_manager = request.app['agent'].state_manager
-        # dialog_id = request.match_info['dialog_id']
-        # print(request.rel_url)
-        # print(dir(request.rel_url))
-        # print(dir(request.rel_url.query))
-        # offset = request.rel_url.query['offset']
+
         offset = request.rel_url.query.get('offset', 0)
-        # limit = request.rel_url.query['limit']
         limit = request.rel_url.query.get('limit', 100)
         list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit)
 
+        next_offset = offset+limit
         resp_dict = {
             "dialog_ids": list_ids,
             # TODO fix last page
-            "next": "?offset=%d" % offset+limit
+            "next": "?offset=%d" % next_offset
         }
-        raise web.json_response(resp_dict)
+        return web.json_response(resp_dict)
 
 
     async def dialogs_by_user(self, request):
