@@ -48,7 +48,7 @@ def setup_agent(pipeline_configs=None):
             with open(name, 'r') as pipeline_config:
                 if name.endswith('.json'):
                     merge_two_configs(pipeline_data, json.load(pipeline_config))
-                elif name.endswith('.yml', Loader=yaml.FullLoader):
+                elif name.endswith('.yml'):
                     merge_two_configs(pipeline_data, yaml.load(pipeline_config, Loader=yaml.FullLoader))
                 else:
                     raise ValueError(f'unknown format for pipeline_config file from command line: {name}')
@@ -57,7 +57,7 @@ def setup_agent(pipeline_configs=None):
         with open(PIPELINE_CONFIG, 'r') as pipeline_config:
             if PIPELINE_CONFIG.endswith('.json'):
                 pipeline_data = json.load(pipeline_config)
-            elif PIPELINE_CONFIG.endswith('.yml', Loader=yaml.FullLoader):
+            elif PIPELINE_CONFIG.endswith('.yml'):
                 pipeline_data = yaml.load(pipeline_config)
             else:
                 raise ValueError(f'unknown format for pipeline_config file from setitngs: {PIPELINE_CONFIG}')
