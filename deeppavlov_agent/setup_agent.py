@@ -15,6 +15,9 @@ from .core.service import Service
 from .parse_config import PipelineConfigParser
 
 
+yaml.warnings({"YAMLLoadWarning": False})
+
+
 def merge_two_configs(d1, d2):
     for k, v in d2.items():
         if k in d1:
