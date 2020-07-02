@@ -108,6 +108,9 @@ class StateManager:
     async def get_dialog_by_id(self, dialog_id):
         return await Dialog.get_by_id(self._db, dialog_id)
 
+    async def get_dialog_by_dialog_id(self, dialog_id):
+        return await Dialog.get_by_dialog_id(self._db, dialog_id, full=True)
+
     async def list_dialog_ids(self, *args, **kwargs):
         return await Dialog.list_ids(self._db, *args, **kwargs)
 

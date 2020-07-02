@@ -224,6 +224,7 @@ class Dialog:
 
     def to_dict(self):
         return {
+            '_id': str(self._id),
             'dialog_id': self.dialog_id,
             'utterances': [i.to_dict() for i in self.utterances],
             'human_utterances': [i.to_dict() for i in self.human_utterances],
@@ -302,7 +303,7 @@ class Dialog:
             if cntr<offset:
                 cntr += 1
                 continue
-            result.append(str(document['_id']))
+            result.append(str(document['dialog_id']))
             result_cntr += 1
             cntr += 1
             if result_cntr >= limit:

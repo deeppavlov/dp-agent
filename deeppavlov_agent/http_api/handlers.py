@@ -60,12 +60,19 @@ class ApiHandler:
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager
         dialog_id = request.match_info['dialog_id']
-        if len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
-            dialog_obj = await state_manager.get_dialog_by_id(dialog_id)
+        if all(c in hexdigits for c in dialog_id):
+            if len(dialog_id) == 24:
+                dialog_obj = await state_manager.get_dialog_by_id(dialog_id)
+            else:
+                dialog_obj = await state_manager.get_dialog_by_dialog_id(dialog_id)
+
             if not dialog_obj:
                 raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} does not exist')
+
             return web.json_response(dialog_obj.to_dict())
-        raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
+
+        raise web.HTTPBadRequest(
+            reason='dialog id should be 24-character hex string or 34-char hex string for dialog_id')
 
     async def dialog_list(self, request):
         """Function to get list of dialog ids as JSON response"""
@@ -88,7 +95,6 @@ class ApiHandler:
             "next": next_offset_link
         }
         return web.json_response(resp_dict)
-
 
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
