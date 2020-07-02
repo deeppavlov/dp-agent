@@ -233,6 +233,7 @@ class Dialog:
             'channel_type': self.channel_type,
             'date_start': str(self.date_start),
             'date_finish': str(self.date_finish),
+            '_active': str(self._active),
         }
 
     async def load_external_info(self, db):
@@ -284,19 +285,20 @@ class Dialog:
         return result
 
     @classmethod
-    async def list_ids(cls, db, offset=0, limit=10):
+    async def list_ids(cls, db, offset=0, limit=10, **filter_kwargs):
         """
         request list of ids for particular page
         :param db: TODO
         :param offset: int, since each id we need to retrieve
         :param limit: int, how many ids to retrieve
+        :param filter_kwargs: dict which is transmitted to mongo find request to filter dialogs
         :return: ?
         """
         result = []
         result_cntr = 0
         # TODO sorting by -date (from recent to old)
         cntr = 0
-        async for document in db[cls.collection_name].find():
+        async for document in db[cls.collection_name].find(filter_kwargs):
             if cntr<offset:
                 cntr += 1
                 continue

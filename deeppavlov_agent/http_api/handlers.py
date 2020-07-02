@@ -73,14 +73,15 @@ class ApiHandler:
 
         offset = int(request.rel_url.query.get('offset', 0))
         limit = int(request.rel_url.query.get('limit', 100))
-        list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit)
+        active = bool(int(request.rel_url.query.get('_active', 0)))
+        list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit, _active=active)
 
         if len(list_ids) < limit:
             # final page or no more items?
             next_offset_link = None
         else:
             next_offset = offset+limit
-            next_offset_link = "?offset=%d&limit=%d" % (next_offset, limit)
+            next_offset_link = "?offset=%d&limit=%d&_active=%d" % (next_offset, limit, active)
         resp_dict = {
             "dialog_ids": list_ids,
             # TODO fix last page
