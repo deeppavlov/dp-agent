@@ -58,7 +58,7 @@ def setup_agent(pipeline_configs=None):
             if PIPELINE_CONFIG.endswith('.json'):
                 pipeline_data = json.load(pipeline_config)
             elif PIPELINE_CONFIG.endswith('.yml'):
-                pipeline_data = yaml.load(pipeline_config)
+                pipeline_data = yaml.load(pipeline_config, Loader=yaml.FullLoader)
             else:
                 raise ValueError(f'unknown format for pipeline_config file from setitngs: {PIPELINE_CONFIG}')
 
