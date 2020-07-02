@@ -1,6 +1,9 @@
 from typing import Dict
 
+from datetime import datetime
+
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
+import logging
 
 
 class StateManager:
@@ -29,6 +32,16 @@ class StateManager:
     async def add_hypothesis_annotation(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
         ind = kwargs['ind']
         dialog.utterances[-1].hypotheses[ind]['annotations'][label] = payload
+
+    async def add_hypothesis_annotation_batch(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
+        if isinstance(dialog.utterances[-1], BotUtterance):
+            return
+        if len(dialog.utterances[-1].hypotheses) != len(payload["batch"]):
+            for i in range(len(dialog.utterances[-1].hypotheses)):
+                dialog.utterances[-1].hypotheses[i]['annotations'][label] = {}
+        else:
+            for i in range(len(payload["batch"])):
+                dialog.utterances[-1].hypotheses[i]['annotations'][label] = payload["batch"][i]
 
     async def add_text(self, dialog: Dialog, payload: str, label: str, **kwargs):
         dialog.utterances[-1].text = payload
@@ -70,6 +83,15 @@ class StateManager:
             dialog.utterances[-1].annotations = payload['annotations']
             dialog.utterances[-1].user = dialog.bot.to_dict()
 
+    async def add_bot_utterance_last_chance_overwrite(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
+        if isinstance(dialog.utterances[-1], HumanUtterance):
+            dialog.add_bot_utterance()
+        dialog.utterances[-1].text = payload['text']
+        dialog.utterances[-1].active_skill = label
+        dialog.utterances[-1].confidence = 0
+        dialog.utterances[-1].annotations = payload['annotations']
+        dialog.utterances[-1].user = dialog.bot.to_dict()
+
     async def add_failure_bot_utterance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload
@@ -80,21 +102,43 @@ class StateManager:
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         await dialog.save(self._db)
 
-    async def get_or_create_dialog(self, user_telegram_id, channel_type, **kwargs):
-        return await Dialog.get_or_create_by_ext_id(self._db, user_telegram_id, channel_type)
+    async def get_or_create_dialog(self, user_external_id, channel_type, **kwargs):
+        return await Dialog.get_or_create_by_ext_id(self._db, user_external_id, channel_type)
 
     async def get_dialog_by_id(self, dialog_id):
         return await Dialog.get_by_id(self._db, dialog_id)
 
-    async def get_dialogs_by_user_ext_id(self, user_telegram_id):
-        return await Dialog.get_many_by_ext_id(self._db, user_telegram_id)
+    async def get_dialogs_by_user_ext_id(self, user_external_id):
+        return await Dialog.get_many_by_ext_id(self._db, user_external_id)
 
     async def get_all_dialogs(self):
         return await Dialog.get_all(self._db)
 
-    async def drop_active_dialog(self, user_telegram_id):
-        user = await Human.get_or_create(self._db, user_telegram_id)
+    async def drop_active_dialog(self, user_external_id):
+        user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.drop_active(self._db, user._id)
+
+    async def set_rating_dialog(self, user_external_id, dialog_id, rating):
+        dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
+        if not dialog:
+            return False
+        if 'ratings' not in dialog.attributes:
+            dialog.attributes['ratings'] = []
+        dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        await dialog.save(self._db)
+
+    async def set_rating_utterance(self, user_external_id, utt_id, rating):
+        utt = await BotUtterance.get_by_id(self._db, utt_id)
+        if not utt:
+            return False
+        if 'ratings' not in utt.attributes:
+            utt.attributes['ratings'] = []
+        utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        await utt.save(self._db)
+
+    async def drop_and_rating_active_dialog(self, user_external_id, rating):
+        user = await Human.get_or_create(self._db, user_external_id)
+        await Dialog.set_rating_drop_active(self._db, user._id, rating)
 
     async def prepare_db(self):
         await BotUtterance.prepare_collection(self._db)
