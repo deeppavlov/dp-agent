@@ -455,6 +455,9 @@ class Human:
     async def get_by_id(cls, db, id):
         user = await db[cls.collection_name].find_one({'_id': id})
         if user:
+            if 'telegram_id' in user:
+                user['external_id'] = user['telegram_id']
+                del user['telegram_id']
             return cls(**user)
         return None
 
