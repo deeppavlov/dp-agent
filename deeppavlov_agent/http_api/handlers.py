@@ -68,7 +68,7 @@ class ApiHandler:
         raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
 
     async def dialog_list(self, request):
-        """Function to get list of dialog ids"""
+        """Function to get list of dialog ids as JSON response"""
         state_manager = request.app['agent'].state_manager
 
         offset = int(request.rel_url.query.get('offset', 0))
