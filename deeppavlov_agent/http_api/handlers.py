@@ -80,7 +80,7 @@ class ApiHandler:
             next_offset_link = None
         else:
             next_offset = offset+limit
-            next_offset_link = "?offset=%d" % next_offset
+            next_offset_link = "?offset=%d&limit=%d" % (next_offset, limit)
         resp_dict = {
             "dialog_ids": list_ids,
             # TODO fix last page
