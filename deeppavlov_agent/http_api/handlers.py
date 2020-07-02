@@ -54,6 +54,7 @@ class ApiHandler:
 
             if response is None:
                 raise RuntimeError('Got None instead of a bot response.')
+
             return web.json_response(self.output_formatter(response['dialog'].to_dict()))
 
     async def dialog(self, request):
@@ -90,6 +91,9 @@ class ApiHandler:
         await state_manager.set_rating_utterance(user_id, utt_id, rating)
         return web.Response()
 
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'POST, OPTIONS'})
+
 
 class PagesHandler:
     def __init__(self, debug=False):
@@ -97,6 +101,9 @@ class PagesHandler:
 
     async def ping(self, request):
         return web.json_response("pong")
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
 
 
 class WSstatsHandler:
@@ -118,6 +125,9 @@ class WSstatsHandler:
             await asyncio.sleep(self.update_time)
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
 
 
 class WSChatHandler:
@@ -163,3 +173,6 @@ class WSChatHandler:
                 break
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
