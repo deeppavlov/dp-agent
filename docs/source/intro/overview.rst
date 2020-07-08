@@ -129,8 +129,7 @@ Command parameters are:
 
     Logs can be accessed at (examples are shown for the case when the agent is running on http://localhost:4242):
 
-     * http://localhost:4242/api/dialogs/ list of ``dialog_id``
-     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog (``dialog_id`` can be seen on /dialogs page)
+     * http://localhost:4242/api/dialogs/<dialog_id> - provides exact dialog
      * http://localhost:4242/api/user/<user_id> - provides all dialogs by user_id
 
 4. **Load analytics**

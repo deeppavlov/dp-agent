@@ -24,8 +24,9 @@ BASE_PARAMETERS = {
     'output_formatter': http_api_output_formatter,
     'debug_output_formatter': http_debug_output_formatter,
     'port': 4242,
+    'cors': False,
     'telegram_token': '',
-    'telegram_proxy': '',
+    'telegram_proxy': ''
 }
 
 
@@ -59,10 +60,11 @@ DB_CONFIG = setup_parameter('db_config', user_settings)
 OVERWRITE_LAST_CHANCE = setup_parameter('overwrite_last_chance', user_settings)
 OVERWRITE_TIMEOUT = setup_parameter('overwrite_timeout', user_settings)
 
-RESPONSE_LOGGER = True
+RESPONSE_LOGGER = setup_parameter('response_logger', user_settings)
 
 # HTTP app configuraion parameters
 TIME_LIMIT = setup_parameter('time_limit', user_settings)  # Without engaging the timeout by default
+CORS = setup_parameter('cors', user_settings)
 
 OUTPUT_FORMATTER = setup_parameter('output_formatter', user_settings)
 DEBUG_OUTPUT_FORMATTER = setup_parameter('debug_output_formatter', user_settings)

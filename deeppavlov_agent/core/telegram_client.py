@@ -12,7 +12,7 @@ class TelegramMessageProcessor:
     async def handle_message(self, message):
         response = await self.register_msg(
             utterance=message.text,
-            user_telegram_id=str(message.from_user.id),
+            user_external_id=str(message.from_user.id),
             user_device_type='telegram',
             date_time=message.date, location='', channel_type='telegram',
             require_response=True
