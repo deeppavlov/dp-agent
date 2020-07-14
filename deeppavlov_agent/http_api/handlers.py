@@ -43,7 +43,7 @@ class ApiHandler:
                 return web.json_response({})
 
             response = await asyncio.shield(
-                register_msg(utterance=payload, user_telegram_id=user_id,
+                register_msg(utterance=payload, user_external_id=user_id,
                              user_device_type=data.pop('user_device_type', 'http'),
                              date_time=datetime.now(),
                              location=data.pop('location', ''),
@@ -54,23 +54,74 @@ class ApiHandler:
 
             if response is None:
                 raise RuntimeError('Got None instead of a bot response.')
+
             return web.json_response(self.output_formatter(response['dialog'].to_dict()))
 
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager
         dialog_id = request.match_info['dialog_id']
-        if len(dialog_id) == 24 and all(c in hexdigits for c in dialog_id):
-            dialog_obj = await state_manager.get_dialog_by_id(dialog_id)
+        if all(c in hexdigits for c in dialog_id):
+            if len(dialog_id) == 24:
+                dialog_obj = await state_manager.get_dialog_by_id(dialog_id)
+            else:
+                dialog_obj = await state_manager.get_dialog_by_dialog_id(dialog_id)
+
             if not dialog_obj:
                 raise web.HTTPNotFound(reason=f'dialog with id {dialog_id} does not exist')
+
             return web.json_response(dialog_obj.to_dict())
-        raise web.HTTPBadRequest(reason='dialog id should be 24-character hex string')
+
+        raise web.HTTPBadRequest(
+            reason='dialog id should be 24-character hex string or 34-char hex string for dialog_id')
+
+    async def dialog_list(self, request):
+        """Function to get list of dialog ids as JSON response"""
+        state_manager = request.app['agent'].state_manager
+
+        offset = int(request.rel_url.query.get('offset', 0))
+        limit = int(request.rel_url.query.get('limit', 100))
+        active = bool(int(request.rel_url.query.get('_active', 0)))
+        list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit, _active=active)
+
+        if len(list_ids) < limit:
+            # final page or no more items?
+            next_offset_link = None
+        else:
+            next_offset = offset+limit
+            next_offset_link = "?offset=%d&limit=%d&_active=%d" % (next_offset, limit, active)
+        resp_dict = {
+            "dialog_ids": list_ids,
+            # TODO fix last page
+            "next": next_offset_link
+        }
+        return web.json_response(resp_dict)
 
     async def dialogs_by_user(self, request):
         state_manager = request.app['agent'].state_manager
-        user_telegram_id = request.match_info['user_telegram_id']
-        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_telegram_id)
+        user_external_id = request.match_info['user_external_id']
+        dialogs = await state_manager.get_dialogs_by_user_ext_id(user_external_id)
         return web.json_response([i.to_dict() for i in dialogs])
+
+    async def dialog_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        dialog_id = data.pop('dialog_id')
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        await state_manager.set_rating_dialog(user_id, dialog_id, rating)
+        return web.Response()
+
+    async def utterance_rating(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        user_id = data.pop('user_id', None)
+        rating = data.pop('rating')
+        utt_id = data.pop('utt_id')
+        await state_manager.set_rating_utterance(user_id, utt_id, rating)
+        return web.Response()
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'POST, OPTIONS'})
 
 
 class PagesHandler:
@@ -79,6 +130,9 @@ class PagesHandler:
 
     async def ping(self, request):
         return web.json_response("pong")
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
 
 
 class WSstatsHandler:
@@ -100,6 +154,9 @@ class WSstatsHandler:
             await asyncio.sleep(self.update_time)
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
 
 
 class WSChatHandler:
@@ -129,7 +186,7 @@ class WSChatHandler:
                     continue
 
                 response = await register_msg(
-                    utterance=payload, user_telegram_id=user_id,
+                    utterance=payload, user_external_id=user_id,
                     user_device_type=data.pop('user_device_type', 'websocket'),
                     date_time=datetime.now(),
                     location=data.pop('location', ''),
@@ -145,3 +202,6 @@ class WSChatHandler:
                 break
 
         return ws
+
+    async def options(self, request):
+        return web.Response(headers={'Access-Control-Allow-Methods': 'GET, OPTIONS'})
