@@ -69,7 +69,7 @@ class StateManager:
         await self.update_bot(dialog.bot, payload)
         dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload['text']
-        dialog.utterances[-1].orig_text = payload['text'
+        dialog.utterances[-1].orig_text = payload['text']
         dialog.utterances[-1].active_skill = payload['skill_name']
         dialog.utterances[-1].confidence = payload['confidence']
         dialog.utterances[-1].annotations = payload.get('annotations', {})
