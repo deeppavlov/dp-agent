@@ -50,6 +50,7 @@ class HumanUtterance:
         await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -57,7 +58,7 @@ class HumanUtterance:
             'annotations': self.annotations,
             'hypotheses': self.hypotheses,
             'date_time': str(self.date_time),
-            'attributes': json.dumps(self.attributes, default=bson.json_util.default)
+            'attributes': dumped_attrs
         }
 
     async def save(self, db):
@@ -125,6 +126,7 @@ class BotUtterance:
         await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -134,7 +136,7 @@ class BotUtterance:
             'annotations': self.annotations,
             'date_time': str(self.date_time),
             'user': self.user,
-            'attributes': json.dumps(self.attributes, default=bson.json_util.default)
+            'attributes': dumped_attrs
         }
 
     async def save(self, db):
