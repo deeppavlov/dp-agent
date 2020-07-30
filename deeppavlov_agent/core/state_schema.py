@@ -227,6 +227,7 @@ class Dialog:
         await db[cls.collection_name].create_index('dialog_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
             '_id': str(self._id),
             'dialog_id': self.dialog_id,
@@ -239,6 +240,7 @@ class Dialog:
             'date_start': str(self.date_start),
             'date_finish': str(self.date_finish),
             '_active': str(self._active),
+            'attributes': dumped_attrs
         }
 
     async def load_external_info(self, db):
