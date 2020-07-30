@@ -89,6 +89,7 @@ class StateManager:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload['text']
+        dialog.utterances[-1].orig_text = payload['text']
         dialog.utterances[-1].active_skill = label
         dialog.utterances[-1].confidence = 0
         dialog.utterances[-1].annotations = payload['annotations']
