@@ -1,4 +1,5 @@
 import asyncio
+import urllib.request
 from datetime import datetime
 from string import hexdigits
 from time import time
@@ -78,20 +79,26 @@ class ApiHandler:
         """Function to get list of dialog ids as JSON response"""
         state_manager = request.app['agent'].state_manager
 
-        offset = int(request.rel_url.query.get('offset', 0))
-        limit = int(request.rel_url.query.get('limit', 100))
-        active = bool(int(request.rel_url.query.get('_active', 0)))
-        list_ids = await state_manager.list_dialog_ids(offset=offset, limit=limit, _active=active)
+        params = {
+            'offset': int(request.rel_url.query.get('offset', 0)),
+            'limit': int(request.rel_url.query.get('limit', 100)),
+        }
+        _active_raw = request.rel_url.query.get('_active', None)
+        if _active_raw:
+            active = bool(int(_active_raw))
+            params["_active"] = active
 
-        if len(list_ids) < limit:
+        list_ids = await state_manager.list_dialog_ids(**params)
+
+        if len(list_ids) < params['limit']:
             # final page or no more items?
             next_offset_link = None
         else:
-            next_offset = offset+limit
-            next_offset_link = "?offset=%d&limit=%d&_active=%d" % (next_offset, limit, active)
+            params['offset'] = params['offset']+params['limit']
+            next_offset_link = "?"+urllib.parse.urlencode(params)
+
         resp_dict = {
             "dialog_ids": list_ids,
-            # TODO fix last page
             "next": next_offset_link
         }
         return web.json_response(resp_dict)
