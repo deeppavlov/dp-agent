@@ -1,4 +1,5 @@
 import asyncio
+import urllib.request
 from datetime import datetime
 from string import hexdigits
 from time import time
@@ -6,7 +7,6 @@ from time import time
 import aiohttp
 import aiohttp_jinja2
 from aiohttp import web
-import urllib.request
 
 
 async def handle_command(payload, user_id, state_manager):
