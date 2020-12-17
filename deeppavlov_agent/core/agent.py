@@ -33,6 +33,7 @@ class Agent:
         dialog_id = str(dialog.id)
         service = self.pipeline.get_service_by_name('input')
         message_attrs = kwargs.pop('message_attrs', {})
+        dialog.attributes['custom_data'] = kwargs.get('custom_data')
 
         if require_response:
             event = asyncio.Event()
