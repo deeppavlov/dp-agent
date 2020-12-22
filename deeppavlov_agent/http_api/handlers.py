@@ -29,9 +29,9 @@ class ApiHandler:
                 raise web.HTTPBadRequest(reason='Content-Type should be application/json')
             data = await request.json()
 
-            payload = data.pop('bloger_text', '')
+            payload = data.pop('blogger_text', '')
             custom_data = data.pop('metadata')
-            user_id = custom_data['bloger']['name']
+            user_id = custom_data['blogger']['name']
 
             deadline_timestamp = None
             if self.response_time_limit:
