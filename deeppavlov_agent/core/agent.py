@@ -7,6 +7,16 @@ from .pipeline import Pipeline
 from .state_manager import StateManager
 from .workflow_manager import WorkflowManager
 
+import logging
+from os import getenv
+import sentry_sdk
+from sentry_sdk.integrations.aiohttp import AioHttpIntegration
+
+sentry_sdk.init(dsn=getenv('SENTRY_DSN'), integrations=[AioHttpIntegration()])
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class Agent:
     _response_logger: BaseResponseLogger
@@ -58,7 +68,7 @@ class Agent:
         if not workflow_record:
             return
         service = task_data['service']
-
+        logger.info(f"Service {service.label}: {response}")
         self._response_logger.log_end(task_id, workflow_record, service)
 
         if isinstance(response, Exception):
