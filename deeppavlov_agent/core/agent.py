@@ -52,7 +52,7 @@ class Agent:
         self.workflow_manager.add_workflow_record(
             dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs)
         task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)
-        self._response_logger.log_start(task_id, {'dialog': dialog}, service)
+        # self._response_logger.log_start(task_id, {'dialog': dialog}, service)
         asyncio.create_task(self.process(task_id, utterance, message_attrs=message_attrs))
         if deadline_timestamp:
             self.workflow_manager.set_timeout_response_task(
@@ -69,7 +69,7 @@ class Agent:
             return
         service = task_data['service']
         logger.info(f"Service {service.label}: {response}")
-        self._response_logger.log_end(task_id, workflow_record, service)
+        # self._response_logger.log_end(task_id, workflow_record, service)
 
         if isinstance(response, Exception):
             # Skip all services, which are depends on failured one
@@ -109,7 +109,7 @@ class Agent:
             tasks = service.apply_dialog_formatter(workflow_record)
             for ind, task_data in enumerate(tasks):
                 task_id = self.workflow_manager.add_task(workflow_record['dialog'].id, service, task_data, ind)
-                self._response_logger.log_start(task_id, workflow_record, service)
+                # self._response_logger.log_start(task_id, workflow_record, service)
                 self.workflow_manager.set_task_object(
                     workflow_record['dialog'].id,
                     task_id,
@@ -128,6 +128,6 @@ class Agent:
         next_services = [self.pipeline.timeout_service]
         for k, v in self.workflow_manager.get_pending_tasks(dialog_id).items():
             v['task_object'].cancel()
-            self._response_logger.log_end(k, workflow_record, v['task_data']['service'], True)
+            # self._response_logger.log_end(k, workflow_record, v['task_data']['service'], True)
 
         await self.create_processing_tasks(workflow_record, next_services)
