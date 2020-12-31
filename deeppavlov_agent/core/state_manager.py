@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict
 
 from datetime import datetime
@@ -37,7 +38,6 @@ class StateManager:
         if isinstance(dialog.utterances[-1], BotUtterance):
             return
         if len(dialog.utterances[-1].hypotheses) != len(payload["batch"]):
-            logger.error(f'hypots len: {len(dialog.utterances[-1].hypotheses)} != batch len {len(payload["batch"])}')
             for i in range(len(dialog.utterances[-1].hypotheses)):
                 dialog.utterances[-1].hypotheses[i]['annotations'][label] = {}
         else:
