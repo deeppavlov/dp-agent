@@ -1,5 +1,6 @@
 import argparse
 import os
+from logging import getLogger
 
 import sentry_sdk
 
@@ -8,6 +9,7 @@ from .core.telegram_client import run_tg
 from .setup_agent import setup_agent
 
 
+logger = getLogger(__name__)
 sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
@@ -17,6 +19,7 @@ def run_telegram(pipeline_configs=None):
         run_tg(TELEGRAM_TOKEN, TELEGRAM_PROXY, agent)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        logger.exception(e)
     finally:
         session.close()
         for i in workers:

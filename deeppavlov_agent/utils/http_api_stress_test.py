@@ -4,9 +4,12 @@ import uuid
 from statistics import mean, median
 from time import time
 import os
+from logging import getLogger
 
 import sentry_sdk
 import aiohttp
+
+logger = getLogger(__name__)
 
 sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
@@ -24,6 +27,7 @@ try:
         payloads = [line.rstrip('\n') for line in file]
 except Exception as e:
     sentry_sdk.capture_exception(e)
+    logger.exception(e)
     raise e
 
 

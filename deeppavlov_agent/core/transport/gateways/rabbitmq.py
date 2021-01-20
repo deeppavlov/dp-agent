@@ -247,6 +247,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
                 self._add_to_buffer_lock.release()
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            logger.exception(e)
         finally:
             self._infer_lock.release()
 
@@ -272,6 +273,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             return True
         except asyncio.TimeoutError as e:
             sentry_sdk.capture_exception(e)
+            logger.exception(e)
             return False
 
     async def _send_results(self, task: ServiceTaskMessage, response: Dict) -> None:
