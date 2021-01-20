@@ -1,10 +1,14 @@
 import asyncio
 from typing import Any, Callable, Dict, List
 from collections import defaultdict
+import os
 
+import sentry_sdk
 import aiohttp
 
 from .transport.base import ServiceGatewayConnectorBase
+
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
 class HTTPConnector:
@@ -22,6 +26,7 @@ class HTTPConnector:
                 response=response[0]
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             response = e
             await callback(
                 task_id=payload['task_id'],
@@ -85,6 +90,7 @@ class ConfidenceResponseSelectorConnector:
                 response=best_skill
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             await callback(
                 task_id=payload['task_id'],
                 response=e

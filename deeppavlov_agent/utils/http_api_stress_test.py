@@ -3,8 +3,12 @@ import asyncio
 import uuid
 from statistics import mean, median
 from time import time
+import os
 
+import sentry_sdk
 import aiohttp
+
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-u', '--url', type=str)
@@ -19,6 +23,7 @@ try:
     with open(args.phrasesfile, 'r') as file:
         payloads = [line.rstrip('\n') for line in file]
 except Exception as e:
+    sentry_sdk.capture_exception(e)
     raise e
 
 

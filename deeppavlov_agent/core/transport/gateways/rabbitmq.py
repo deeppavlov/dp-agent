@@ -3,7 +3,9 @@ import json
 import time
 from logging import getLogger
 from typing import Dict, List, Optional, Callable
+import os
 
+import sentry_sdk
 import aio_pika
 from aio_pika import Connection, Channel, Exchange, Queue, IncomingMessage, Message
 
@@ -24,6 +26,7 @@ CHANNEL_ROUTING_KEY_TEMPLATE = 'agent.{agent_name}.channel.{channel_id}.any'
 
 logger = getLogger(__name__)
 
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 # TODO: add proper RabbitMQ SSL authentication
 class RabbitMQTransportBase:
@@ -61,7 +64,8 @@ class RabbitMQTransportBase:
 
                 logger.info('RabbitMQ connected')
                 break
-            except ConnectionError:
+            except ConnectionError as e:
+                sentry_sdk.capture_exception(e)
                 reconnect_timeout = 5
                 logger.error(f'RabbitMQ connection error, making another attempt in {reconnect_timeout} secs')
                 time.sleep(reconnect_timeout)
@@ -241,6 +245,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
             elif self._add_to_buffer_lock.locked():
                 self._add_to_buffer_lock.release()
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         finally:
             self._infer_lock.release()
 
@@ -264,7 +270,8 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
             await asyncio.gather(*results_replies)
             logger.debug(f'Processed tasks {str(task_uuids_batch)}')
             return True
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
+            sentry_sdk.capture_exception(e)
             return False
 
     async def _send_results(self, task: ServiceTaskMessage, response: Dict) -> None:
