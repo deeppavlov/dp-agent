@@ -381,6 +381,7 @@ class Dialog:
         self.bot_utterances.append(utterance_obj)
 
     async def save(self, db, force=False):
+        return
         self._human_id = await self.human.save(db)
         if self.bot:
             self._bot_id = await self.bot.save(db)

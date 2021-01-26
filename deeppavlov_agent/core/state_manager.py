@@ -104,7 +104,8 @@ class StateManager:
         dialog.utterances[-1].user = dialog.bot.to_dict()
 
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
-        await dialog.save(self._db)
+        pass
+        # await dialog.save(self._db)
 
     async def get_or_create_dialog(self, user_external_id, channel_type, **kwargs):
         return await Dialog.get_or_create_by_ext_id(self._db, user_external_id, channel_type)
@@ -135,7 +136,7 @@ class StateManager:
         if 'ratings' not in dialog.attributes:
             dialog.attributes['ratings'] = []
         dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
-        await dialog.save(self._db)
+        # await dialog.save(self._db)
 
     async def set_rating_utterance(self, user_external_id, utt_id, rating):
         utt = await BotUtterance.get_by_id(self._db, utt_id)
@@ -144,7 +145,7 @@ class StateManager:
         if 'ratings' not in utt.attributes:
             utt.attributes['ratings'] = []
         utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
-        await utt.save(self._db)
+        # await utt.save(self._db)
 
     async def drop_and_rating_active_dialog(self, user_external_id, rating):
         user = await Human.get_or_create(self._db, user_external_id)
