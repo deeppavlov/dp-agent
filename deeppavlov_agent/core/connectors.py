@@ -14,7 +14,7 @@ sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
 class HTTPConnector:
-    def __init__(self, session: aiohttp.ClientSession, url: str, timeout: int):
+    def __init__(self, session: aiohttp.ClientSession, url: str, timeout: float):
         self.session = session
         self.url = url
         self.timeout = aiohttp.ClientTimeout(total=timeout)
