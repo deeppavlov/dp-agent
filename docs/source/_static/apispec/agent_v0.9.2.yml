@@ -195,7 +195,7 @@ components:
         date_time:
           type: string
           description: Время получения реплики сервером.
-        confidece:
+        confidence:
           type: number
           description: Уверенность скила в своем ответе.
         active_skill:

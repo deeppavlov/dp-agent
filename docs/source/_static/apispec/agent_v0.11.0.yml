@@ -203,7 +203,7 @@ components:
           type: string
           format: datetime
           description: REQUIRED. Время получения реплики сервером.
-        confidece:
+        confidence:
           type: number
           description: Уверенность скила в своем ответе.
         active_skill:
