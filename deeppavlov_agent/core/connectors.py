@@ -14,13 +14,14 @@ sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
 class HTTPConnector:
-    def __init__(self, session: aiohttp.ClientSession, url: str):
+    def __init__(self, session: aiohttp.ClientSession, url: str, timeout: int):
         self.session = session
         self.url = url
+        self.timeout = aiohttp.ClientTimeout(total=timeout)
 
     async def send(self, payload: Dict, callback: Callable):
         try:
-            async with self.session.post(self.url, json=payload['payload']) as resp:
+            async with self.session.post(self.url, json=payload['payload'], timeout=self.timeout) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
             await callback(
