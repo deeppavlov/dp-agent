@@ -21,21 +21,18 @@ class HTTPConnector:
 
     async def send(self, payload: Dict, callback: Callable):
         try:
-            async with self.session.post(self.url, json=payload['payload'], timeout=self.timeout) as resp:
+            async with self.session.post(self.url, json=payload["payload"], timeout=self.timeout) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
-            await callback(
-                task_id=payload['task_id'],
-                response=response[0]
-            )
+            await callback(task_id=payload["task_id"], response=response[0])
         except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception(e)
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("payload", payload)
+                scope.set_extra("url", self.url)
+                sentry_sdk.capture_exception(e)
+            logger.exception(Exception(e, {"payload": payload, "url": self.url}))
             response = e
-            await callback(
-                task_id=payload['task_id'],
-                response=response
-            )
+            await callback(task_id=payload["task_id"], response=response)
 
 
 class AioQueueConnector:
