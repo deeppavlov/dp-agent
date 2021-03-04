@@ -18,10 +18,10 @@ async def cors_mw(request, handler):
 
 
 async def init_app(agent, session, consumers, logger_stats, output_formatter,
-                   debug=False, response_time_limit=0, cors=None):
+                   debug=False, response_time_limit=0, cors=None, uib_login=None, uib_password=None):
     middlewares = [cors_mw] if cors else []
     app = web.Application(middlewares=middlewares)
-    handler = ApiHandler(output_formatter, response_time_limit)
+    handler = ApiHandler(output_formatter, response_time_limit, uib_login, uib_password)
     pages = PagesHandler(debug)
     stats = WSstatsHandler()
     chat = WSChatHandler(output_formatter)
@@ -46,6 +46,8 @@ async def init_app(agent, session, consumers, logger_stats, output_formatter,
 
     app.router.add_post('', handler.handle_api_request)
     app.router.add_options('', handler.options)
+    app.router.add_post('/uib', handler.handle_uib_request)
+    app.router.add_options('/uib', handler.options)
     app.router.add_get('/api/dialogs/', handler.dialog_list)
     app.router.add_get('/api/dialogs/{dialog_id}', handler.dialog)
 

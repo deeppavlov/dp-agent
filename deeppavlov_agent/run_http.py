@@ -13,9 +13,10 @@ logger = getLogger(__name__)
 sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
-def run_http(port, pipeline_configs=None, debug=None, time_limit=None, cors=None):
+def run_http(port, pipeline_configs=None, debug=None, time_limit=None, cors=None, uib_login=None, uib_password=None):
     try:
-        app = app_factory(pipeline_configs=pipeline_configs, debug=debug, response_time_limit=time_limit, cors=cors)
+        app = app_factory(pipeline_configs=pipeline_configs, debug=debug, response_time_limit=time_limit, cors=cors,
+                          uib_login=uib_login, uib_password=uib_password)
         web.run_app(app, port=port)
     except Exception as e:
         sentry_sdk.capture_exception(e)

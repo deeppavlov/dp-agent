@@ -16,9 +16,16 @@ async def handle_command(payload, user_id, state_manager):
 
 
 class ApiHandler:
-    def __init__(self, output_formatter, response_time_limit=5):
+    def __init__(self, output_formatter, response_time_limit=5, uib_login=None, uib_password=None):
         self.output_formatter = output_formatter
         self.response_time_limit = response_time_limit
+        self.uib_auth = self.init_uib(uib_login, uib_password)
+
+    @staticmethod
+    def init_uib(uib_login, uib_password):
+        if uib_login is not None and uib_password is not None:
+            return aiohttp.BasicAuth(uib_login, uib_password)
+        return None
 
     async def handle_api_request(self, request):
         response = {}
@@ -57,6 +64,53 @@ class ApiHandler:
                 raise RuntimeError('Got None instead of a bot response.')
 
             return web.json_response(self.output_formatter(response['dialog'].to_dict()))
+
+    async def handle_uib_request(self, request):
+        register_msg = request.app['agent'].register_msg
+        if request.method == 'POST':
+            if 'content-type' not in request.headers \
+                    or not request.headers['content-type'].startswith('application/json'):
+                raise web.HTTPBadRequest(reason='Content-Type should be application/json')
+            if self.uib_auth is None:
+                raise web.HTTPBadRequest(reason='The Unified Inbox credentials were not initialized')
+            data = await request.json()
+            if data['data']['attachmenttype'] != 'text':
+                return web.json_response({'status': 200, 'info': 'OK'})
+
+            user_id = data['data']['receiveraddress']
+            payload = data['data']['messagepreview']
+            connectionname = data['data']['connectionname']
+
+            deadline_timestamp = None
+            if self.response_time_limit:
+                deadline_timestamp = time() + self.response_time_limit
+
+            response = await asyncio.shield(
+                register_msg(utterance=payload, user_external_id=user_id,
+                             user_device_type='uib',
+                             date_time=datetime.now(),
+                             location='',
+                             channel_type='http_client',
+                             require_response=True,
+                             deadline_timestamp=deadline_timestamp)
+            )
+
+            if response is None:
+                raise RuntimeError('Got None instead of a bot response.')
+
+            resp_payload = response['dialog'].to_dict()
+            response = {
+                'message': {
+                    'receivers': [{'name': 'name', 'address': user_id, 'Connector': connectionname, 'type': ''}],
+                    'parts': [{'id': '1', 'contentType': 'text/plain', 'data': resp_payload['utterances'][-1]['text'],
+                              'size': len(resp_payload['utterances'][-1]['text']), 'type': 'body', 'sort': 0}]
+                }
+            }
+            async with aiohttp.ClientSession() as session:
+                resp = await session.post(f"https://apiv2.unificationengine.com/v2/message/send",
+                                          auth=self.uib_auth,
+                                          json=response)
+            return web.json_response({'status': resp.status, 'info': 'OK'})
 
     async def dialog(self, request):
         state_manager = request.app['agent'].state_manager

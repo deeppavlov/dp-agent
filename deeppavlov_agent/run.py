@@ -16,12 +16,15 @@ def main():
                         action='store_true', default=None)
     parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
     parser.add_argument('-tl', '--time_limit', help='response time limit, 0 = no limit', type=int, default=0)
+    parser.add_argument('-ul', '--uib_login', help='The Unified Inbox access login', type=str, default=None)
+    parser.add_argument('-up', '--uib_password', help='The Unified Inbox access password', type=str, default=None)
     args = parser.parse_args()
 
     if args.channel == 'cmd_client':
         run_cmd(args.pipeline_configs, args.debug)
     elif args.channel == 'http_client':
-        run_http(args.port, args.pipeline_configs, args.debug, args.time_limit, args.cors)
+        run_http(args.port, args.pipeline_configs, args.debug, args.time_limit, args.cors, args.uib_login,
+                 args.uib_password)
     elif args.channel == 'telegram':
         run_telegram(args.pipeline_configs)
 

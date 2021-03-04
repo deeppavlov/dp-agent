@@ -10,7 +10,8 @@ from ..setup_agent import setup_agent
 from ..core.log import LocalResponseLogger
 
 
-def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cors=None):
+def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cors=None, uib_login=None,
+                uib_password=None):
     agent, session, workers = setup_agent(pipeline_configs)
     response_logger = agent._response_logger
     if DEBUG:
@@ -22,7 +23,7 @@ def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cor
         agent=agent, session=session, consumers=workers,
         logger_stats=response_logger, output_formatter=output_formatter,
         debug=debug or DEBUG, response_time_limit=response_time_limit or TIME_LIMIT,
-        cors=CORS if cors is None else cors
+        cors=CORS if cors is None else cors, uib_login=uib_login, uib_password=uib_password
     )
 
     return app
