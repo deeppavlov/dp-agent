@@ -1,6 +1,7 @@
 import asyncio
-from typing import Any, Callable, Dict, List
+import traceback
 from collections import defaultdict
+from typing import Any, Callable, Dict, List
 
 import aiohttp
 
@@ -22,6 +23,7 @@ class HTTPConnector:
                 response=response[0]
             )
         except Exception as e:
+            traceback.print_exc()
             response = e
             await callback(
                 task_id=payload['task_id'],
