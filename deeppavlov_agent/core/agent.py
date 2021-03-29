@@ -74,7 +74,7 @@ class Agent:
                            if not v['done'] and not v.get('error', False)]
             with_errors = [k for k, v in workflow_record['services'].items() if v.get('error', False)]
             with sentry_sdk.push_scope() as scope:
-                scope.set_extra('user_id', workflow_record['dialog'].human.telegram_id)
+                scope.set_extra('user_id', workflow_record['dialog'].human.external_id)
                 scope.set_extra('dialog_id', workflow_record['dialog'].id)
                 scope.set_extra('response', response)
                 scope.set_extra('done', done)
