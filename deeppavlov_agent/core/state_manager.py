@@ -1,11 +1,26 @@
 from copy import deepcopy
 from typing import Dict
+import time
 
 from datetime import datetime
 
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
 import logging
 
+
+logger = logging.getLogger(__name__)
+
+
+def timer(func):
+    async def wrapper(*args, **kwargs):
+        st = time.time()
+        res = await func(*args, **kwargs)
+        et = time.time()
+        total_time = et - st
+        logger.warn(f"{func.__name__} db exec time: {total_time:.3f}s")
+        return res
+
+    return wrapper
 
 class StateManager:
     def __init__(self, db):
@@ -106,31 +121,40 @@ class StateManager:
         dialog.utterances[-1].confidence = 0
         dialog.utterances[-1].user = dialog.bot.to_dict()
 
+    @timer
     async def save_dialog(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         await dialog.save(self._db)
 
+    @timer
     async def get_or_create_dialog(self, user_external_id, channel_type, **kwargs):
         return await Dialog.get_or_create_by_ext_id(self._db, user_external_id, channel_type)
 
+    @timer
     async def get_dialog_by_id(self, dialog_id):
         return await Dialog.get_by_id(self._db, dialog_id)
 
+    @timer
     async def get_dialog_by_dialog_id(self, dialog_id):
         return await Dialog.get_by_dialog_id(self._db, dialog_id, full=True)
 
+    @timer
     async def list_dialog_ids(self, *args, **kwargs):
         return await Dialog.list_ids(self._db, *args, **kwargs)
 
+    @timer
     async def get_dialogs_by_user_ext_id(self, user_external_id):
         return await Dialog.get_many_by_ext_id(self._db, user_external_id)
 
+    @timer
     async def get_all_dialogs(self):
         return await Dialog.get_all(self._db)
 
+    @timer
     async def drop_active_dialog(self, user_external_id):
         user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.drop_active(self._db, user._id)
 
+    @timer
     async def set_rating_dialog(self, user_external_id, dialog_id, rating):
         dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
         if not dialog:
@@ -140,6 +164,7 @@ class StateManager:
         dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
         await dialog.save(self._db)
 
+    @timer
     async def set_rating_utterance(self, user_external_id, utt_id, rating):
         utt = await BotUtterance.get_by_id(self._db, utt_id)
         if not utt:
@@ -149,15 +174,18 @@ class StateManager:
         utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
         await utt.save(self._db)
 
+    @timer
     async def drop_and_rating_active_dialog(self, user_external_id, rating):
         user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.set_rating_drop_active(self._db, user._id, rating)
 
+    @timer
     async def prepare_db(self):
         await BotUtterance.prepare_collection(self._db)
         await HumanUtterance.prepare_collection(self._db)
         await Human.prepare_collection(self._db)
         await Dialog.prepare_collection(self._db)
 
+    @timer
     async def get_channels(self):
         return await Dialog.get_channels(self._db)
