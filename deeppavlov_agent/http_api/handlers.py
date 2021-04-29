@@ -118,6 +118,14 @@ class ApiHandler:
         await state_manager.set_rating_dialog(user_id, dialog_id, rating)
         return web.Response()
 
+    async def dialog_report(self, request):
+        state_manager = request.app['agent'].state_manager
+        data = await request.json()
+        dialog_id = data.pop('dialog_id')
+        user_id = data.pop('user_id', None)
+        await state_manager.set_report_dialog(user_id, dialog_id)
+        return web.Response()
+
     async def utterance_rating(self, request):
         state_manager = request.app['agent'].state_manager
         data = await request.json()

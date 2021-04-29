@@ -137,6 +137,13 @@ class StateManager:
         dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
         await dialog.save(self._db)
 
+    async def set_report_dialog(self, user_external_id, dialog_id):
+        dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
+        if not dialog:
+            return False
+        dialog.attributes['report'] = True
+        await dialog.save(self._db)
+
     async def set_rating_utterance(self, user_external_id, utt_id, rating):
         utt = await BotUtterance.get_by_id(self._db, utt_id)
         if not utt:
