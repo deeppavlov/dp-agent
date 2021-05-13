@@ -1,7 +1,10 @@
 import asyncio
 from time import time
 from typing import Any
+from logging import getLogger
 import os
+import collections
+import json
 
 import sentry_sdk
 
@@ -11,6 +14,7 @@ from .state_manager import StateManager
 from .workflow_manager import WorkflowManager
 
 
+logger = getLogger(__name__)
 sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
@@ -26,6 +30,8 @@ class Agent:
         self.state_manager = state_manager
         self.workflow_manager = workflow_manager
         self._response_logger = response_logger
+        self.timings = {}
+        self.n_turn = {}
 
     def flush_record(self, dialog_id: str):
         workflow_record = self.workflow_manager.flush_record(dialog_id)
@@ -35,8 +41,17 @@ class Agent:
 
     async def register_msg(self, utterance, deadline_timestamp=None,
                            require_response=False, **kwargs):
+        st_time = time()
         dialog = await self.state_manager.get_or_create_dialog(**kwargs)
+        get_dialog_time = time()
         dialog_id = str(dialog.id)
+        self.n_turn[dialog_id] = self.n_turn.get(dialog_id, 0) + 1
+        self.timings[dialog_id] = {
+            "st_time": st_time,
+            "n_turn": self.n_turn[dialog_id],
+            "get_dialog_time": get_dialog_time,
+            "services": collections.defaultdict(dict),
+        }
         service = self.pipeline.get_service_by_name('input')
         message_attrs = kwargs.pop('message_attrs', {})
 
@@ -54,16 +69,25 @@ class Agent:
             self.workflow_manager.set_timeout_response_task(
                 dialog_id, asyncio.create_task(self.timeout_process(dialog_id, deadline_timestamp))
             )
-
+        self.timings[dialog_id]["init_time"] = time()
         if require_response:
             await event.wait()
-            return self.flush_record(dialog_id)
+            response = self.flush_record(dialog_id)
+            self.timings[dialog_id]["end_time"] = time()
+            logger.warning(f"dialog_id = {dialog_id} timings = {json.dumps(self.timings[dialog_id])}")
+            del self.timings[dialog_id]
+            return response
 
     async def process(self, task_id, response: Any = None, **kwargs):
         workflow_record, task_data = self.workflow_manager.complete_task(task_id, response, **kwargs)
         if not workflow_record:
             return
         service = task_data['service']
+
+        dialog_id = str(workflow_record['dialog'].id)
+        service_name = str(service.label)
+        self.timings[dialog_id]["services"][service_name]["end_time"] = time()
+
         self._response_logger._logger.info(f"Service {service.label}: {response}")
         self._response_logger.log_end(task_id, workflow_record, service)
 
@@ -82,12 +106,14 @@ class Agent:
                 scope.set_extra('with_errors', with_errors)
                 sentry_sdk.capture_message(f"{service.label} was called")
 
+        self.timings[dialog_id]["services"][service_name]["start_handling_time"] = time()
         if isinstance(response, Exception):
             # Skip all services, which are depends on failured one
             for i in service.dependent_services:
                 self.workflow_manager.skip_service(workflow_record['dialog'].id, i)
         else:
             response_data = service.apply_response_formatter(response)
+            self.timings[dialog_id]["services"][service_name]["response_formatter_time"] = time()
             # Updating workflow with service response
             if service.state_processor_method:
                 await service.state_processor_method(
@@ -95,6 +121,7 @@ class Agent:
                     label=service.label,
                     message_attrs=kwargs.pop('message_attrs', {}), ind=task_data['ind']
                 )
+            self.timings[dialog_id]["services"][service_name]["upd_workflow_time"] = time()
 
             # Processing the case, when service is a skill selector
             if service and service.is_sselector():
@@ -107,17 +134,25 @@ class Agent:
             elif service.is_responder():
                 if not workflow_record.get('hold_flush'):
                     self.flush_record(workflow_record['dialog'].id)
+                self.timings[dialog_id]["services"][service_name]["end_handling_time"] = time()
                 return
+        self.timings[dialog_id]["services"][service_name]["end_handling_time"] = time()
 
         # Calculating next steps
         done, waiting, skipped = self.workflow_manager.get_services_status(workflow_record['dialog'].id)
         next_services = self.pipeline.get_next_services(done, waiting, skipped)
 
+        self.timings[dialog_id]["services"][service_name]["get_status_time"] = time()
         await self.create_processing_tasks(workflow_record, next_services)
 
     async def create_processing_tasks(self, workflow_record, next_services):
+        dialog_id = str(workflow_record['dialog'].id)
+
         for service in next_services:
+            service_name = str(service.label)
+            self.timings[dialog_id]["services"][service_name]["start_time"] = time()
             tasks = service.apply_dialog_formatter(workflow_record)
+            self.timings[dialog_id]["services"][service_name]["dialog_formatter_time"] = time()
             for ind, task_data in enumerate(tasks):
                 task_id = self.workflow_manager.add_task(workflow_record['dialog'].id, service, task_data, ind)
                 self._response_logger.log_start(task_id, workflow_record, service)
@@ -130,6 +165,7 @@ class Agent:
                         )
                     )
                 )
+            self.timings[dialog_id]["services"][service_name]["init_tasks_time"] = time()
 
     async def timeout_process(self, dialog_id, deadline_timestamp):
         await asyncio.sleep(deadline_timestamp - time())
