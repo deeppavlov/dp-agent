@@ -1,0 +1,7 @@
+dialog_options:
+  reveal_dialog_id: true
+
+evaluation_options:
+  user_must_evaluate: true
+  min_score: 1
+  max_score: 5

@@ -1,0 +1,7 @@
+dialog_inactive:
+  - '/begin'
+  - '/help'
+
+dialog_active:
+  - '/end'
+  - '/complain'

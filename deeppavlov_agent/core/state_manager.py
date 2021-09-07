@@ -127,9 +127,15 @@ class StateManager:
     async def get_all_dialogs(self):
         return await Dialog.get_all(self._db)
 
+    async def get_active_dialog(self, user_external_id):
+        user = await Human.get_or_create(self._db, user_external_id)
+        dialog_id = await Dialog.get_active(self._db, user._id)
+        return dialog_id
+
     async def drop_active_dialog(self, user_external_id):
         user = await Human.get_or_create(self._db, user_external_id)
-        await Dialog.drop_active(self._db, user._id)
+        dialog_id = await Dialog.drop_active(self._db, user._id)
+        return dialog_id
 
     async def set_rating_dialog(self, user_external_id, dialog_id, rating):
         dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
@@ -137,7 +143,9 @@ class StateManager:
             return False
         if 'ratings' not in dialog.attributes:
             dialog.attributes['ratings'] = []
-        dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        dialog.attributes['ratings'].append(
+            {'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()}
+        )
         await dialog.save(self._db)
 
     async def set_rating_utterance(self, user_external_id, utt_id, rating):
@@ -146,10 +154,12 @@ class StateManager:
             return False
         if 'ratings' not in utt.attributes:
             utt.attributes['ratings'] = []
-        utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
-        await utt.save(self._db)
+        utt.attributes['ratings'].append(
+            {'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()}
+        )
+        await utt.save(self._db, force_encode_date=False)
 
-    async def drop_and_rating_active_dialog(self, user_external_id, rating):
+    async def drop_and_rate_active_dialog(self, user_external_id, rating):
         user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.set_rating_drop_active(self._db, user._id, rating)
 

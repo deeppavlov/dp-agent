@@ -1,0 +1,61 @@
+start: >
+  This chatbot is developed by Neural Networks and Deep Learning Lab at MIPT.
+  Please have a chat with it and evaluate its performance.
+  To begin a conversation enter /begin. To end a conversation: enter /end.
+  When the dialogue is finished, you will be asked to evaluate it.
+  You will have to rate the conversation from 1 (bad) to 5 (excellent).
+  Your conversations will be recorded for further use.
+  By starting a chat you give permission for your anonymized conversation data
+  to be released publicly under Apache License Version 2.0
+  https://www.apache.org / licenses / LICENSE – 2.0.
+
+help: >
+  This chatbot is developed by Neural Networks and Deep Learning Lab at MIPT.
+  Please have a chat with it and evaluate its performance.
+  To begin a conversation enter /begin. To end a conversation: enter /end.
+  When the dialogue is finished, you will be asked to evaluate it.
+  You will have to rate the conversation from 1 (bad) to 5 (excellent).
+  Your conversations will be recorded for further use.
+  By starting a chat you give permission for your anonymized conversation data
+  to be released publicly under Apache License Version 2.0
+  https://www.apache.org / licenses / LICENSE – 2.0.
+
+complain_success: >
+  Your complaint has been recorded and will be examined by the system administrator.
+  Note that your conversation is still active.
+  You can always use /end command to end it.
+
+complain_fail: >
+  Could not save your complaint. Did you /begin the dialog?
+  You cannot complain when there are no messages in the dialog.
+
+begin_success: >
+  Starting a dialog. To finish the dialog enter /end.
+
+begin_fail: >
+  Cannot start a new conversation.
+  Please finish and evaluate your current dialog first.
+  Use /help command for usage instructions.
+
+end_success: >
+  Dialog is finished.
+  Please evaluate the whole dialog using one of the buttons below:
+
+end_fail: >
+  You're not in a dialog now.
+
+evaluate_dialog_success: >
+  Thank you for participation!
+
+evaluate_dialog_success_reveal_id: >
+  Thank you for participation!
+  Evaluated dialog secret id: ${dialog_id}
+
+evaluate_dialog_fail: >
+  Evaluation is not allowed at the moment.
+  Use /help command for usage instructions.
+
+unexpected_message: >
+  Unexpected message.
+  You are not in a dialog yet or the dialog has already been finished.
+  Use /help command for usage instructions.
