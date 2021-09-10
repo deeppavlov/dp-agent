@@ -10,8 +10,8 @@ from ..setup_agent import setup_agent
 from ..core.log import LocalResponseLogger
 
 
-def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cors=None):
-    agent, session, workers = setup_agent(pipeline_configs)
+def app_factory(pipeline_config=None, db_config=None, debug=None, response_time_limit=None, cors=None):
+    agent, session, workers = setup_agent(pipeline_config, db_config)
     response_logger = agent._response_logger
     if DEBUG:
         output_formatter = DEBUG_OUTPUT_FORMATTER

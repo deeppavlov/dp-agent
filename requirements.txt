@@ -11,3 +11,4 @@ tqdm==4.36.1
 pymongo==3.10.1
 sentry-sdk==0.19.5
 pydantic==1.8.2
+hydra-core==1.1.1

@@ -1,10 +1,11 @@
-import argparse
 import asyncio
 import os
 from logging import getLogger
 
+import hydra
 import sentry_sdk
 from aioconsole import ainput
+from omegaconf import DictConfig
 
 from .setup_agent import setup_agent
 
@@ -25,10 +26,14 @@ async def message_processor(register_msg):
             print('Bot: ', response['dialog'].utterances[-1].text)
 
 
-def run_cmd(pipeline_configs, debug):
-    agent, session, workers = setup_agent(pipeline_configs=pipeline_configs)
+@hydra.main(config_path=".", config_name="settings")
+def run_cmd(cfg: DictConfig):
+    agent, session, workers = setup_agent(
+        cfg.agent.pipeline_config,
+        cfg.agent.db_config,
+    )
     loop = asyncio.get_event_loop()
-    loop.set_debug(debug)
+    loop.set_debug(cfg.agent.debug)
     future = asyncio.ensure_future(message_processor(agent.register_msg))
     for i in workers:
         loop.create_task(i.call_service(agent.process))
@@ -49,10 +54,4 @@ def run_cmd(pipeline_configs, debug):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-pl', '--pipeline_configs', help='Pipeline config (overwrite value, defined in settings)',
-                        type=str, action='append')
-    parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
-    args = parser.parse_args()
-
-    run_cmd(args.pipeline_configs, args.debug)
+    run_cmd()

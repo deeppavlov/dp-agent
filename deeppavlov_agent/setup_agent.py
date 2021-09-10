@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import yaml
@@ -26,14 +27,20 @@ def merge_two_configs(d1, d2):
             d1[k] = v
 
 
-def setup_agent(pipeline_configs=None):
-    with open(DB_CONFIG, 'r') as db_config:
-        if DB_CONFIG.endswith('.json'):
+def setup_agent(
+        pipeline_config_path,
+        db_config_path,
+        overwrite_last_chance=None,
+        overwrite_timeout=None,
+        response_logger=None
+):
+    with open(db_config_path, 'r') as db_config:
+        if db_config_path.endswith('.json'):
             db_data = json.load(db_config)
-        elif DB_CONFIG.endswith('.yml'):
+        elif db_config_path.endswith('.yml'):
             db_data = yaml.load(db_config, Loader=yaml.FullLoader)
         else:
-            raise ValueError(f'unknown format for db_config file: {DB_CONFIG}')
+            raise ValueError(f'unknown format for db_config file: {db_config_path}')
 
     if db_data.pop('env', False):
         for k, v in db_data.items():
@@ -42,25 +49,25 @@ def setup_agent(pipeline_configs=None):
     db = DB_CLASS(**db_data)
 
     sm = STATE_MANAGER_CLASS(db.get_db())
-    if pipeline_configs:
-        pipeline_data = {}
-        for name in pipeline_configs:
-            with open(name, 'r') as pipeline_config:
-                if name.endswith('.json'):
-                    merge_two_configs(pipeline_data, json.load(pipeline_config))
-                elif name.endswith('.yml'):
-                    merge_two_configs(pipeline_data, yaml.load(pipeline_config, Loader=yaml.FullLoader))
-                else:
-                    raise ValueError(f'unknown format for pipeline_config file from command line: {name}')
-
-    else:
-        with open(PIPELINE_CONFIG, 'r') as pipeline_config:
-            if PIPELINE_CONFIG.endswith('.json'):
-                pipeline_data = json.load(pipeline_config)
-            elif PIPELINE_CONFIG.endswith('.yml'):
-                pipeline_data = yaml.load(pipeline_config, Loader=yaml.FullLoader)
-            else:
-                raise ValueError(f'unknown format for pipeline_config file from setitngs: {PIPELINE_CONFIG}')
+    # if pipeline_configs:
+    #     pipeline_data = {}
+    #     for name in pipeline_configs:
+    #         with open(name, 'r') as pipeline_config:
+    #             if name.endswith('.json'):
+    #                 merge_two_configs(pipeline_data, json.load(pipeline_config))
+    #             elif name.endswith('.yml'):
+    #                 merge_two_configs(pipeline_data, yaml.load(pipeline_config, Loader=yaml.FullLoader))
+    #             else:
+    #                 raise ValueError(f'unknown format for pipeline_config file from command line: {name}')
+    #
+    # else:
+    with open(pipeline_config_path, 'r') as pipeline_config_f:
+        if pipeline_config_path.endswith('.json'):
+            pipeline_data = json.load(pipeline_config_f)
+        elif pipeline_config_path.endswith('.yml'):
+            pipeline_data = yaml.load(pipeline_config_f, Loader=yaml.FullLoader)
+        else:
+            raise ValueError(f'unknown format for pipeline_config file from setitngs: {pipeline_config_path}')
 
     pipeline_config = PipelineConfigParser(sm, pipeline_data)
 
@@ -69,15 +76,15 @@ def setup_agent(pipeline_configs=None):
                             sm.save_dialog, 1, ['responder'])
 
     last_chance_srv = None
-    if not OVERWRITE_LAST_CHANCE:
+    if not overwrite_last_chance:
         last_chance_srv = pipeline_config.last_chance_service
     timeout_srv = None
-    if not OVERWRITE_TIMEOUT:
+    if not overwrite_timeout:
         timeout_srv = pipeline_config.timeout_service
 
     pipeline = Pipeline(pipeline_config.services, input_srv, responder_srv, last_chance_srv, timeout_srv)
 
-    response_logger = LocalResponseLogger(RESPONSE_LOGGER)
+    response_logger = LocalResponseLogger(response_logger)
 
     agent = Agent(pipeline, sm, WORKFLOW_MANAGER_CLASS(), response_logger=response_logger)
     if pipeline_config.gateway:
