@@ -34,7 +34,7 @@ setuptools.setup(
     keywords=['chatbots', 'microservices', 'dialog systems', 'NLP'],
     packages=setuptools.find_packages(exclude=('docs',)),
     python_requires='>=3.7',
-    data_files=[('.', ['settings.yaml'])],
+    data_files=[('.', ['deeppavlov_agent/settings.yaml'])],
     url="https://github.com/deepmipt/dp-agent",
     **read_requirements()
 )
