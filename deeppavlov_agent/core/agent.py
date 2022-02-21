@@ -64,7 +64,7 @@ class Agent:
         if not workflow_record:
             return
         service = task_data['service']
-        self._response_logger._logger.info(f"Service {service.label}: {response}")
+        # self._response_logger._logger.info(f"Service {service.label}: {response}")
         self._response_logger.log_end(task_id, workflow_record, service)
 
         if service.label in set(['last_chance_service', 'timeout_service']):
