@@ -2,7 +2,6 @@ import asyncio
 import os
 from logging import getLogger
 
-import hydra
 import sentry_sdk
 from aioconsole import ainput
 from omegaconf import DictConfig
@@ -26,7 +25,6 @@ async def message_processor(register_msg):
             print('Bot: ', response['dialog'].utterances[-1].text)
 
 
-@hydra.main(config_path=".", config_name="settings")
 def run_cmd(cfg: DictConfig):
     agent, session, workers = setup_agent(
         cfg.agent.pipeline_config,
@@ -51,7 +49,3 @@ def run_cmd(cfg: DictConfig):
             loop.run_until_complete(session.close())
         loop.stop()
         loop.close()
-
-
-if __name__ == '__main__':
-    run_cmd()

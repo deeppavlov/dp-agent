@@ -1,7 +1,8 @@
 # Commented lines refer to python objects
 
 agent:
-  debug: true
+  channel: cmd
+  debug: false
 #  state_manager_class: StateManager
 #  workflow_manager_class: WorkflowManager
 #  db_class: DataBase
