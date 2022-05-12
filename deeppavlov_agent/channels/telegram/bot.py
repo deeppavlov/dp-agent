@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -9,6 +10,7 @@ from aiogram.utils import executor
 
 from .utils import MessageResponder
 
+config_dir = Path(__file__).resolve().parent / 'config'
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -28,9 +30,9 @@ def run_tg(token, proxy, agent):
     storage = MemoryStorage()  # TODO change to actual storage maybe?
     dp = Dispatcher(bot, storage=storage)
     responder = MessageResponder(
-        config_path="dp-agent/deeppavlov_agent/channels/telegram/config/telegram_config.yml",
-        messages_path="dp-agent/deeppavlov_agent/channels/telegram/config/telegram_messages.yml",
-        keyboards_path="dp-agent/deeppavlov_agent/channels/telegram/config/telegram_keyboards.yml",
+        config_path=config_dir / "telegram_config.yml",
+        messages_path=config_dir / "telegram_messages.yml",
+        keyboards_path=config_dir / "telegram_keyboards.yml",
     )
 
     @dp.message_handler(commands="start")
