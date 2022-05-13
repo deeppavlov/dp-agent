@@ -1,3 +1,4 @@
 include requirements.txt
 include deeppavlov_agent/http_api/templates/*.html
 include deeppavlov_agent/log_config.yml
+include deeppavlov_agent/channels/telegram/config/*.yml
