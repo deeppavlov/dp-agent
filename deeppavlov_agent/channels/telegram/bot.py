@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from io import BytesIO
+from os import getenv
 from pathlib import Path
 from uuid import uuid4
 
@@ -19,6 +20,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+FILE_SERVER_URL = getenv('FILE_SERVER_URL', None)
 
 
 class DialogState(StatesGroup):
@@ -160,8 +163,9 @@ def run_tg(token, proxy, agent):
                 try:
                     photo = await message.photo[-1].download(BytesIO())
                     fname = f'{uuid4().hex}.jpg'
-                    # TODO: make with aiohttp. Maybe remove BytesIO intermediate step.
-                    resp = requests.post('http://localhost:3000', files={'file': (fname, photo, 'image/jpg')})
+                    # TODO: make with aiohttp. Maybe remove BytesIO intermediate step. Maybe mobe image logit to agent.
+                    # TODO: move file server url definition to the run.py level
+                    resp = requests.post(FILE_SERVER_URL, files={'file': (fname, photo, 'image/jpg')})
                     resp.raise_for_status()
                     message_attrs['image'] = resp.json()['downloadLink']
                 except Exception as e:
