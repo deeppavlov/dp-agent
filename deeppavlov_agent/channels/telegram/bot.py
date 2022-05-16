@@ -3,6 +3,7 @@ import logging
 from io import BytesIO
 from os import getenv
 from pathlib import Path
+from urllib.parse import urlparse
 from uuid import uuid4
 
 import requests
@@ -21,7 +22,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-FILE_SERVER_URL = getenv('FILE_SERVER_URL', None)
+FILE_SERVER_URL = getenv('FILE_SERVER_URL')
+server_url = urlparse(FILE_SERVER_URL)
 
 
 class DialogState(StatesGroup):
@@ -167,7 +169,10 @@ def run_tg(token, proxy, agent):
                     # TODO: move file server url definition to the run.py level
                     resp = requests.post(FILE_SERVER_URL, files={'file': (fname, photo, 'image/jpg')})
                     resp.raise_for_status()
-                    message_attrs['image'] = resp.json()['downloadLink']
+                    download_link = resp.json()['downloadLink']
+                    download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                     netloc=server_url.netloc).geturl()
+                    message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
             response_data = await agent.register_msg(
