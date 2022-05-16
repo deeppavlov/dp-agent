@@ -171,7 +171,7 @@ def run_tg(token, proxy, agent):
                 except Exception as e:
                     logger.error(e)
             response_data = await agent.register_msg(
-                utterance=message.text,
+                utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
                 user_device_type="telegram",
                 date_time=message.date,
