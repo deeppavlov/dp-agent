@@ -1,7 +1,10 @@
 import asyncio
 import logging
+from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
+import requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -149,9 +152,20 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*")
+    @dp.message_handler(state="*", content_types=['text', 'photo'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
+            message_attrs = {}
+            if message.photo:
+                try:
+                    photo = await message.photo[-1].download(BytesIO())
+                    fname = f'{uuid4().hex}.jpg'
+                    # TODO: make with aiohttp. Maybe remove BytesIO intermediate step.
+                    resp = requests.post('http://localhost:3000', files={'file': (fname, photo, 'image/jpg')})
+                    resp.raise_for_status()
+                    message_attrs['image'] = resp.json()['downloadLink']
+                except Exception as e:
+                    logger.error(e)
             response_data = await agent.register_msg(
                 utterance=message.text,
                 user_external_id=str(message.from_user.id),
@@ -160,14 +174,25 @@ def run_tg(token, proxy, agent):
                 location="",
                 channel_type="telegram",
                 require_response=True,
+                message_attrs=message_attrs
             )
             text = response_data["dialog"].utterances[-1].text
+            response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
         else:
             text = responder.message("unexpected_message")
+            response_image = None
             reply_markup = None
-
-        await message.answer(text, reply_markup=reply_markup)
-
+        if text:
+            await message.answer(text, reply_markup=reply_markup)
+        if response_image is not None:
+            # TODO: optimize with async and possible by replacing object with link to tg server
+            try:
+                resp = requests.get(response_image)
+                resp.raise_for_status()
+                image = BytesIO(resp.content)
+                await message.answer_photo(image)
+            except Exception as e:
+                logger.error(e)
     executor.start_polling(dp, skip_updates=True)
