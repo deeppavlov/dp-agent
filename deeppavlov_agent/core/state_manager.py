@@ -77,6 +77,7 @@ class StateManager:
         dialog.utterances[-1].confidence = payload['confidence']
         dialog.utterances[-1].annotations = payload.get('annotations', {})
         dialog.utterances[-1].user = dialog.bot.to_dict()
+        dialog.utterances[-1].attributes = payload.get('attributes', {})
 
     async def add_bot_utterance_last_chance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         if isinstance(dialog.utterances[-1], HumanUtterance):
