@@ -171,3 +171,18 @@ class StateManager:
 
     async def get_channels(self):
         return await Dialog.get_channels(self._db)
+
+
+class ExtendedStateManager(StateManager):
+    async def update_attributes(self, dialog, payload, label: str, **kwargs):
+        if isinstance(payload.get("human_attributes"), dict):
+            await self.update_human(dialog.human, payload)
+        if isinstance(payload.get("bot_attributes"), dict):
+            await self.update_bot(dialog.bot, payload)
+
+    async def add_annotation_and_reset_human_attributes_for_first_turn(
+        self, dialog: Dialog, payload: Dict, label: str, **kwargs
+    ):
+        dialog.utterances[-1].annotations[label] = payload
+        if len(dialog.utterances) == 1:
+            dialog.human.attributes = {"disliked_skills": dialog.human.attributes.get("disliked_skills", [])}

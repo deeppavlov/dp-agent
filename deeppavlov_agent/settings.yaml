@@ -1,9 +1,9 @@
 agent:
-  channel: cmd
-  debug: false
-  state_manager_class: core.state_manager.StateManager
-  workflow_manager_class: core.workflow_manager.WorkflowManager
-  db_class: core.db.DataBase
+  channel: http
+  debug: true
+  state_manager_class: deeppavlov_agent.core.state_manager.ExtendedStateManager
+  workflow_manager_class: deeppavlov_agent.core.workflow_manager.WorkflowManager
+  db_class: deeppavlov_agent.core.db.DataBase
   pipeline_config: pipeline_conf.json
   db_config: db_conf.json
   overwrite_last_chance: null
@@ -12,8 +12,8 @@ agent:
   connectors_module: null
   enable_response_logger: true
   response_time_limit: 0
-  output_formatter: state_formatters.output_formatters.http_api_output_formatter
-  debug_output_formatter: state_formatters.output_formatters.http_debug_output_formatter
+  output_formatter: deeppavlov_agent.state_formatters.output_formatters.http_api_output_formatter
+  debug_output_formatter: deeppavlov_agent.state_formatters.output_formatters.http_debug_output_formatter
   port: 4242
   cors: false
   telegram_token: ""
