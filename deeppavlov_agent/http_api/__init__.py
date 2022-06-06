@@ -2,27 +2,27 @@
 
 from .api import init_app
 
-from ..settings import (
-    TIME_LIMIT, OUTPUT_FORMATTER, DEBUG_OUTPUT_FORMATTER, DEBUG, RESPONSE_LOGGER, CORS
-)
-
 from ..setup_agent import setup_agent
-from ..core.log import LocalResponseLogger
+from ..utils import config_tools
 
 
-def app_factory(pipeline_config=None, db_config=None, debug=None, response_time_limit=None, cors=None):
-    agent, session, workers = setup_agent(pipeline_config, db_config)
+def app_factory(agent_config):
+    agent, session, workers = setup_agent(agent_config)
     response_logger = agent._response_logger
-    if DEBUG:
-        output_formatter = DEBUG_OUTPUT_FORMATTER
+    if agent_config.debug:
+        output_formatter_qualname = agent_config.debug_output_formatter
     else:
-        output_formatter = OUTPUT_FORMATTER
+        output_formatter_qualname = agent_config.output_formatter
 
     app = init_app(
-        agent=agent, session=session, consumers=workers,
-        logger_stats=response_logger, output_formatter=output_formatter,
-        debug=debug or DEBUG, response_time_limit=response_time_limit or TIME_LIMIT,
-        cors=CORS if cors is None else cors
+        agent=agent,
+        session=session,
+        consumers=workers,
+        logger_stats=response_logger,
+        output_formatter=config_tools.import_class(output_formatter_qualname),
+        debug=agent_config.debug,
+        response_time_limit=agent_config.response_time_limit,
+        cors=agent_config.cors,
     )
 
     return app
