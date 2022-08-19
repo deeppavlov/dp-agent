@@ -19,6 +19,11 @@ agent:
   telegram_token: ""
   telegram_proxy: ""
 
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
 hydra:
   run:
     dir: .
