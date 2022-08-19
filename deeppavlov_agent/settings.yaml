@@ -22,7 +22,7 @@ agent:
 defaults:
   - _self_
   - override hydra/hydra_logging: disabled
-  - override hydra/job_logging: log_config
+  - override hydra/job_logging: custom
 
 hydra:
   run:
