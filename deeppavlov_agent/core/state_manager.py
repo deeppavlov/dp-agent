@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict
 
 from datetime import datetime
@@ -41,7 +42,9 @@ class StateManager:
                 dialog.utterances[-1].hypotheses[i]['annotations'][label] = {}
         else:
             for i in range(len(payload["batch"])):
-                dialog.utterances[-1].hypotheses[i]['annotations'][label] = payload["batch"][i]
+                new_val = deepcopy(dialog.utterances[-1].hypotheses[i])
+                new_val['annotations'][label] = payload["batch"][i]
+                dialog.utterances[-1].hypotheses[i] = new_val
 
     async def add_text(self, dialog: Dialog, payload: str, label: str, **kwargs):
         dialog.utterances[-1].text = payload
@@ -124,9 +127,15 @@ class StateManager:
     async def get_all_dialogs(self):
         return await Dialog.get_all(self._db)
 
+    async def get_active_dialog(self, user_external_id):
+        user = await Human.get_or_create(self._db, user_external_id)
+        dialog_id = await Dialog.get_active(self._db, user._id)
+        return dialog_id
+
     async def drop_active_dialog(self, user_external_id):
         user = await Human.get_or_create(self._db, user_external_id)
-        await Dialog.drop_active(self._db, user._id)
+        dialog_id = await Dialog.drop_active(self._db, user._id)
+        return dialog_id
 
     async def set_rating_dialog(self, user_external_id, dialog_id, rating):
         dialog = await Dialog.get_by_dialog_id(self._db, dialog_id, False)
@@ -134,7 +143,9 @@ class StateManager:
             return False
         if 'ratings' not in dialog.attributes:
             dialog.attributes['ratings'] = []
-        dialog.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
+        dialog.attributes['ratings'].append(
+            {'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()}
+        )
         await dialog.save(self._db)
 
     async def set_rating_utterance(self, user_external_id, utt_id, rating):
@@ -143,10 +154,12 @@ class StateManager:
             return False
         if 'ratings' not in utt.attributes:
             utt.attributes['ratings'] = []
-        utt.attributes['ratings'].append({'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()})
-        await utt.save(self._db)
+        utt.attributes['ratings'].append(
+            {'rating': rating, 'user_external_id': user_external_id, 'datetime': datetime.now()}
+        )
+        await utt.save(self._db, force_encode_date=False)
 
-    async def drop_and_rating_active_dialog(self, user_external_id, rating):
+    async def drop_and_rate_active_dialog(self, user_external_id, rating):
         user = await Human.get_or_create(self._db, user_external_id)
         await Dialog.set_rating_drop_active(self._db, user._id, rating)
 
@@ -158,3 +171,18 @@ class StateManager:
 
     async def get_channels(self):
         return await Dialog.get_channels(self._db)
+
+
+class ExtendedStateManager(StateManager):
+    async def update_attributes(self, dialog, payload, label: str, **kwargs):
+        if isinstance(payload.get("human_attributes"), dict):
+            await self.update_human(dialog.human, payload)
+        if isinstance(payload.get("bot_attributes"), dict):
+            await self.update_bot(dialog.bot, payload)
+
+    async def add_annotation_and_reset_human_attributes_for_first_turn(
+        self, dialog: Dialog, payload: Dict, label: str, **kwargs
+    ):
+        dialog.utterances[-1].annotations[label] = payload
+        if len(dialog.utterances) == 1:
+            dialog.human.attributes = {"disliked_skills": dialog.human.attributes.get("disliked_skills", [])}

@@ -62,9 +62,9 @@ To launch the agent enter:
 
      .. code:: bash
 
-         python -m deeppavlov_agent.run -ch http_client -p 4242 -pl pipeline_conf.json -db db_conf.json -rl -d
+         python -m deeppavlov_agent.run_http
 
-Command parameters are:
+Command parameters are set via deepavlov_agent/settings.yaml:
 
     * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``
     * -p - port for http_client, default value is 4242
@@ -73,6 +73,7 @@ Command parameters are:
     * -rl - include response logger
     * -d - launch in debug mode (additional data in http output)
 
+The agent can send information about exceptions to `Sentry <https://docs.sentry.io/>`__ using setted environment variable ``DP_AGENT_SENTRY_DSN``.
 
 **HTTP api server**
 -------------------

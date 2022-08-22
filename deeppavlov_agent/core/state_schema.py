@@ -1,3 +1,4 @@
+import logging
 import uuid
 from hashlib import md5
 from collections import defaultdict
@@ -49,8 +50,11 @@ class HumanUtterance:
         await db[cls.collection_name].create_index('date_time')
         await db[cls.collection_name].create_index('utt_id')
 
-    def to_dict(self):
-        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
+    def to_dict(self, force_encode_date=True):
+        if force_encode_date:
+            dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
+        else:
+            dumped_attrs = self.attributes
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -61,8 +65,8 @@ class HumanUtterance:
             'attributes': dumped_attrs
         }
 
-    async def save(self, db):
-        data = self.to_dict()
+    async def save(self, db, force_encode_date=True):
+        data = self.to_dict(force_encode_date)
         data['date_time'] = self.date_time
         data['_dialog_id'] = self._dialog_id
         data['_in_dialog_id'] = self._in_dialog_id
@@ -125,8 +129,11 @@ class BotUtterance:
         await db[cls.collection_name].create_index('date_time')
         await db[cls.collection_name].create_index('utt_id')
 
-    def to_dict(self):
-        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
+    def to_dict(self, force_encode_date=True):
+        if force_encode_date:
+            dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
+        else:
+            dumped_attrs = self.attributes
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -139,8 +146,8 @@ class BotUtterance:
             'attributes': dumped_attrs
         }
 
-    async def save(self, db):
-        data = self.to_dict()
+    async def save(self, db, force_encode_date=True):
+        data = self.to_dict(force_encode_date)
         data['date_time'] = self.date_time
         data['_dialog_id'] = self._dialog_id
         data['_in_dialog_id'] = self._in_dialog_id
@@ -338,22 +345,34 @@ class Dialog:
         return None
 
     @classmethod
+    async def get_active(cls, db, human_id):
+        dialog = await db[cls.collection_name].find_one({'_human_id': human_id, '_active': True})
+        if dialog:
+            return dialog["dialog_id"]
+
+    @classmethod
     async def drop_active(cls, db, human_id):
         dialog = await db[cls.collection_name].find_one({'_human_id': human_id, '_active': True})
         if dialog:
             await db[cls.collection_name].update_one({'_id': dialog['_id']}, {'$set': {'_active': False}})
+            return dialog["dialog_id"]
 
     @classmethod
     async def set_rating_drop_active(cls, db, human_id, rating=None):
         dialog = await db[cls.collection_name].find_one({'_human_id': human_id, '_active': True})
-        attributes = dialog.attributes
+        attributes = dialog["attributes"]
         if rating:
             if 'ratings' not in attributes:
                 attributes['ratings'] = []
-            attributes['ratings'].append({'rating': rating, 'human_id': human_id, 'datetime': datetime.now()})
-        
+            attributes['ratings'].append(
+                {'rating': rating, 'human_id': human_id, 'datetime': datetime.now()}
+            )
+
         if dialog:
-            await db[cls.collection_name].update_one({'_id': dialog['_id']}, {'$set': {'_active': False, 'attributes': attributes}})
+            await db[cls.collection_name].update_one(
+                {'_id': dialog['_id']}, {'$set': {'_active': False, 'attributes': attributes}}
+            )
+            return dialog["dialog_id"]
 
     @classmethod
     async def get_or_create_by_ext_id(cls, db, external_id, channel_type):
@@ -407,7 +426,7 @@ class Dialog:
             if utt.actual and not force:
                 break
             utt._dialog_id = self._id
-            await utt.save(db)
+            await utt.save(db, force_encode_date=False)
 
 
 class Human:
