@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict
 
 from datetime import datetime
@@ -41,7 +42,9 @@ class StateManager:
                 dialog.utterances[-1].hypotheses[i]['annotations'][label] = {}
         else:
             for i in range(len(payload["batch"])):
-                dialog.utterances[-1].hypotheses[i]['annotations'][label] = payload["batch"][i]
+                new_val = deepcopy(dialog.utterances[-1].hypotheses[i])
+                new_val['annotations'][label] = payload["batch"][i]
+                dialog.utterances[-1].hypotheses[i] = new_val
 
     async def add_text(self, dialog: Dialog, payload: str, label: str, **kwargs):
         dialog.utterances[-1].text = payload
@@ -69,6 +72,7 @@ class StateManager:
         await self.update_bot(dialog.bot, payload)
         dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload['text']
+        dialog.utterances[-1].orig_text = payload['text']
         dialog.utterances[-1].active_skill = payload['skill_name']
         dialog.utterances[-1].confidence = payload['confidence']
         dialog.utterances[-1].annotations = payload.get('annotations', {})
@@ -78,6 +82,7 @@ class StateManager:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
             dialog.utterances[-1].text = payload['text']
+            dialog.utterances[-1].orig_text = payload['text']
             dialog.utterances[-1].active_skill = label
             dialog.utterances[-1].confidence = 0
             dialog.utterances[-1].annotations = payload['annotations']
@@ -87,6 +92,7 @@ class StateManager:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload['text']
+        dialog.utterances[-1].orig_text = payload['text']
         dialog.utterances[-1].active_skill = label
         dialog.utterances[-1].confidence = 0
         dialog.utterances[-1].annotations = payload['annotations']
@@ -95,6 +101,7 @@ class StateManager:
     async def add_failure_bot_utterance(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload
+        dialog.utterances[-1].orig_text = payload
         dialog.utterances[-1].active_skill = label
         dialog.utterances[-1].confidence = 0
         dialog.utterances[-1].user = dialog.bot.to_dict()
@@ -107,6 +114,12 @@ class StateManager:
 
     async def get_dialog_by_id(self, dialog_id):
         return await Dialog.get_by_id(self._db, dialog_id)
+
+    async def get_dialog_by_dialog_id(self, dialog_id):
+        return await Dialog.get_by_dialog_id(self._db, dialog_id, full=True)
+
+    async def list_dialog_ids(self, *args, **kwargs):
+        return await Dialog.list_ids(self._db, *args, **kwargs)
 
     async def get_dialogs_by_user_ext_id(self, user_external_id):
         return await Dialog.get_many_by_ext_id(self._db, user_external_id)

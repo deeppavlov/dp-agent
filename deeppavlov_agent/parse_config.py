@@ -94,7 +94,7 @@ class PipelineConfigParser:
                 for url in urllist:
                     workers.append(QueueListenerBatchifyer(self.get_session(), url, queue, batch_size))
             else:
-                connector = HTTPConnector(self.get_session(), data['url'])
+                connector = HTTPConnector(self.get_session(), data['url'], timeout=data.get("timeout", 0))
 
         elif data['protocol'] == 'AMQP':
             gateway = self.get_gateway()

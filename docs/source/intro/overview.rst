@@ -73,6 +73,7 @@ Command parameters are:
     * -rl - include response logger
     * -d - launch in debug mode (additional data in http output)
 
+The agent can send information about exceptions to `Sentry <https://docs.sentry.io/>`__ using setted environment variable ``DP_AGENT_SENTRY_DSN``.
 
 **HTTP api server**
 -------------------

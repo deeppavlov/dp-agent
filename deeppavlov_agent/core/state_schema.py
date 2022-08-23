@@ -7,6 +7,8 @@ from itertools import chain
 
 import pymongo
 from bson.objectid import ObjectId
+import bson.json_util
+import json
 
 from . import STATE_API_VERSION
 
@@ -48,6 +50,7 @@ class HumanUtterance:
         await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -55,7 +58,7 @@ class HumanUtterance:
             'annotations': self.annotations,
             'hypotheses': self.hypotheses,
             'date_time': str(self.date_time),
-            'attributes': self.attributes
+            'attributes': dumped_attrs
         }
 
     async def save(self, db):
@@ -123,6 +126,7 @@ class BotUtterance:
         await db[cls.collection_name].create_index('utt_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
             'utt_id': self.utt_id,
             'text': self.text,
@@ -132,7 +136,7 @@ class BotUtterance:
             'annotations': self.annotations,
             'date_time': str(self.date_time),
             'user': self.user,
-            'attributes': self.attributes,
+            'attributes': dumped_attrs
         }
 
     async def save(self, db):
@@ -223,7 +227,9 @@ class Dialog:
         await db[cls.collection_name].create_index('dialog_id')
 
     def to_dict(self):
+        dumped_attrs = json.loads(json.dumps(self.attributes, default=bson.json_util.default))
         return {
+            '_id': str(self._id),
             'dialog_id': self.dialog_id,
             'utterances': [i.to_dict() for i in self.utterances],
             'human_utterances': [i.to_dict() for i in self.human_utterances],
@@ -233,6 +239,8 @@ class Dialog:
             'channel_type': self.channel_type,
             'date_start': str(self.date_start),
             'date_finish': str(self.date_finish),
+            '_active': str(self._active),
+            'attributes': dumped_attrs
         }
 
     async def load_external_info(self, db):
@@ -281,6 +289,31 @@ class Dialog:
             dialog.bot = bots[document['_bot_id']]
             dialog.utterances = sorted(utterances[document['_id']], key=lambda x: x._in_dialog_id)
             result.append(dialog)
+        return result
+
+    @classmethod
+    async def list_ids(cls, db, offset=0, limit=10, **filter_kwargs):
+        """
+        request list of ids for particular page
+        :param db: TODO
+        :param offset: int, since each id we need to retrieve
+        :param limit: int, how many ids to retrieve
+        :param filter_kwargs: dict which is transmitted to mongo find request to filter dialogs
+        :return: ?
+        """
+        result = []
+        result_cntr = 0
+        # TODO sorting by -date (from recent to old)
+        cntr = 0
+        async for document in db[cls.collection_name].find(filter_kwargs):
+            if cntr<offset:
+                cntr += 1
+                continue
+            result.append(str(document['dialog_id']))
+            result_cntr += 1
+            cntr += 1
+            if result_cntr >= limit:
+                break
         return result
 
     @classmethod
@@ -431,6 +464,9 @@ class Human:
     async def get_by_id(cls, db, id):
         user = await db[cls.collection_name].find_one({'_id': id})
         if user:
+            if 'telegram_id' in user:
+                user['external_id'] = user['telegram_id']
+                del user['telegram_id']
             return cls(**user)
         return None
 

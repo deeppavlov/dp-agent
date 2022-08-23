@@ -1,9 +1,16 @@
 import argparse
 import asyncio
+import os
+from logging import getLogger
 
+import sentry_sdk
 from aioconsole import ainput
 
 from .setup_agent import setup_agent
+
+logger = getLogger(__name__)
+
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
 async def message_processor(register_msg):
@@ -30,6 +37,8 @@ def run_cmd(pipeline_configs, debug):
     except KeyboardInterrupt:
         pass
     except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(e)
         raise e
     finally:
         future.cancel()

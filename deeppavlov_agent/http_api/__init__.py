@@ -12,7 +12,7 @@ from ..core.log import LocalResponseLogger
 
 def app_factory(pipeline_configs=None, debug=None, response_time_limit=None, cors=None):
     agent, session, workers = setup_agent(pipeline_configs)
-    response_logger = LocalResponseLogger(RESPONSE_LOGGER)
+    response_logger = agent._response_logger
     if DEBUG:
         output_formatter = DEBUG_OUTPUT_FORMATTER
     else:
