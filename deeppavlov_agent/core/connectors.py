@@ -1,32 +1,38 @@
 import asyncio
 from typing import Any, Callable, Dict, List
 from collections import defaultdict
+from logging import getLogger
+import os
 
+import sentry_sdk
 import aiohttp
 
 from .transport.base import ServiceGatewayConnectorBase
 
+logger = getLogger(__name__)
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
+
 
 class HTTPConnector:
-    def __init__(self, session: aiohttp.ClientSession, url: str):
+    def __init__(self, session: aiohttp.ClientSession, url: str, timeout: float):
         self.session = session
         self.url = url
+        self.timeout = aiohttp.ClientTimeout(total=timeout)
 
     async def send(self, payload: Dict, callback: Callable):
         try:
-            async with self.session.post(self.url, json=payload['payload']) as resp:
+            async with self.session.post(self.url, json=payload["payload"], timeout=self.timeout) as resp:
                 resp.raise_for_status()
                 response = await resp.json()
-            await callback(
-                task_id=payload['task_id'],
-                response=response[0]
-            )
+            await callback(task_id=payload["task_id"], response=response[0])
         except Exception as e:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("payload", payload)
+                scope.set_extra("url", self.url)
+                sentry_sdk.capture_exception(e)
+            logger.exception(Exception(e, {"payload": payload, "url": self.url}))
             response = e
-            await callback(
-                task_id=payload['task_id'],
-                response=response
-            )
+            await callback(task_id=payload["task_id"], response=response)
 
 
 class AioQueueConnector:
@@ -85,6 +91,8 @@ class ConfidenceResponseSelectorConnector:
                 response=best_skill
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.exception(e)
             await callback(
                 task_id=payload['task_id'],
                 response=e

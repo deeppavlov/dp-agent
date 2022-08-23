@@ -6,6 +6,9 @@ import json
 from time import time
 from random import randrange
 import uuid
+import os
+
+import sentry_sdk
 from tqdm import tqdm
 
 '''
@@ -18,6 +21,8 @@ structure of dialog file (-df) should be written in json
 }
 structure of phrase file (-pf) simple text file. One phrase per line
 '''
+
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-u', '--url', type=str)
@@ -37,12 +42,14 @@ if args.dialogfile:
         with open(args.dialogfile, 'r') as file:
             payloads = json.load(file)
     except Exception as e:
+        sentry_sdk.capture_exception(e)
         raise e
 elif args.phrasesfile:
     try:
         with open(args.phrasesfile, 'r') as file:
             phrases = [line.rstrip('\n') for line in file]
     except Exception as e:
+        sentry_sdk.capture_exception(e)
         raise e
     payloads = {uuid.uuid4().hex: [phrases[randrange(len(phrases))] for j in range(args.phrasecount)] for i in
                 range(args.usercount)}

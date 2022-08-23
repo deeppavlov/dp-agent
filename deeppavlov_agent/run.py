@@ -1,30 +1,32 @@
-import argparse
+import logging
 
-from .cmd_client import run_cmd
+import hydra
+from omegaconf import DictConfig
+
+from .run_cmd import run_cmd
 from .run_http import run_http
 from .run_tg import run_telegram
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-pl', '--pipeline_configs', help='Pipeline config (overwrite value, defined in settings)',
-                        type=str, action='append')
-    parser.add_argument("-ch", "--channel", help="run agent in telegram, cmd_client or http_client", type=str,
-                        choices=['cmd_client', 'http_client', 'telegram'], default='cmd_client')
-    parser.add_argument('-p', '--port', help='port for http client, default 4242', default=4242)
-    parser.add_argument('-c', '--cors', help='whether to add CORS middleware to http_client',
-                        action='store_true', default=None)
-    parser.add_argument('-d', '--debug', help='run in debug mode', action='store_true')
-    parser.add_argument('-tl', '--time_limit', help='response time limit, 0 = no limit', type=int, default=0)
-    args = parser.parse_args()
+logger = logging.getLogger(__name__)
 
-    if args.channel == 'cmd_client':
-        run_cmd(args.pipeline_configs, args.debug)
-    elif args.channel == 'http_client':
-        run_http(args.port, args.pipeline_configs, args.debug, args.time_limit, args.cors)
-    elif args.channel == 'telegram':
-        run_telegram(args.pipeline_configs)
+CHANNELS = {
+    "cmd": run_cmd,
+    "http": run_http,
+    "telegram": run_telegram,
+}
 
 
-if __name__ == '__main__':
+@hydra.main(config_path=".", config_name="settings")
+def main(cfg: DictConfig):
+    try:
+        run_channel = CHANNELS[cfg.agent.channel]
+        run_channel(cfg)
+    except KeyError:
+        logger.error(
+            f"agent.channel value must be one of: {', '.join(CHANNELS.keys())} (not {cfg.agent.channel})"
+        )
+
+
+if __name__ == "__main__":
     main()
