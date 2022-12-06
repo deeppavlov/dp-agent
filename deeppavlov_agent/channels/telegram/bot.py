@@ -185,7 +185,7 @@ def run_tg(token, proxy, agent):
                 require_response=True,
                 message_attrs=message_attrs
             )
-            text = response_data["dialog"].utterances[-1].text
+            text = response_data["dialog"].utterances[-1].text + " test"
             response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
