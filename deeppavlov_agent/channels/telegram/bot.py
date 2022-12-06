@@ -175,6 +175,18 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
+            if message.voice:
+                try:
+                    voice = await message.voice[-1].download(BytesIO())
+                    fname = f'{uuid4().hex}.ogg'
+                    resp = requests.post(FILE_SERVER_URL, files={'file': (fname, voice, 'audio/ogg')})
+                    resp.raise_for_status()
+                    download_link = resp.json()['downloadLink']
+                    download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                     netloc=server_url.netloc).geturl()
+                    message_attrs['voice'] = download_link
+                except Exception as e:
+                    logger.error(e)
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
