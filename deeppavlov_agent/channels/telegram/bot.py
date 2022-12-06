@@ -157,7 +157,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -185,10 +185,12 @@ def run_tg(token, proxy, agent):
                 require_response=True,
                 message_attrs=message_attrs
             )
-            text = response_data["dialog"].utterances[-1].text + " test"
+            text = response_data["dialog"].utterances[-1].text
             response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
+            if message.voice:
+                text = "Oh, I see you have sent me a voice message. I cannot yet decypher voice messages, but I am trying to learn to do it!"
         else:
             text = responder.message("unexpected_message")
             response_image = None
