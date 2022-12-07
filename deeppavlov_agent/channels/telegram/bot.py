@@ -14,7 +14,9 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 
 from .utils import MessageResponder
-#from ... import settings as TGTOK              # To access bot token
+from ... import settings # To get tg token
+
+user_settings = settings.user_settings
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
