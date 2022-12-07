@@ -175,6 +175,7 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
+            voice_dlink = "" # FOR TESTING PURPOSES
             if message.voice:
                 try:
                     voice = await message.voice[-1].download(BytesIO())
@@ -204,7 +205,7 @@ def run_tg(token, proxy, agent):
             if message.voice:
                 text = "Oh, I see you have sent me a voice message. I cannot yet decypher voice messages, but I am trying to learn to do it!" + \
                     f" Voice message duration: {message.voice.duration}, Mime type: {message.voice.mime_type}, file size: {message.voice.file_size}" + \
-                    f", as json: {message.voice.as_json()}"
+                    f", as json: {message.voice.as_json()}, download link: {voice_dlink}"
         else:
             text = responder.message("unexpected_message")
             response_image = None
