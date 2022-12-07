@@ -178,15 +178,9 @@ def run_tg(token, proxy, agent):
             voice_dlink = "" # FOR TESTING PURPOSES
             if message.voice:
                 try:
-                    voice = await message.voice[-1].download(BytesIO())
-                    fname = f'{uuid4().hex}.ogg'
-                    resp = requests.post(FILE_SERVER_URL, files={'file': (fname, voice, 'audio/ogg')})
-                    resp.raise_for_status()
-                    download_link = resp.json()['downloadLink']
-                    download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
-                                                                     netloc=server_url.netloc).geturl()
-                    message_attrs['voice'] = download_link
-                    voice_dlink = download_link
+                    # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+                    voice_dlink = message.voice.get_url()
+                    message_attrs['voice'] = voice_dlink
                 except Exception as e:
                     logger.error(e)
             response_data = await agent.register_msg(
