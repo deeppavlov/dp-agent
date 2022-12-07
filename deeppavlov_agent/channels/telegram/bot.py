@@ -178,13 +178,14 @@ def run_tg(token, proxy, agent):
                     logger.error(e)
             voice_dlink = "" # FOR TESTING PURPOSES
             if message.voice:
-                try:
+                # try:
                     # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
-                    voice_dlink = f"https://api.telegram.org/file/bot{run_tg.TELEGRAM_TOKEN}/{message.voice.get_file().file_path}"
-                    print("-"*50 + "\n\n\n\n\nDownload link: " + voice_dlink + "\n\n\n\n\n" + "-"*50)
-                    message_attrs['voice'] = voice_dlink
-                except Exception as e:
-                    logger.error(e)
+                voice_dlink = "right before the inner def"
+                voice_dlink = f"https://api.telegram.org/file/bot{run_tg.TELEGRAM_TOKEN}/{message.voice.get_file().file_path}"
+                print("-"*50 + "\n\n\n\n\nDownload link: " + voice_dlink + "\n\n\n\n\n" + "-"*50)
+                message_attrs['voice'] = voice_dlink
+                # except Exception as e:
+                #     logger.error(e)
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
