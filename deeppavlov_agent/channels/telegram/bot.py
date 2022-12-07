@@ -14,7 +14,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 
 from .utils import MessageResponder
-from deepavlov_agent import run_tg              # To access bot token
+from .. import run_tg              # To access bot token
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
