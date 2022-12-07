@@ -13,6 +13,8 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 
+from .utils import MessageResponder
+
 TG_TOKEN = "5870481666:AAGI4LxHqV7rH1frtCGVpPK_6nb6VrmYPgI" # FIXME: hardcoded = bad
 
 config_dir = Path(__file__).resolve().parent / 'config'
