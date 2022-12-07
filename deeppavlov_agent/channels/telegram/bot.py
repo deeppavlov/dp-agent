@@ -186,6 +186,7 @@ def run_tg(token, proxy, agent):
                     download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                      netloc=server_url.netloc).geturl()
                     message_attrs['voice'] = download_link
+                    voice_dlink = download_link
                 except Exception as e:
                     logger.error(e)
             response_data = await agent.register_msg(
