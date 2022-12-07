@@ -13,10 +13,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 
-from .utils import MessageResponder
-from ... import settings # To get tg token
-
-user_settings = settings.user_settings
+TG_TOKEN = "5870481666:AAGI4LxHqV7rH1frtCGVpPK_6nb6VrmYPgI" # FIXME: hardcoded = bad
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
@@ -184,8 +181,7 @@ def run_tg(token, proxy, agent):
                     # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
                 voice_dlink = "right before the inner def"
                 vm = await message.voice.get_file()
-                voice_dlink = f"https://api.telegram.org/file/bot{getattr(user_settings, 'telegram_token', 'error')}/{vm.file_path}"
-                print("-"*50 + "\n\n\n\n\nDownload link: " + voice_dlink + "\n\n\n\n\n" + "-"*50)
+                voice_dlink = f"https://api.telegram.org/file/bot{getattr(TG_TOKEN}/{vm.file_path}"
                 message_attrs['voice'] = voice_dlink
                 # except Exception as e:
                 #     logger.error(e)
