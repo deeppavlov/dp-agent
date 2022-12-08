@@ -4,6 +4,7 @@ from io import BytesIO
 from os import getenv
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import urlretrieve
 from uuid import uuid4
 
 import requests
@@ -159,7 +160,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -181,9 +182,10 @@ def run_tg(token, proxy, agent):
             if message.voice:
                 # try:
                     # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
-                voice_dlink = "right before the inner def"
                 vm = await message.voice.get_file()
                 voice_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{vm.file_path}"
+                file = urlretrieve(voice_dlink, vm.file_path)
+                resp = requests.post(FILE_SERVER_URL, files={'file': (vm.file_path, file, "audio/ogg")})
                 message_attrs['voice'] = voice_dlink
                 # except Exception as e:
                 #     logger.error(e)
