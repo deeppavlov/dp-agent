@@ -189,7 +189,7 @@ def run_tg(token, proxy, agent):
                 resp = requests.post(FILE_SERVER_URL, files={'file': (vm.file_path, file, "audio/ogg")})
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
-                voice_dlink = download_link
+                voice = download_link
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
                 voice += f"\t {download_link}"
