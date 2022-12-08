@@ -186,7 +186,13 @@ def run_tg(token, proxy, agent):
                 voice_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{vm.file_path}"
                 file = urlretrieve(voice_dlink, vm.file_path)
                 resp = requests.post(FILE_SERVER_URL, files={'file': (vm.file_path, file, "audio/ogg")})
-                message_attrs['voice'] = voice_dlink
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                voice_dlink = download_link
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                    netloc=server_url.netloc).geturl()
+                voice += f"\t {download_link}"
+                message_attrs['voice'] = download_link
                 # except Exception as e:
                 #     logger.error(e)
             response_data = await agent.register_msg(
