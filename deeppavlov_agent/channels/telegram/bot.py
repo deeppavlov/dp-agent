@@ -184,7 +184,7 @@ def run_tg(token, proxy, agent):
                     # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
                 vm = await message.voice.get_file()
                 voice_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{vm.file_path}"
-                file = await urlopen(voice_dlink)
+                file = urlopen(voice_dlink)
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={'file': (vm.file_path, file, "audio/ogg")})
                 resp.raise_for_status()
