@@ -7,8 +7,12 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
-
+from io import BytesIO
+from uuid import uuid4
+import requests
+from os import getenv
 from .utils import MessageResponder
+from urllib.parse import urlparse
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
@@ -16,6 +20,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+FILE_SERVER_URL = getenv('FILE_SERVER_URL')
+server_url = urlparse(FILE_SERVER_URL)
 
 
 class DialogState(StatesGroup):
@@ -149,25 +156,53 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*")
+    @dp.message_handler(state="*", content_types=['text', 'photo'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
+            message_attrs = {}
+            if message.photo:
+                try:
+                    photo = await message.photo[-1].download(BytesIO())
+                    fname = f'{uuid4().hex}.jpg'
+                    # TODO: make with aiohttp. Maybe remove BytesIO intermediate step. Maybe mobe image logit to agent.
+                    # TODO: move file server url definition to the run.py level
+                    resp = requests.post(FILE_SERVER_URL, files={'file': (fname, photo, 'image/jpg')})
+                    resp.raise_for_status()
+                    download_link = resp.json()['downloadLink']
+                    download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                     netloc=server_url.netloc).geturl()
+                    message_attrs['image'] = download_link
+                except Exception as e:
+                    logger.error(e)
             response_data = await agent.register_msg(
-                utterance=message.text,
+                utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
                 user_device_type="telegram",
                 date_time=message.date,
                 location="",
                 channel_type="telegram",
                 require_response=True,
+                message_attrs=message_attrs
             )
             text = response_data["dialog"].utterances[-1].text
+            response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
         else:
             text = responder.message("unexpected_message")
+            response_image = None
             reply_markup = None
 
-        await message.answer(text, reply_markup=reply_markup)
+        if text:
+            await message.answer(text, reply_markup=reply_markup)
+        if response_image is not None:
+            # TODO: optimize with async and possible by replacing object with link to tg server
+            try:
+                resp = requests.get(response_image)
+                resp.raise_for_status()
+                image = BytesIO(resp.content)
+                await message.answer_photo(image)
+            except Exception as e:
+                logger.error(e)
 
     executor.start_polling(dp, skip_updates=True)
