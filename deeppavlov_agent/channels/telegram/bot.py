@@ -210,10 +210,10 @@ def run_tg(token, proxy, agent):
             response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
-            if message.voice:
-                text = "Oh, I see you have sent me a voice message. I cannot yet decypher voice messages, but I am trying to learn to do it!" + \
-                    f" Voice message duration: {message.voice.duration}, Mime type: {message.voice.mime_type}, file size: {message.voice.file_size}" + \
-                    f", as json: {message.voice.as_json()}, download link: {voice_dlink}"
+            # if message.voice:
+            #     text = "Oh, I see you have sent me a voice message. I cannot yet decypher voice messages, but I am trying to learn to do it!" + \
+            #         f" Voice message duration: {message.voice.duration}, Mime type: {message.voice.mime_type}, file size: {message.voice.file_size}" + \
+            #         f", as json: {message.voice.as_json()}, download link: {voice_dlink}"
         else:
             text = responder.message("unexpected_message")
             response_image = None
