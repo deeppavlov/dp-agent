@@ -194,6 +194,7 @@ def run_tg(token, proxy, agent):
                                                                     netloc=server_url.netloc).geturl()
                 voice += f"\t {download_link}"
                 message_attrs['voice'] = download_link
+                message_attrs['uid'] = message.from_id
                 # except Exception as e:
                 #     logger.error(e)
             response_data = await agent.register_msg(
