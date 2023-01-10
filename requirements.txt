@@ -1,5 +1,5 @@
 aioconsole==0.1.15
-aiogram==2.3
+aiogram==2.24
 aiohttp==3.6.1
 aiohttp-socks==0.2.2
 aiohttp-jinja2==1.2.0
