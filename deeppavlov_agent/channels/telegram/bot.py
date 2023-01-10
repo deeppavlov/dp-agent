@@ -16,7 +16,7 @@ from aiogram.utils import executor
 
 from .utils import MessageResponder
 
-TG_TOKEN = "5870481666:AAGI4LxHqV7rH1frtCGVpPK_6nb6VrmYPgI" # FIXME: hardcoded = bad
+TG_TOKEN = "5870481666:AAGZjpfkCFJ4uk38VtF___gHy0pya8FevlA" # FIXME: hardcoded = bad
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
