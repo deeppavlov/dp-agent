@@ -185,17 +185,18 @@ def run_tg(token, proxy, agent):
                 # It is guaranteed that the link will be valid for at least 1 hour. When the link expires, a new one can be requested by calling getFile.
                 # Maximum file size to download is 20 MB
                 sound_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
-                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, sound_message: {sound_message}")
                 file = urlopen(sound_dlink)
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
                 message_attrs['sound'] = download_link
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, sound_message: {sound_message}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
