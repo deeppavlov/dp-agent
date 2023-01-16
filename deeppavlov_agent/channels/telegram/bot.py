@@ -193,8 +193,8 @@ def run_tg(token, proxy, agent):
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
                 message_attrs['sound'] = download_link
-                message.attrs['sound_duration'] = sound.duration
-                message.attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
+                message_attrs['sound_duration'] = sound.duration
+                message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
