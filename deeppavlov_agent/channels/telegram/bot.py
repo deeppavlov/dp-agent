@@ -194,9 +194,10 @@ def run_tg(token, proxy, agent):
                                                                     netloc=server_url.netloc).geturl()
                 voice += f"\t {download_link}"
                 message_attrs['voice'] = download_link
+                message_attrs['voice_duration'] = voice_message.duration
             if message.audio:
                 # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
-                audio_message = await message.audio.get_file()
+                audio_message = await message.audio.get_file()                                                      # Multiple audios?
                 audio_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{audio_message.file_path}"
                 file = urlopen(audio_dlink)
                 file = file.read()
@@ -208,6 +209,7 @@ def run_tg(token, proxy, agent):
                                                                     netloc=server_url.netloc).geturl()
                 audio += f"\t {download_link}"
                 message_attrs['audio'] = download_link
+                message.attrs['audio_duration'] = audio_message.duration
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
