@@ -178,8 +178,6 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
-            voice_dlink = ""
-            audio_dlink = ""
             sound = message.voice if message.voice else message.audio
             if sound:
                 # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
@@ -187,6 +185,7 @@ def run_tg(token, proxy, agent):
                 # It is guaranteed that the link will be valid for at least 1 hour. When the link expires, a new one can be requested by calling getFile.
                 # Maximum file size to download is 20 MB
                 sound_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, sound_message: {sound_message}")
                 file = urlopen(sound_dlink)
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
@@ -211,10 +210,6 @@ def run_tg(token, proxy, agent):
             response_image = response_data["dialog"].utterances[-1].attributes.get("image")
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
-            # if message.voice:
-            #     text = "Oh, I see you have sent me a voice message. I cannot yet decypher voice messages, but I am trying to learn to do it!" + \
-            #         f" Voice message duration: {message.voice.duration}, Mime type: {message.voice.mime_type}, file size: {message.voice.file_size}" + \
-            #         f", as json: {message.voice.as_json()}, download link: {voice_dlink}"
         else:
             text = responder.message("unexpected_message")
             response_image = None
