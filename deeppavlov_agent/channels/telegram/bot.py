@@ -178,15 +178,15 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
-            voice_dlink = "" # FOR TESTING PURPOSES
+            voice_dlink = ""
+            audio_dlink = ""
             if message.voice:
-                # try:
-                    # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
-                vm = await message.voice.get_file()
-                voice_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{vm.file_path}"
+                # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+                voice_message = await message.voice.get_file()
+                voice_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{voice_message.file_path}"
                 file = urlopen(voice_dlink)
                 file = file.read()
-                resp = requests.post(FILE_SERVER_URL, files={'file': (vm.file_path, file, "audio/ogg")})
+                resp = requests.post(FILE_SERVER_URL, files={'file': (voice_message.file_path, file, "audio/ogg")})
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
                 voice = download_link
@@ -194,9 +194,20 @@ def run_tg(token, proxy, agent):
                                                                     netloc=server_url.netloc).geturl()
                 voice += f"\t {download_link}"
                 message_attrs['voice'] = download_link
-                message_attrs['uid'] = message.from_id
-                # except Exception as e:
-                #     logger.error(e)
+            if message.audio:
+                # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+                audio_message = await message.audio.get_file()
+                audio_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{audio_message.file_path}"
+                file = urlopen(audio_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={'file': (audio_message.file_path, file, "audio/ogg")})
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                voice = download_link
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                    netloc=server_url.netloc).geturl()
+                audio += f"\t {download_link}"
+                message_attrs['audio'] = download_link
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
