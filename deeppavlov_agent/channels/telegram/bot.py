@@ -184,7 +184,7 @@ def run_tg(token, proxy, agent):
             if sound:
                 # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
                 sound_message = await sound.get_file()                                    # Multiple audios?
-                sound_dlink = message.sound.get_url() #f"https://api.telegram.org/file/bot{TG_TOKEN}/{audio_message.file_path}"
+                sound_dlink = sound.get_url() #f"https://api.telegram.org/file/bot{TG_TOKEN}/{audio_message.file_path}"
                 file = urlopen(sound_dlink)
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
@@ -193,7 +193,7 @@ def run_tg(token, proxy, agent):
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
                 message_attrs['sound'] = download_link
-                message.attrs['sound_duration'] = sound_message.duration
+                message.attrs['sound_duration'] = sound.duration
                 message.attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
             response_data = await agent.register_msg(
                 utterance=message.text or '',
