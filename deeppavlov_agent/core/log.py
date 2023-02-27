@@ -74,7 +74,8 @@ class LocalResponseLogger(BaseResponseLogger):
     def _log(self, time: datetime, task_id: str, workflow_record: dict, service: Service, status: str) -> None:
         # service_name = service.name
         # dialog_id = workflow_record['dialog'].id
-        # self._logger.info(f"{time.strftime('%Y-%m-%d %H:%M:%S.%f')}\t{dialog_id}\t{task_id}\t{status}\t{service_name}")
+        # self._logger.info(
+        #     f"{time.strftime('%Y-%m-%d %H:%M:%S.%f')}\t{dialog_id}\t{task_id}\t{status}\t{service_name}")
         pass
 
     def _cleanup(self, time):

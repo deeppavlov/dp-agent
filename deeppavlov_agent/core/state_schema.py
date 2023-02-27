@@ -1,4 +1,3 @@
-import logging
 import uuid
 from hashlib import md5
 from collections import defaultdict
@@ -35,7 +34,8 @@ class HumanUtterance:
         self._dialog_id = _dialog_id
         self._in_dialog_id = _in_dialog_id
         self.date_time = date_time or datetime.now()
-        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id)).encode('utf-8')).hexdigest()
+        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id))
+                                    .encode('utf-8')).hexdigest()
         self.text = text or ''
         self.user = user or {}
         self.annotations = annotations or {}
@@ -113,7 +113,8 @@ class BotUtterance:
         self._dialog_id = _dialog_id
         self._in_dialog_id = _in_dialog_id
         self.date_time = date_time or datetime.now()
-        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id)).encode('utf-8')).hexdigest()
+        self.utt_id = utt_id or md5((str(self.date_time) + str(self._dialog_id) + str(self._in_dialog_id))
+                                    .encode('utf-8')).hexdigest()
         self.text = text or ''
         self.orig_text = orig_text
         self.active_skill = active_skill or ''
@@ -313,7 +314,7 @@ class Dialog:
         # TODO sorting by -date (from recent to old)
         cntr = 0
         async for document in db[cls.collection_name].find(filter_kwargs):
-            if cntr<offset:
+            if cntr < offset:
                 cntr += 1
                 continue
             result.append(str(document['dialog_id']))

@@ -28,6 +28,7 @@ logger = getLogger(__name__)
 
 sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
+
 # TODO: add proper RabbitMQ SSL authentication
 class RabbitMQTransportBase:
     _config: dict
@@ -192,7 +193,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
-        logger.info(f'Service in queue started consuming')
+        logger.info('Service in queue started consuming')
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']
@@ -303,7 +304,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(self._in_queue.consume(callback=self._on_message_callback))
-        logger.info(f'Channel connector messages queue from agent started consuming')
+        logger.info('Channel connector messages queue from agent started consuming')
 
     async def _setup_queues(self) -> None:
         agent_namespace = self._config['agent_namespace']

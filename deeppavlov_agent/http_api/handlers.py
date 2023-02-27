@@ -94,8 +94,8 @@ class ApiHandler:
             # final page or no more items?
             next_offset_link = None
         else:
-            params['offset'] = params['offset']+params['limit']
-            next_offset_link = "?"+urllib.parse.urlencode(params)
+            params['offset'] = params['offset'] + params['limit']
+            next_offset_link = "?" + urllib.parse.urlencode(params)
 
         resp_dict = {
             "dialog_ids": list_ids,

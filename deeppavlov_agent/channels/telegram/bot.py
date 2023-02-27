@@ -69,8 +69,7 @@ def run_tg(token, proxy, agent):
     async def begin_dialog(message: types.Message, state: FSMContext):
         state = await state.get_state()
         must_evaluate = (
-            state == DialogState.awaiting_rating.state
-            and responder.config.evaluation_options.user_must_evaluate
+            state == DialogState.awaiting_rating.state and responder.config.evaluation_options.user_must_evaluate
         )
         is_not_finished = state == DialogState.active
 

@@ -4,7 +4,6 @@ from typing import Dict
 from datetime import datetime
 
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
-import logging
 
 
 class StateManager:
@@ -89,7 +88,8 @@ class StateManager:
             dialog.utterances[-1].annotations = payload['annotations']
             dialog.utterances[-1].user = dialog.bot.to_dict()
 
-    async def add_bot_utterance_last_chance_overwrite(self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
+    async def add_bot_utterance_last_chance_overwrite(
+            self, dialog: Dialog, payload: Dict, label: str, **kwargs) -> None:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload['text']
