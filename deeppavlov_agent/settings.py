@@ -5,7 +5,10 @@ from typing import Dict
 from .core.db import DataBase
 from .core.state_manager import StateManager, Dialog
 from .core.workflow_manager import WorkflowManager
-from .state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
+from .state_formatters.output_formatters import (
+    http_api_output_formatter,
+    http_debug_output_formatter,
+)
 
 
 # Default parameters
@@ -63,7 +66,9 @@ class ExtendedStateManager(StateManager):
     ):
         dialog.utterances[-1].annotations[label] = payload
         if len(dialog.utterances) == 1:
-            dialog.human.attributes = {"disliked_skills": dialog.human.attributes.get("disliked_skills", [])}
+            dialog.human.attributes = {
+                "disliked_skills": dialog.human.attributes.get("disliked_skills", [])
+            }
 
 
 # Basic agent configuration parameters (some are currently unavailable)
@@ -80,7 +85,9 @@ OVERWRITE_TIMEOUT = setup_parameter("overwrite_timeout", user_settings)
 RESPONSE_LOGGER = setup_parameter("response_logger", user_settings)
 
 # HTTP app configuraion parameters
-TIME_LIMIT = setup_parameter("time_limit", user_settings)  # Without engaging the timeout by default
+TIME_LIMIT = setup_parameter(
+    "time_limit", user_settings
+)  # Without engaging the timeout by default
 CORS = setup_parameter("cors", user_settings)
 
 OUTPUT_FORMATTER = setup_parameter("output_formatter", user_settings)

@@ -2,9 +2,14 @@ from pathlib import Path
 from string import Template
 from typing import Union
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+)
 from pydantic import BaseModel
 from yaml import load
+
 try:
     from yaml import CLoader as Loader
 except ImportError:
@@ -115,7 +120,9 @@ class MessageResponder:
 
         return reply_markup
 
-    def utterance_rating_inline_keyboard(self, utterance_id: str) -> InlineKeyboardMarkup:
+    def utterance_rating_inline_keyboard(
+        self, utterance_id: str
+    ) -> InlineKeyboardMarkup:
         """Create inline keyboard with thumbs up/down buttons
 
         Args:
