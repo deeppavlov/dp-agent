@@ -1,6 +1,3 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Deeppavlov agent
 
 on:
@@ -13,8 +10,26 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+  format:
+    runs-on: ubuntu-latest
 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.7"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r dev_requirements.txt
+    - name: Check code formatting
+      run: |
+        black deeppavlov_agent/ --diff --check
+
+  lint:
+    needs: format
     runs-on: ubuntu-latest
 
     steps:
