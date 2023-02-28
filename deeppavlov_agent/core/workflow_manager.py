@@ -1,6 +1,6 @@
 from collections import defaultdict
 from uuid import uuid4
-from typing import Optional, Dict, List
+from typing import Optional, Dict, Tuple
 from time import time
 
 from .state_schema import Dialog
@@ -33,7 +33,7 @@ class WorkflowManager:
             return workflow_record
         return None
 
-    def get_dialog_by_id(self, dialog_id: str) -> Dialog:
+    def get_dialog_by_id(self, dialog_id: str) -> Optional[Dialog]:
         workflow_record = self.workflow_records.get(dialog_id, None)
         if workflow_record:
             return workflow_record["dialog"]
@@ -41,7 +41,7 @@ class WorkflowManager:
 
     def add_task(
         self, dialog_id: str, service: Service, payload: Dict, ind: int
-    ) -> str:
+    ) -> Optional[str]:
         workflow_record = self.workflow_records.get(dialog_id, None)
         if not workflow_record:
             return None
@@ -101,7 +101,7 @@ class WorkflowManager:
                     "skipped": True,
                 }
 
-    def get_services_status(self, dialog_id: str) -> List:
+    def get_services_status(self, dialog_id: str) -> Tuple[set, set, set]:
         done = set()
         waiting = set()
         skipped = set()
@@ -116,7 +116,9 @@ class WorkflowManager:
                     waiting.add(k)
         return done, waiting, skipped
 
-    def complete_task(self, task_id, response, **kwargs) -> Dict:
+    def complete_task(
+        self, task_id, response, **kwargs
+    ) -> Tuple[Optional[Dict], Optional[Dict]]:
         task = self.tasks.pop(task_id, None)
         if not task:
             return None, None
@@ -145,7 +147,7 @@ class WorkflowManager:
         workflow_record["services"][task["service"].name][task_id].update(**kwargs)
         return workflow_record, task
 
-    def flush_record(self, dialog_id: str) -> Dict:
+    def flush_record(self, dialog_id: str) -> Optional[Dict]:
         workflow_record = self.workflow_records.pop(dialog_id, None)
         if not workflow_record:
             return None

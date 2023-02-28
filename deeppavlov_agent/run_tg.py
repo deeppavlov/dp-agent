@@ -8,7 +8,7 @@ from .channels.telegram.bot import run_tg
 from .setup_agent import setup_agent
 
 logger = getLogger(__name__)
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))
+sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
 
 def run_telegram(cfg: DictConfig):

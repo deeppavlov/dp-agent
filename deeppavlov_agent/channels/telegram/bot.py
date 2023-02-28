@@ -160,7 +160,7 @@ def run_tg(token, proxy, agent):
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
-            if message.photo:
+            if message.photo and FILE_SERVER_URL:
                 try:
                     photo = await message.photo[-1].download(BytesIO())
                     fname = f"{uuid4().hex}.jpg"

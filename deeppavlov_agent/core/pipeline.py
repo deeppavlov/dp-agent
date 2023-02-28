@@ -1,3 +1,4 @@
+from typing import Optional
 from collections import defaultdict, Counter
 
 
@@ -52,7 +53,10 @@ class Pipeline:
         return wrong_names  # wrong names means that some service_names, used in previous services don't exist
 
     def get_next_services(
-        self, done: set = None, waiting: set = None, skipped: set = None
+        self,
+        done: Optional[set] = None,
+        waiting: Optional[set] = None,
+        skipped: Optional[set] = None,
     ):
         done = done or set()
         waiting = waiting or set()

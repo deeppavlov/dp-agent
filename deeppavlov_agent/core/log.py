@@ -3,6 +3,7 @@ import logging.config
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict
 
 import yaml
 
@@ -59,9 +60,11 @@ class LocalResponseLogger(BaseResponseLogger):
     _logger: logging.Logger
 
     def __init__(self, enabled: bool, cleanup_timedelta: int = 300) -> None:
-        self._services_load = defaultdict(int)
-        self._services_response_time = defaultdict(dict)
-        self._tasks_buffer = dict()
+        self._services_load: Dict[str, int] = defaultdict(int)
+        self._services_response_time: Dict[str, Dict[datetime, float]] = defaultdict(
+            dict
+        )
+        self._tasks_buffer: Dict[str, datetime] = dict()
         self._enabled = enabled
         self._timedelta = timedelta(seconds=cleanup_timedelta)
 

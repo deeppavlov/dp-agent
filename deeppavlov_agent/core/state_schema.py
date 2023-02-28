@@ -4,6 +4,7 @@ from collections import defaultdict
 from copy import copy
 from datetime import datetime
 from itertools import chain
+from typing import List
 
 import pymongo
 from bson.objectid import ObjectId
@@ -225,7 +226,7 @@ class BotUtterance:
 
 class Dialog:
     collection_name = "dialog"
-    fieldlist = []
+    fieldlist: List[str] = []
 
     def __init__(
         self,

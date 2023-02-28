@@ -1,7 +1,8 @@
 import asyncio
 from collections import defaultdict
 from importlib import import_module
-from typing import Dict
+from typing import Dict, List, Set, Optional, Any
+from types import ModuleType
 
 import aiohttp
 
@@ -32,27 +33,25 @@ class PipelineConfigParser:
     def __init__(self, state_manager: StateManager, config: Dict):
         self.config = config
         self.state_manager = state_manager
-        self.services = []
-        self.services_names = defaultdict(set)
-        self.last_chance_service = None
-        self.timeout_service = None
-        self.connectors = {}
-        self.workers = []
+        self.services: List[Service] = []
+        self.services_names: Dict[str, Set[str]] = defaultdict(set)
+        self.last_chance_service: Optional[Service] = None
+        self.timeout_service: Optional[Service] = None
+        self.connectors: Dict[str, Any] = {}
+        self.workers: List[Any] = []
         self.session = None
         self.gateway = None
-        self.imported_modules = {}
+        self.imported_modules: Dict[str, ModuleType] = {}
+        self.connectors_module: Optional[ModuleType] = None
+        self.formatters_module: Optional[ModuleType] = None
 
         connectors_module_name = self.config.get("connectors_module", None)
         if connectors_module_name:
             self.connectors_module = import_module(connectors_module_name)
-        else:
-            self.connectors_module = None
 
         formatters_module_name = self.config.get("formatters_module", None)
         if formatters_module_name:
             self.formatters_module = import_module(formatters_module_name)
-        else:
-            self.formatters_module = None
 
         self.fill_connectors()
         self.fill_services()
@@ -89,16 +88,16 @@ class PipelineConfigParser:
         return module
 
     def make_connector(self, name: str, data: Dict):
-        workers = []
+        workers: List[object] = []
         if data["protocol"] == "http":
-            connector = None
+            connector: Any = None
             workers = []
             if (
                 "urllist" in data
                 or "num_workers" in data
                 or data.get("batch_size", 1) > 1
             ):
-                queue = asyncio.Queue()
+                queue: asyncio.Queue[Any] = asyncio.Queue()
                 batch_size = data.get("batch_size", 1)
                 urllist = data.get(
                     "urllist", [data["url"]] * data.get("num_workers", 1)
@@ -126,7 +125,7 @@ class PipelineConfigParser:
             params = data["class_name"].split(":")
             if len(params) == 1:
                 if params[0] in built_in_connectors:
-                    connector_class = built_in_connectors[params[0]]
+                    connector_class: Any = built_in_connectors[params[0]]
                     module_provided_str = "in deeppavlov_agent built in connectors"
                 elif self.connectors_module:
                     connector_class = getattr(self.connectors_module, params[0], None)

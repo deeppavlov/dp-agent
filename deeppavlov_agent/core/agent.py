@@ -11,9 +11,10 @@ from .state_manager import StateManager
 from .workflow_manager import WorkflowManager
 
 
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))
+sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
 
+# TODO: fix types
 class Agent:
     _response_logger: BaseResponseLogger
 
@@ -31,7 +32,7 @@ class Agent:
 
     def flush_record(self, dialog_id: str):
         workflow_record = self.workflow_manager.flush_record(dialog_id)
-        if "timeout_response_task" in workflow_record:
+        if workflow_record and "timeout_response_task" in workflow_record:
             workflow_record["timeout_response_task"].cancel()
         return workflow_record
 
@@ -51,8 +52,8 @@ class Agent:
         self.workflow_manager.add_workflow_record(
             dialog=dialog, deadline_timestamp=deadline_timestamp, **kwargs
         )
-        task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)
-        self._response_logger.log_start(task_id, {"dialog": dialog}, service)
+        task_id = self.workflow_manager.add_task(dialog_id, service, utterance, 0)  # type: ignore
+        self._response_logger.log_start(task_id, {"dialog": dialog}, service)  # type: ignore
         asyncio.create_task(
             self.process(task_id, utterance, message_attrs=message_attrs)
         )
@@ -65,7 +66,7 @@ class Agent:
             )
 
         if require_response:
-            await event.wait()
+            await event.wait()  # type: ignore
             return self.flush_record(dialog_id)
 
     async def process(self, task_id, response: Any = None, **kwargs):
@@ -74,7 +75,7 @@ class Agent:
         )
         if not workflow_record:
             return
-        service = task_data["service"]
+        service = task_data["service"]  # type: ignore
         # self._response_logger._logger.info(f"Service {service.label}: {response}")
         self._response_logger.log_end(task_id, workflow_record, service)
 
@@ -95,7 +96,7 @@ class Agent:
                 for k, v in workflow_record["services"].items()
                 if v.get("error", False)
             ]
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.push_scope() as scope:  # type: ignore
                 scope.set_extra("user_id", workflow_record["dialog"].human.external_id)
                 scope.set_extra("dialog_id", workflow_record["dialog"].id)
                 scope.set_extra("response", response)
@@ -117,7 +118,7 @@ class Agent:
                     payload=response_data,
                     label=service.label,
                     message_attrs=kwargs.pop("message_attrs", {}),
-                    ind=task_data["ind"],
+                    ind=task_data["ind"],  # type: ignore
                 )
 
             # Processing the case, when service is a skill selector
@@ -138,10 +139,10 @@ class Agent:
                 return
 
         # Calculating next steps
-        done, waiting, skipped = self.workflow_manager.get_services_status(
+        done, waiting, skipped = self.workflow_manager.get_services_status(  # type: ignore
             workflow_record["dialog"].id
         )
-        next_services = self.pipeline.get_next_services(done, waiting, skipped)
+        next_services = self.pipeline.get_next_services(done, waiting, skipped)  # type: ignore
 
         await self.create_processing_tasks(workflow_record, next_services)
 
@@ -152,7 +153,7 @@ class Agent:
                 task_id = self.workflow_manager.add_task(
                     workflow_record["dialog"].id, service, task_data, ind
                 )
-                self._response_logger.log_start(task_id, workflow_record, service)
+                self._response_logger.log_start(task_id, workflow_record, service)  # type: ignore
                 self.workflow_manager.set_task_object(
                     workflow_record["dialog"].id,
                     task_id,
@@ -170,10 +171,8 @@ class Agent:
         if not workflow_record:
             return
         next_services = [self.pipeline.timeout_service]
-        for k, v in self.workflow_manager.get_pending_tasks(dialog_id).items():
+        for k, v in self.workflow_manager.get_pending_tasks(dialog_id).items():  # type: ignore
             v["task_object"].cancel()
-            self._response_logger.log_end(
-                k, workflow_record, v["task_data"]["service"], True
-            )
+            self._response_logger.log_end(k, workflow_record, v["task_data"]["service"])
 
         await self.create_processing_tasks(workflow_record, next_services)

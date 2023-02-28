@@ -6,6 +6,7 @@ from datetime import datetime
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
 
 
+# TODO: fix types
 class StateManager:
     def __init__(self, db):
         self._db = db
@@ -78,14 +79,14 @@ class StateManager:
         self, dialog: Dialog, payload: Dict, label: str, **kwargs
     ) -> None:
         await self.update_human(dialog.human, payload)
-        await self.update_bot(dialog.bot, payload)
+        await self.update_bot(dialog.bot, payload)  # type: ignore
         dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload["text"]
         dialog.utterances[-1].orig_text = payload["text"]
         dialog.utterances[-1].active_skill = payload["skill_name"]
         dialog.utterances[-1].confidence = payload["confidence"]
         dialog.utterances[-1].annotations = payload.get("annotations", {})
-        dialog.utterances[-1].user = dialog.bot.to_dict()
+        dialog.utterances[-1].user = dialog.bot.to_dict()  # type: ignore
         dialog.utterances[-1].attributes = payload.get("attributes", {})
 
     async def add_bot_utterance_last_chance(
@@ -94,11 +95,11 @@ class StateManager:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
             dialog.utterances[-1].text = payload["text"]
-            dialog.utterances[-1].orig_text = payload["text"]
-            dialog.utterances[-1].active_skill = label
-            dialog.utterances[-1].confidence = 0
+            dialog.utterances[-1].orig_text = payload["text"]  # type: ignore
+            dialog.utterances[-1].active_skill = label  # type: ignore
+            dialog.utterances[-1].confidence = 0  # type: ignore
             dialog.utterances[-1].annotations = payload["annotations"]
-            dialog.utterances[-1].user = dialog.bot.to_dict()
+            dialog.utterances[-1].user = dialog.bot.to_dict()  # type: ignore
 
     async def add_bot_utterance_last_chance_overwrite(
         self, dialog: Dialog, payload: Dict, label: str, **kwargs
@@ -106,11 +107,11 @@ class StateManager:
         if isinstance(dialog.utterances[-1], HumanUtterance):
             dialog.add_bot_utterance()
         dialog.utterances[-1].text = payload["text"]
-        dialog.utterances[-1].orig_text = payload["text"]
-        dialog.utterances[-1].active_skill = label
-        dialog.utterances[-1].confidence = 0
+        dialog.utterances[-1].orig_text = payload["text"]  # type: ignore
+        dialog.utterances[-1].active_skill = label  # type: ignore
+        dialog.utterances[-1].confidence = 0  # type: ignore
         dialog.utterances[-1].annotations = payload["annotations"]
-        dialog.utterances[-1].user = dialog.bot.to_dict()
+        dialog.utterances[-1].user = dialog.bot.to_dict()  # type: ignore
 
     async def add_failure_bot_utterance(
         self, dialog: Dialog, payload: Dict, label: str, **kwargs
@@ -120,7 +121,7 @@ class StateManager:
         dialog.utterances[-1].orig_text = payload
         dialog.utterances[-1].active_skill = label
         dialog.utterances[-1].confidence = 0
-        dialog.utterances[-1].user = dialog.bot.to_dict()
+        dialog.utterances[-1].user = dialog.bot.to_dict()  # type: ignore
 
     async def save_dialog(
         self, dialog: Dialog, payload: Dict, label: str, **kwargs

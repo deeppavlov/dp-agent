@@ -16,7 +16,7 @@ from ..messages import (
     ToChannelMessage,
     FromChannelMessage,
 )
-from ..messages import TMessageBase, ServiceErrorMessage, get_transport_message
+from ..messages import MessageBase, ServiceErrorMessage, get_transport_message
 
 AGENT_IN_EXCHANGE_NAME_TEMPLATE = "{agent_namespace}_e_in"
 AGENT_OUT_EXCHANGE_NAME_TEMPLATE = "{agent_namespace}_e_out"
@@ -31,10 +31,10 @@ CHANNEL_ROUTING_KEY_TEMPLATE = "agent.{agent_name}.channel.{channel_id}.any"
 
 logger = getLogger(__name__)
 
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))
+sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
 
-# TODO: add proper RabbitMQ SSL authentication
+# TODO: fix types, add proper RabbitMQ SSL authentication
 class RabbitMQTransportBase:
     _config: dict
     _loop: asyncio.AbstractEventLoop
@@ -135,7 +135,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(
-            self._in_queue.consume(callback=self._on_message_callback)
+            self._in_queue.consume(callback=self._on_message_callback)  # type: ignore
         )
         logger.info("Agent in queue started consuming")
 
@@ -156,12 +156,12 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
         logger.info(f"Queue: {in_queue_name} bound to routing key: {routing_key}")
 
     async def _on_message_callback(self, message: IncomingMessage) -> None:
-        message_in: TMessageBase = get_transport_message(
+        message_in: MessageBase = get_transport_message(
             json.loads(message.body, encoding="utf-8")
         )
         await message.ack()
 
-        if isinstance(message_in, ServiceResponseMessage):
+        if isinstance(message_in, ServiceResponseMessage) and self._on_service_callback:
             logger.debug(
                 f"Received service response message {str(message_in.to_json())}"
             )
@@ -171,7 +171,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                 )
             )
 
-        elif isinstance(message_in, ServiceErrorMessage):
+        elif isinstance(message_in, ServiceErrorMessage) and self._on_service_callback:
             logger.debug(f"Received service error message {str(message_in.to_json())}")
             await self._loop.create_task(
                 self._on_service_callback(
@@ -179,7 +179,7 @@ class RabbitMQAgentGateway(RabbitMQTransportBase, AgentGatewayBase):
                 )
             )
 
-        elif isinstance(message_in, FromChannelMessage):
+        elif isinstance(message_in, FromChannelMessage) and self._on_channel_callback:
             logger.debug(f"Received message from channel {str(message_in.to_json())}")
             await self._loop.create_task(
                 self._on_channel_callback(
@@ -252,7 +252,7 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(
-            self._in_queue.consume(callback=self._on_message_callback)
+            self._in_queue.consume(callback=self._on_message_callback)  # type: ignore
         )
         logger.info("Service in queue started consuming")
 
@@ -300,13 +300,13 @@ class RabbitMQServiceGateway(RabbitMQTransportBase, ServiceGatewayBase):
 
                 if self._add_to_buffer_lock.locked():
                     self._add_to_buffer_lock.release()
-                tasks_batch: List[ServiceTaskMessage] = [
+                tasks_batch: List[MessageBase] = [
                     get_transport_message(json.loads(message.body, encoding="utf-8"))
                     for message in messages_batch
                 ]
 
                 # TODO: Think about proper infer errors and aknowledge handling
-                processed_ok = await self._process_tasks(tasks_batch)
+                processed_ok = await self._process_tasks(tasks_batch)  # type: ignore
 
                 if processed_ok:
                     for message in messages_batch:
@@ -386,7 +386,7 @@ class RabbitMQChannelGateway(RabbitMQTransportBase, ChannelGatewayBase):
         self._loop.run_until_complete(self._connect())
         self._loop.run_until_complete(self._setup_queues())
         self._loop.run_until_complete(
-            self._in_queue.consume(callback=self._on_message_callback)
+            self._in_queue.consume(callback=self._on_message_callback)  # type: ignore
         )
         logger.info("Channel connector messages queue from agent started consuming")
 

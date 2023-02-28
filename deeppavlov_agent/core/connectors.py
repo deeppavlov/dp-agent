@@ -10,7 +10,7 @@ import aiohttp
 from .transport.base import ServiceGatewayConnectorBase
 
 logger = getLogger(__name__)
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))
+sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
 
 class HTTPConnector:

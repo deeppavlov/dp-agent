@@ -1,4 +1,4 @@
-from typing import Any, Dict, TypeVar
+from typing import Any, Dict, Type
 
 
 class MessageBase:
@@ -15,9 +15,6 @@ class MessageBase:
 
     def to_json(self) -> dict:
         return self.__dict__
-
-
-TMessageBase = TypeVar("TMessageBase", bound=MessageBase)
 
 
 class ServiceTaskMessage(MessageBase):
@@ -86,7 +83,7 @@ class FromChannelMessage(MessageBase):
         self.reset_dialog = reset_dialog
 
 
-_message_wrappers_map = {
+_message_wrappers_map: Dict[str, Type[MessageBase]] = {
     "service_task": ServiceTaskMessage,
     "service_response": ServiceResponseMessage,
     "to_channel_message": ToChannelMessage,
@@ -95,12 +92,12 @@ _message_wrappers_map = {
 }
 
 
-def get_transport_message(message_json: dict) -> TMessageBase:
+def get_transport_message(message_json: dict) -> MessageBase:
     message_type = message_json.pop("msg_type")
 
     if message_type not in _message_wrappers_map:
         raise ValueError(f"Unknown transport message type: {message_type}")
 
-    message_wrapper_class: TMessageBase = _message_wrappers_map[message_type]
+    message_wrapper_class: Type[MessageBase] = _message_wrappers_map[message_type]
 
     return message_wrapper_class.from_json(message_json)

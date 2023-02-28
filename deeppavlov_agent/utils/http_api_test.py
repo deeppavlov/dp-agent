@@ -22,7 +22,7 @@ structure of dialog file (-df) should be written in json
 structure of phrase file (-pf) simple text file. One phrase per line
 """
 
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))
+sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--url", type=str)
