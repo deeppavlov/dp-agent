@@ -4,3 +4,6 @@ sphinx_rtd_theme
 Pygments==2.4.2
 flake8==5.0.4
 black==23.1.0
+mypy==1.0.1
+types-PyYAML==6.0.12.8
+types-requests==2.28.11.15
