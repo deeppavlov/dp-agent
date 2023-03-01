@@ -5,9 +5,13 @@ class AgentGatewayBase:
     _on_service_callback: Optional[Callable]
     _on_channel_callback: Optional[Callable]
 
-    def __init__(self, on_service_callback: Optional[Callable] = None,
-                 on_channel_callback: Optional[Callable] = None, *args, **kwargs):
-
+    def __init__(
+        self,
+        on_service_callback: Optional[Callable] = None,
+        on_channel_callback: Optional[Callable] = None,
+        *args,
+        **kwargs
+    ):
         super(AgentGatewayBase, self).__init__(*args, **kwargs)
         self._on_service_callback = on_service_callback
         self._on_channel_callback = on_channel_callback
@@ -31,7 +35,9 @@ class AgentGatewayBase:
     async def send_to_service(self, service: str, dialog: Dict) -> None:
         raise NotImplementedError
 
-    async def send_to_channel(self, channel_id: str, user_id: str, response: str) -> None:
+    async def send_to_channel(
+        self, channel_id: str, user_id: str, response: str
+    ) -> None:
         raise NotImplementedError
 
 
@@ -60,7 +66,7 @@ class ChannelGatewayConnectorBase:
 
     def __init__(self, config: Dict, on_channel_callback: Callable) -> None:
         self._config = config
-        self._channel_id = self._config['channel']['id']
+        self._channel_id = self._config["channel"]["id"]
         self._on_channel_callback = on_channel_callback
 
     async def send_to_channel(self, user_id: str, response: str) -> None:
@@ -74,12 +80,18 @@ class ChannelGatewayBase:
         super(ChannelGatewayBase, self).__init__(*args, **kwargs)
         self._to_channel_callback = to_channel_callback
 
-    async def send_to_agent(self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool) -> None:
+    async def send_to_agent(
+        self, utterance: str, channel_id: str, user_id: str, reset_dialog: bool
+    ) -> None:
         raise NotImplementedError
 
 
-TAgentGateway = TypeVar('TAgentGateway', bound=AgentGatewayBase)
-TServiceGatewayConnectorBase = TypeVar('TServiceGatewayConnectorBase', bound=ServiceGatewayConnectorBase)
-TServiceGateway = TypeVar('TServiceGateway', bound=ServiceGatewayBase)
-TChannelGatewayConnectorBase = TypeVar('TChannelGatewayConnectorBase', bound=ChannelGatewayConnectorBase)
-TChannelGateway = TypeVar('TChannelGateway', bound=ChannelGatewayBase)
+TAgentGateway = TypeVar("TAgentGateway", bound=AgentGatewayBase)
+TServiceGatewayConnectorBase = TypeVar(
+    "TServiceGatewayConnectorBase", bound=ServiceGatewayConnectorBase
+)
+TServiceGateway = TypeVar("TServiceGateway", bound=ServiceGatewayBase)
+TChannelGatewayConnectorBase = TypeVar(
+    "TChannelGatewayConnectorBase", bound=ChannelGatewayConnectorBase
+)
+TChannelGateway = TypeVar("TChannelGateway", bound=ChannelGatewayBase)

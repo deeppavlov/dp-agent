@@ -2,13 +2,18 @@ from pathlib import Path
 from string import Template
 from typing import Union
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+)
 from pydantic import BaseModel
 from yaml import load
+
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader  # type: ignore
 
 
 def _load_yml(path):
@@ -87,7 +92,7 @@ class MessageResponder:
         return template.safe_substitute(**kwargs)
 
     def dialog_rating_inline_keyboard(
-        self, dialog_id: str, chosen_rating: Union[str, int] = None
+        self, dialog_id: str, chosen_rating: Union[str, int, None] = None
     ) -> InlineKeyboardMarkup:
         """Create inline keyboard with rating buttons. Min and max score are set via config.
         Provide chosen_rating argument if the keyboard is edited after the conversation was rated
@@ -115,7 +120,9 @@ class MessageResponder:
 
         return reply_markup
 
-    def utterance_rating_inline_keyboard(self, utterance_id: str) -> InlineKeyboardMarkup:
+    def utterance_rating_inline_keyboard(
+        self, utterance_id: str
+    ) -> InlineKeyboardMarkup:
         """Create inline keyboard with thumbs up/down buttons
 
         Args:

@@ -1,14 +1,25 @@
 class Service:
-    def __init__(self, name, connector_func, state_processor_method=None,
-                 batch_size=1, tags=None, names_previous_services=None,
-                 names_required_previous_services=None,
-                 workflow_formatter=None, dialog_formatter=None, response_formatter=None,
-                 label=None):
+    def __init__(
+        self,
+        name,
+        connector_func,
+        state_processor_method=None,
+        batch_size=1,
+        tags=None,
+        names_previous_services=None,
+        names_required_previous_services=None,
+        workflow_formatter=None,
+        dialog_formatter=None,
+        response_formatter=None,
+        label=None,
+    ):
         self.name = name
         self.batch_size = batch_size
         self.state_processor_method = state_processor_method
         self.names_previous_services = names_previous_services or set()
-        self.names_required_previous_services = names_required_previous_services or set()
+        self.names_required_previous_services = (
+            names_required_previous_services or set()
+        )
         self.tags = set(tags or [])
         self.workflow_formatter = workflow_formatter
         self.dialog_formatter = dialog_formatter
@@ -21,19 +32,19 @@ class Service:
         self.label = label or self.name
 
     def is_sselector(self):
-        return 'selector' in self.tags
+        return "selector" in self.tags
 
     def is_responder(self):
-        return 'responder' in self.tags
+        return "responder" in self.tags
 
     def is_input(self):
-        return 'input' in self.tags
+        return "input" in self.tags
 
     def is_last_chance(self):
-        return 'last_chance' in self.tags
+        return "last_chance" in self.tags
 
     def is_timeout(self):
-        return 'timeout' in self.tags
+        return "timeout" in self.tags
 
     def apply_workflow_formatter(self, payload):
         if not self.workflow_formatter:
@@ -52,4 +63,4 @@ class Service:
 
 
 def simple_workflow_formatter(workflow_record):
-    return workflow_record['dialog'].to_dict()
+    return workflow_record["dialog"].to_dict()
