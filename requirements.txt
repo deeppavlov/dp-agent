@@ -1,9 +1,9 @@
 aioconsole==0.1.15
-aiogram>=2.3
-aiohttp>=3.6.1
-aiohttp-socks>=0.2.2
-aiohttp-jinja2>=1.2.0
-aiohttp-swagger>=1.0.9
+aiogram==2.24
+aiohttp>=3.8.0
+aiohttp-socks==0.2.2
+aiohttp-jinja2==1.2.0
+aiohttp-swagger==1.0.9
 pyyaml==5.1
 aio-pika==5.6.0
 motor==2.0.0

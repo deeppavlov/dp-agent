@@ -4,6 +4,7 @@ from io import BytesIO
 from os import getenv
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import urlopen
 from uuid import uuid4
 
 import requests
@@ -14,6 +15,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 
 from .utils import MessageResponder
+
+TG_TOKEN = "5870481666:AAGZjpfkCFJ4uk38VtF___gHy0pya8FevlA" # FIXME: hardcoded = bad
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
@@ -157,7 +160,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -175,6 +178,25 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
+            sound = message.voice if message.voice else message.audio
+            if sound:
+                # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+                sound_message = await sound.get_file()                                    # Multiple audios?
+                # It is guaranteed that the link will be valid for at least 1 hour. When the link expires, a new one can be requested by calling getFile.
+                # Maximum file size to download is 20 MB
+                sound_dlink = f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
+                file = urlopen(sound_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                    netloc=server_url.netloc).geturl()
+                message_attrs['sound'] = download_link
+                message_attrs['sound_duration'] = sound.duration
+                message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, sound_message: {sound_message}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
