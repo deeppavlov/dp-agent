@@ -193,6 +193,7 @@ def run_tg(token, proxy, agent):
                 dlink_tmp = resp.json()['downloadLink']
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
+                message_attrs['sound_file'] = sound_message
                 message_attrs['sound'] = download_link
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
