@@ -1,4 +1,6 @@
+import os
 import logging
+import logging.config
 from importlib import import_module
 from typing import Dict
 
@@ -99,3 +101,15 @@ PORT = setup_parameter("port", user_settings)
 # Telegram client configuration parameters
 TELEGRAM_TOKEN = setup_parameter("telegram_token", user_settings)
 TELEGRAM_PROXY = setup_parameter("telegram_proxy", user_settings)
+
+
+class LogDest:
+    FILE = "file"
+    CONSOLE = "console"
+
+
+LOG_DEST = os.environ.get("LOG_DEST", LogDest.FILE)
+LOG_FILE = os.environ.get("LOG_FILE", "dp_agent.log")
+LOG_FILE_SIZE = int(os.environ.get("LOG_FILE_SIZE", 10485760))  # 10mb
+LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", 5))
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")

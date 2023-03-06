@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections import defaultdict
 from importlib import import_module
 from typing import Dict, List, Set, Optional, Any
@@ -21,6 +22,7 @@ from .core.transport.mapping import GATEWAYS_MAP
 from .core.transport.settings import TRANSPORT_SETTINGS
 from .state_formatters import all_formatters
 
+logger = logging.getLogger(__name__)
 
 built_in_connectors = {
     "PredefinedOutputConnector": PredefinedOutputConnector,
@@ -156,6 +158,8 @@ class PipelineConfigParser:
         self.connectors[name] = connector
 
     def make_service(self, group: str, name: str, data: Dict):
+        logger.debug(f"Create service: '{name}' config={data}")
+
         def check_ext_module(class_name):
             params = class_name.split(":")
             formatter_class = None

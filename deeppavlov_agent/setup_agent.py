@@ -1,15 +1,17 @@
 import json
 import os
+import logging
 
 import yaml
 
 from .core.agent import Agent
 from .core.connectors import EventSetOutputConnector
-from .core.log import LocalResponseLogger
 from .core.pipeline import Pipeline
 from .core.service import Service
 from .parse_config import PipelineConfigParser
 from .utils import config_tools
+
+logger = logging.getLogger(__name__)
 
 
 def merge_two_configs(d1, d2):
@@ -24,7 +26,11 @@ def merge_two_configs(d1, d2):
 
 
 def setup_agent(agent_config):
+    logger.info("Setup agent")
+
     with open(agent_config.db_config, "r") as db_config:
+        logger.debug(f"Read database config file: '{agent_config.db_config}'")
+
         if agent_config.db_config.endswith(".json"):
             db_data = json.load(db_config)
         elif agent_config.db_config.endswith(".yml"):
@@ -38,9 +44,11 @@ def setup_agent(agent_config):
         for k, v in db_data.items():
             db_data[k] = os.getenv(v)
 
+    logger.debug(f"Init database class '{agent_config.db_class}'")
     db_class = config_tools.import_class(agent_config.db_class)
     db = db_class(**db_data)
 
+    logger.debug(f"Init state manager class '{agent_config.state_manager_class}'")
     sm_class = config_tools.import_class(agent_config.state_manager_class)
     sm = sm_class(db.get_db())
     # if pipeline_configs:
@@ -56,6 +64,8 @@ def setup_agent(agent_config):
     #
     # else:
     with open(agent_config.pipeline_config, "r") as pipeline_config_f:
+        logger.debug(f"Read pipeline config file: '{agent_config.pipeline_config}'")
+
         if agent_config.pipeline_config.endswith(".json"):
             pipeline_data = json.load(pipeline_config_f)
         elif agent_config.pipeline_config.endswith(".yml"):
@@ -87,12 +97,16 @@ def setup_agent(agent_config):
         pipeline_config.services, input_srv, responder_srv, last_chance_srv, timeout_srv
     )
 
-    response_logger = LocalResponseLogger(agent_config.enable_response_logger)
-
+    logger.debug(f"Init workflow manager class '{agent_config.workflow_manager_class}'")
     wf_class = config_tools.import_class(agent_config.workflow_manager_class)
-    agent = Agent(pipeline, sm, wf_class(), response_logger=response_logger)
+    wf = wf_class()
+
+    agent = Agent(pipeline, sm, wf, agent_config.enable_response_logger)
+
     if pipeline_config.gateway:
         pipeline_config.gateway.on_channel_callback = agent.register_msg
         pipeline_config.gateway.on_service_callback = agent.process
+
+    logger.info("Setup complete")
 
     return agent, pipeline_config.session, pipeline_config.workers
