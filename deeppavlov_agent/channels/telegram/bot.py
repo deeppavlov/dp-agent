@@ -193,10 +193,10 @@ def run_tg(token, proxy, agent):
                 dlink_tmp = resp.json()['downloadLink']
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
                                                                     netloc=server_url.netloc).geturl()
-                message_attrs['sound'] = download_link
+                message_attrs['sound_path'] = download_link
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
-                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, sound_message: {sound_message}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
