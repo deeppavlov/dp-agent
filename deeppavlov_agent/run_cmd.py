@@ -1,6 +1,6 @@
-import asyncio
 import os
-from logging import getLogger
+import asyncio
+import logging
 
 import sentry_sdk
 from aioconsole import ainput
@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 
 from .setup_agent import setup_agent
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
@@ -32,6 +32,8 @@ async def message_processor(register_msg):
 
 
 def run_cmd(cfg: DictConfig):
+    logger.info("Start cmd channel")
+
     agent, session, workers = setup_agent(cfg.agent)
     loop = asyncio.get_event_loop()
     loop.set_debug(cfg.agent.debug)
