@@ -56,7 +56,7 @@ class PipelineConfigParser:
             self.formatters_module = import_module(formatters_module_name)
 
         self.fill_connectors()
-        self.fill_services()
+        self.fill_services(None, self.config["services"])
 
     def setup_module_from_config(self, name_var):
         module = None
@@ -157,7 +157,7 @@ class PipelineConfigParser:
         self.workers.extend(workers)
         self.connectors[name] = connector
 
-    def make_service(self, group: str, name: str, data: Dict):
+    def make_service(self, group: Optional[str], name: str, data: Dict):
         logger.debug(f"Create service: '{name}' config={data}")
 
         def check_ext_module(class_name):
@@ -287,10 +287,12 @@ class PipelineConfigParser:
                     self.services_names[k].add(service_name)
                     self.services_names[service_name].add(service_name)
 
-    def fill_services(self):
-        for k, v in self.config["services"].items():
+    def fill_services(self, group: Optional[str], services: Dict[str, dict]):
+        for k, v in services.items():
+            if "is_enabled" in v and v["is_enabled"] is False:
+                continue
+
             if "connector" in v:  # single service
-                self.make_service(None, k, v)
+                self.make_service(group, k, v)
             else:  # grouped services
-                for sk, sv in v.items():
-                    self.make_service(k, sk, sv)
+                self.fill_services(k, v)

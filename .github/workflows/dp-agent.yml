@@ -26,7 +26,7 @@ jobs:
         pip install -r dev_requirements.txt
     - name: Check code formatting
       run: |
-        black deeppavlov_agent/ --diff --check
+        make check_format
 
   lint:
     needs: format
@@ -45,7 +45,7 @@ jobs:
         pip install -r dev_requirements.txt
     - name: Lint with flake8
       run: |
-        flake8 deeppavlov_agent/ --count --show-source --statistics
+        make lint
 
   type_check:
     needs: lint
@@ -64,4 +64,22 @@ jobs:
         pip install -r dev_requirements.txt
     - name: Check types with mypy
       run: |
-        mypy deeppavlov_agent/
+        make type_check
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.7"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r dev_requirements.txt
+    - name: Run unit tests
+      run: |
+        make unit_test

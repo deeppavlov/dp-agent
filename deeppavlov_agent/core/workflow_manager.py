@@ -1,6 +1,6 @@
 from collections import defaultdict
 from uuid import uuid4
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Any
 from time import time
 
 from .state_schema import Dialog
@@ -40,7 +40,7 @@ class WorkflowManager:
         return None
 
     def add_task(
-        self, dialog_id: str, service: Service, payload: Dict, ind: int
+        self, dialog_id: str, service: Service, payload: Any, ind: int
     ) -> Optional[str]:
         workflow_record = self.workflow_records.get(dialog_id, None)
         if not workflow_record:
