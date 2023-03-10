@@ -217,3 +217,8 @@ class ExtendedStateManager(StateManager):
             dialog.human.attributes = {
                 "disliked_skills": dialog.human.attributes.get("disliked_skills", [])
             }
+
+
+class FakeStateManager:
+    async def add_annotation(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
+        pass
