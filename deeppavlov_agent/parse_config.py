@@ -20,6 +20,14 @@ from .core.service import Service, simple_workflow_formatter
 from .core.state_manager import StateManager
 from .core.transport.mapping import GATEWAYS_MAP
 from .core.transport.settings import TRANSPORT_SETTINGS
+from .core.config import (
+    parse as parse_conf,
+    is_service,
+    is_connector,
+    ConnectorConfig,
+    ServiceConfig,
+    Node,
+)
 from .state_formatters import all_formatters
 
 logger = logging.getLogger(__name__)
@@ -33,7 +41,6 @@ built_in_connectors = {
 
 class PipelineConfigParser:
     def __init__(self, state_manager: StateManager, config: Dict):
-        self.config = config
         self.state_manager = state_manager
         self.services: List[Service] = []
         self.services_names: Dict[str, Set[str]] = defaultdict(set)
@@ -47,23 +54,35 @@ class PipelineConfigParser:
         self.connectors_module: Optional[ModuleType] = None
         self.formatters_module: Optional[ModuleType] = None
 
-        connectors_module_name = self.config.get("connectors_module", None)
+        connectors_module_name = config.get("connectors_module", None)
         if connectors_module_name:
             self.connectors_module = import_module(connectors_module_name)
 
-        formatters_module_name = self.config.get("formatters_module", None)
+        formatters_module_name = config.get("formatters_module", None)
         if formatters_module_name:
             self.formatters_module = import_module(formatters_module_name)
 
-        self.fill_connectors()
-        self.fill_services(None, self.config["services"])
+        self.parse(config)
 
-    def setup_module_from_config(self, name_var):
-        module = None
-        connectors_module_name = self.config.get(name_var, None)
-        if connectors_module_name:
-            module = import_module(connectors_module_name)
-        return module
+    def parse(self, data) -> None:
+        for node in parse_conf(data):
+            if is_service(node):
+                if node.config.get("is_enabled", True) is False:
+                    continue
+
+                name = _get_service_name(node)
+                group = _get_service_group(node)
+
+                # TODO: strange collection(services_names) refactor this
+                if group is None:
+                    self.services_names[name].add(name)
+                else:
+                    self.services_names[group].add(name)
+                    self.services_names[name].add(name)
+
+                self.make_service(group, name, node.config)
+            elif is_connector(node):
+                self.make_connector(_get_connector_name(node), node.config)
 
     def get_session(self):
         if not self.session:
@@ -89,7 +108,7 @@ class PipelineConfigParser:
             module = self.imported_modules[module_name]
         return module
 
-    def make_connector(self, name: str, data: Dict):
+    def make_connector(self, name: str, data: ConnectorConfig):
         workers: List[object] = []
         if data["protocol"] == "http":
             connector: Any = None
@@ -157,7 +176,7 @@ class PipelineConfigParser:
         self.workers.extend(workers)
         self.connectors[name] = connector
 
-    def make_service(self, group: Optional[str], name: str, data: Dict):
+    def make_service(self, group: Optional[str], name: str, data: ServiceConfig):
         logger.debug(f"Create service: '{name}' config={data}")
 
         def check_ext_module(class_name):
@@ -245,54 +264,30 @@ class PipelineConfigParser:
         else:
             self.services.append(service)
 
-    def fill_connectors(self):
-        if "connectors" in self.config:
-            for k, v in self.config["connectors"].items():
-                v.update({"connector_name": k})
-                self.make_connector(f"connectors.{k}", v)
 
-        # collect residual connectors, form skill names
-        for k, v in self.config["services"].items():
-            if "connector" in v:  # single service
-                if isinstance(v["connector"], dict):
-                    if "protocol" in v["connector"]:
-                        self.make_connector(k, v["connector"])
-                    else:
-                        raise ValueError(
-                            {f"connector in pipeline.{k} is declared incorrectly"}
-                        )
-                elif not isinstance(v["connector"], str):
-                    raise ValueError(
-                        {f"connector in pipeline.{k} is declared incorrectly"}
-                    )
-                self.services_names[k].add(k)
-            else:  # grouped services
-                for sk, sv in v.items():
-                    service_name = f"{k}.{sk}"
-                    if isinstance(sv["connector"], dict):
-                        if "protocol" in sv["connector"]:
-                            self.make_connector(service_name, sv["connector"])
-                        else:
-                            raise ValueError(
-                                {
-                                    f"connector in pipeline.{service_name} is declared incorrectly"
-                                }
-                            )
-                    elif not isinstance(sv["connector"], str):
-                        raise ValueError(
-                            {
-                                f"connector in pipeline.{service_name} is declared incorrectly"
-                            }
-                        )
-                    self.services_names[k].add(service_name)
-                    self.services_names[service_name].add(service_name)
+def _get_connector_name(node: Node[ConnectorConfig]) -> str:
+    # service connector
+    name = node.path[-2]
+    group = node.path[-3]
 
-    def fill_services(self, group: Optional[str], services: Dict[str, dict]):
-        for k, v in services.items():
-            if "is_enabled" in v and v["is_enabled"] is False:
-                continue
+    # grouped connectors
+    if name == "connectors":
+        return f"connectors.{node.path[-1]}"
+    # service inside group
+    if group != "services":
+        return f"{group}.{name}"
 
-            if "connector" in v:  # single service
-                self.make_service(group, k, v)
-            else:  # grouped services
-                self.fill_services(k, v)
+    return name
+
+
+def _get_service_name(node: Node[ServiceConfig]) -> str:
+    return node.path[-1]
+
+
+def _get_service_group(node: Node[ServiceConfig]) -> Optional[str]:
+    group = node.path[-2]
+
+    if group == "services":
+        return None
+
+    return group
