@@ -1,14 +1,14 @@
 from typing import Iterator, Any, Union, Dict, List, TypeVar, Generic
 from dataclasses import dataclass
 
-from typing_extensions import NotRequired, TypedDict, TypeGuard
+from typing_extensions import NotRequired, TypedDict, TypeGuard, Literal
 
 
 Annotation = Dict[str, Union[str, List[str]]]
 
 
 class ConnectorConfig(TypedDict):
-    protocol: str
+    protocol: Union[Literal["http"], Literal["python"], Literal["AMQP"]]
     class_name: NotRequired[str]
     response_text: NotRequired[str]
     annotator_names: NotRequired[List[str]]
@@ -18,6 +18,8 @@ class ConnectorConfig(TypedDict):
     connector_name: NotRequired[str]
     num_workers: NotRequired[int]
     batch_size: NotRequired[int]
+    urllist: NotRequired[List[str]]
+    service_name: NotRequired[str]
 
 
 class ServiceConfig(TypedDict):
@@ -27,6 +29,7 @@ class ServiceConfig(TypedDict):
     state_manager_method: NotRequired[str]
     tags: NotRequired[List[str]]
     previous_services: NotRequired[List[str]]
+    required_previous_services: NotRequired[List[str]]
     workflow_formatter: NotRequired[str]
     is_enabled: NotRequired[bool]
 
