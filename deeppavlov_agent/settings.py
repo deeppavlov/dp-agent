@@ -24,7 +24,6 @@ BASE_PARAMETERS = {
     "overwrite_last_chance": None,
     "overwrite_timeout": None,
     "formatters_module": None,
-    "connectors_module": None,
     "response_logger": True,
     "time_limit": 0,
     "output_formatter": http_api_output_formatter,

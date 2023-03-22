@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from collections import defaultdict
 from importlib import import_module
@@ -8,13 +7,10 @@ from types import ModuleType
 import aiohttp
 
 from .core.connectors import (
-    AgentGatewayToServiceConnector,
-    AioQueueConnector,
-    HTTPConnector,
-    QueueListenerBatchifyer,
     PredefinedOutputConnector,
     PredefinedTextConnector,
     ConfidenceResponseSelectorConnector,
+    make_connector,
 )
 from .core.service import Service, simple_workflow_formatter
 from .core.state_manager import StateManager
@@ -51,12 +47,7 @@ class PipelineConfigParser:
         self.session = None
         self.gateway = None
         self.imported_modules: Dict[str, ModuleType] = {}
-        self.connectors_module: Optional[ModuleType] = None
         self.formatters_module: Optional[ModuleType] = None
-
-        connectors_module_name = config.get("connectors_module", None)
-        if connectors_module_name:
-            self.connectors_module = import_module(connectors_module_name)
 
         formatters_module_name = config.get("formatters_module", None)
         if formatters_module_name:
@@ -82,7 +73,9 @@ class PipelineConfigParser:
 
                 self.make_service(group, name, node.config)
             elif is_connector(node):
-                self.make_connector(_get_connector_name(node), node.config)
+                connector, workers = make_connector(node.config)
+                self.workers.extend(workers)
+                self.connectors[_get_connector_name(node)] = connector
 
     def get_session(self):
         if not self.session:
@@ -107,74 +100,6 @@ class PipelineConfigParser:
         else:
             module = self.imported_modules[module_name]
         return module
-
-    def make_connector(self, name: str, data: ConnectorConfig):
-        workers: List[object] = []
-        if data["protocol"] == "http":
-            connector: Any = None
-            workers = []
-            if (
-                "urllist" in data
-                or "num_workers" in data
-                or data.get("batch_size", 1) > 1
-            ):
-                queue: asyncio.Queue[Any] = asyncio.Queue()
-                batch_size = data.get("batch_size", 1)
-                urllist = data.get(
-                    "urllist", [data["url"]] * data.get("num_workers", 1)
-                )
-                connector = AioQueueConnector(queue)
-                for url in urllist:
-                    workers.append(
-                        QueueListenerBatchifyer(
-                            self.get_session(), url, queue, batch_size
-                        )
-                    )
-            else:
-                connector = HTTPConnector(
-                    self.get_session(), data["url"], timeout=data.get("timeout", 0)
-                )
-
-        elif data["protocol"] == "AMQP":
-            gateway = self.get_gateway()
-            service_name = data.get("service_name") or data["connector_name"]
-            connector = AgentGatewayToServiceConnector(
-                to_service_callback=gateway.send_to_service, service_name=service_name
-            )
-
-        elif data["protocol"] == "python":
-            params = data["class_name"].split(":")
-            if len(params) == 1:
-                if params[0] in built_in_connectors:
-                    connector_class: Any = built_in_connectors[params[0]]
-                    module_provided_str = "in deeppavlov_agent built in connectors"
-                elif self.connectors_module:
-                    connector_class = getattr(self.connectors_module, params[0], None)
-                    module_provided_str = (
-                        f"in {self.connectors_module.__name__} connectors module"
-                    )
-
-                if not connector_class:
-                    raise ValueError(
-                        f"Connector's python class {data['class_name']} from {name} "
-                        f"connector was not found ({module_provided_str})"
-                    )
-            elif len(params) == 2:
-                connector_class = getattr(
-                    self.get_external_module(params[0]), params[1], None
-                )
-            else:
-                raise ValueError(
-                    f"Expected class description in a `module.submodules:ClassName` form, "
-                    f"but got `{data['class_name']}` (in {name} connector)"
-                )
-            others = {
-                k: v for k, v in data.items() if k not in {"protocol", "class_name"}
-            }
-            connector = connector_class(**others)
-
-        self.workers.extend(workers)
-        self.connectors[name] = connector
 
     def make_service(self, group: Optional[str], name: str, data: ServiceConfig):
         logger.debug(f"Create service: '{name}' config={data}")
