@@ -1,5 +1,5 @@
 start: >
-  This chatbot is developed by Neural Networks and Deep Learning Lab at MIPT.
+  This chatbot is developed by deeppavlov.ai.
   Please have a chat with it and evaluate its performance.
   To begin a conversation enter /begin. To end a conversation: enter /end.
   When the dialogue is finished, you will be asked to evaluate it.
@@ -10,7 +10,7 @@ start: >
   https://www.apache.org / licenses / LICENSE – 2.0.
 
 help: >
-  This chatbot is developed by Neural Networks and Deep Learning Lab at MIPT.
+  This chatbot is developed by deeppavlov.ai.
   Please have a chat with it and evaluate its performance.
   To begin a conversation enter /begin. To end a conversation: enter /end.
   When the dialogue is finished, you will be asked to evaluate it.
