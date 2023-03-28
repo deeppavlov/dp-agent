@@ -23,7 +23,6 @@ BASE_PARAMETERS = {
     "db_config": "db_conf.json",
     "overwrite_last_chance": None,
     "overwrite_timeout": None,
-    "formatters_module": None,
     "response_logger": True,
     "time_limit": 0,
     "output_formatter": http_api_output_formatter,

@@ -132,7 +132,9 @@ def _get_formatter(
     formatter_name = config.get(formatter_type, None)
 
     if formatter_name is None:
-        return
+        return None
+
+    formatter: Optional[Callable[..., Any]]
 
     if formatter_name in all_formatters:
         formatter = all_formatters[formatter_name]
@@ -148,7 +150,7 @@ def _get_formatter(
 
 
 def _merge_service_names(
-    config_service_names: Union[Set[str], List[str]], service_names: Dict[str, Set[str]]
+    config_service_names: Union[Set, List[str]], service_names: Dict[str, Set[str]]
 ) -> Set[str]:
     result = set()
 
