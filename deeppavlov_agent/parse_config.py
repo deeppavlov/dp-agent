@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from importlib import import_module
 from typing import Dict, List, Set, Optional, Any
 from types import ModuleType
 
