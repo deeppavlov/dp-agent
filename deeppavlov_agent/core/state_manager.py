@@ -1,13 +1,18 @@
 from copy import deepcopy
 from typing import Dict
 
+from typing_extensions import Protocol
 from datetime import datetime
 
 from .state_schema import Bot, BotUtterance, Dialog, Human, HumanUtterance
 
 
+class BaseStateManager(Protocol):
+    pass
+
+
 # TODO: fix types
-class StateManager:
+class StateManager(BaseStateManager):
     def __init__(self, db):
         self._db = db
 
@@ -219,6 +224,6 @@ class ExtendedStateManager(StateManager):
             }
 
 
-class FakeStateManager:
+class FakeStateManager(BaseStateManager):
     async def add_annotation(self, dialog: Dialog, payload: Dict, label: str, **kwargs):
         pass

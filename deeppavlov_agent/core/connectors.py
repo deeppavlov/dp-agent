@@ -1,7 +1,7 @@
 import asyncio
 import os
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple, cast
-from typing_extensions import Protocol, runtime_checkable, Type, TypeGuard
+from typing_extensions import Protocol, runtime_checkable, Type
 from collections import defaultdict
 from logging import getLogger
 from importlib import import_module
@@ -212,14 +212,6 @@ def _get_gateway(
         )
 
     return _GATEWAY
-
-
-def _is_url(value: Any) -> TypeGuard[str]:
-    return isinstance(value, str)
-
-
-def _is_urllist(value: Any) -> TypeGuard[List[str]]:
-    return isinstance(value, list) and all([isinstance(val, str) for val in value])
 
 
 def _make_http_connector(
