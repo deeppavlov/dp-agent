@@ -8,7 +8,6 @@ agent:
   db_config: db_conf.json
   overwrite_last_chance: null
   overwrite_timeout: null
-  formatters_module: null
   enable_response_logger: true
   response_time_limit: 0
   output_formatter: deeppavlov_agent.state_formatters.output_formatters.http_api_output_formatter

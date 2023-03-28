@@ -1,7 +1,9 @@
+from typing import Dict, Callable, Any
+
 from .dp_formatters import *
 from .output_formatters import *
 
-all_formatters = {
+all_formatters: Dict[str, Callable[..., Any]] = {
     "base_last_utterances_formatter_in": base_last_utterances_formatter_in,
     "chitchat_formatter_in": chitchat_formatter_in,
     "odqa_formatter_in": odqa_formatter_in,
