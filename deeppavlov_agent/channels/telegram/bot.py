@@ -187,6 +187,9 @@ def run_tg(token, proxy, agent):
                 sound_dlink = await sound.get_url()#f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
                 file = urlopen(sound_dlink)
                 file = file.read()
+                clear = requests.delete(FILE_SERVER_URL + "/*")
+                print(f"Result of trying to empty the file server before inference: {clear}")
+                clear.raise_for_status()
                 resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
