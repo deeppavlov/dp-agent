@@ -13,6 +13,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
+from aiogram.types.message import ContentType
 
 from .utils import MessageResponder
 
@@ -160,7 +161,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -178,7 +179,7 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
-            sound = message.voice if message.voice else message.audio
+            sound = message.voice if message.voice else message.audio if message.audio else message.video_note
             if sound:
                 # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
                 sound_message = await sound.get_file()                                    # Multiple audios?
@@ -187,7 +188,8 @@ def run_tg(token, proxy, agent):
                 sound_dlink = await sound.get_url()#f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
                 file = urlopen(sound_dlink)
                 file = file.read()
-                resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "audio/ogg")})
+                resp = requests.post(FILE_SERVER_URL, files={'file': (sound_message.file_path, file, "video/ogg" if message.video_note else "audio/ogg")})
+                logger.info(f"File: {sound_message.file_path}")
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
                 dlink_tmp = resp.json()['downloadLink']
