@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from functools import partial
 from importlib import import_module
 from typing import Dict
 
@@ -14,7 +15,6 @@ from .core.state_manager import StateManager
 from .core.transport.mapping import GATEWAYS_MAP
 from .core.transport.settings import TRANSPORT_SETTINGS
 from .state_formatters import all_formatters
-
 
 built_in_connectors = {
     "PredefinedOutputConnector": PredefinedOutputConnector,
@@ -164,7 +164,10 @@ class PipelineConfigParser:
         dialog_formatter_name = data.get('dialog_formatter', None)
         response_formatter_name = data.get('response_formatter', None)
         if dialog_formatter_name:
-            if dialog_formatter_name in all_formatters:
+            if isinstance(dialog_formatter_name, dict):
+                dialog_formatter = check_ext_module(dialog_formatter_name.pop('name'))
+                dialog_formatter = partial(dialog_formatter, **dialog_formatter_name)
+            elif dialog_formatter_name in all_formatters:
                 dialog_formatter = all_formatters[dialog_formatter_name]
             else:
                 dialog_formatter = check_ext_module(dialog_formatter_name)
