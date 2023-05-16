@@ -36,6 +36,8 @@ class Agent:
     async def register_msg(self, utterance, deadline_timestamp=None,
                            require_response=False, **kwargs):
         dialog = await self.state_manager.get_or_create_dialog(**kwargs)
+        if not dialog.attributes:
+            dialog.attributes['pipeline'] = list(self.pipeline.services.keys())
         dialog_id = str(dialog.id)
         service = self.pipeline.get_service_by_name('input')
         message_attrs = kwargs.pop('message_attrs', {})
