@@ -165,7 +165,23 @@ def run_tg(token, proxy, agent):
     async def mint_handler(message: types.Message):
         text = f'trying to execute \"{message.text}\" command through ROS-mint'
 
-        await message.answer(text)
+        message_attrs = {}
+        message_attrs['text'] = message.text                                # may be redundant
+
+        response_data = await agent.register_msg(
+            utterance=message.text or '',
+            user_external_id=str(message.from_user.id),
+            user_device_type="telegram",
+            date_time=message.date,
+            location="",
+            channel_type="telegram",
+            require_response=True,
+            message_attrs=message_attrs
+        )
+
+        response = response_data["dialog"].utterances[-1].text
+
+        await message.answer(response)
 
     @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
     async def handle_message(message: types.Message, state: FSMContext):
@@ -226,7 +242,7 @@ def run_tg(token, proxy, agent):
         if text:
             await message.answer(text, reply_markup=reply_markup)
         if response_image is not None:
-            # TODO: optimize with async and possible by replacing object with link to tg server
+            # TODO: optimize with async and possibly by replacing object with link to tg server
             try:
                 resp = requests.get(response_image)
                 resp.raise_for_status()
