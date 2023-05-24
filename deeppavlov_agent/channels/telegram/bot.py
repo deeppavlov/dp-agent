@@ -161,6 +161,12 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
+    @dp.message_handler(commands="mint", state="*", content_types=['text']) # minecraft-interface
+    async def mint_handler(message: types.Message):
+        text = f'trying to execute \"{message.text}\" command through ROS-mint'
+
+        await message.answer(text)
+
     @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
