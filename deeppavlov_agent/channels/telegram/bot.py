@@ -166,7 +166,6 @@ def run_tg(token, proxy, agent):
         text = f'trying to execute \"{message.text}\" command through ROS-mint'
 
         message_attrs = {}
-        message_attrs['text'] = message.text                                # may be redundant
 
         response_data = await agent.register_msg(
             utterance=message.text or '',
