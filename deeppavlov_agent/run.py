@@ -1,15 +1,15 @@
-"""
-
-This module is now obsolete. Delete it or move hydra decorators here to be able to use it.
-
-"""
+import sys
+import logging
 
 import hydra
 from omegaconf import DictConfig
 
+import deeppavlov_agent.log as log
 from .run_cmd import run_cmd
 from .run_http import run_http
 from .run_tg import run_telegram
+
+logger = logging.getLogger("run")
 
 CHANNELS = {
     "cmd": run_cmd,
@@ -20,8 +20,13 @@ CHANNELS = {
 
 @hydra.main(config_path=".", config_name="settings")
 def main(cfg: DictConfig):
-    run_channel = CHANNELS[cfg.agent.channel]
-    run_channel(cfg)
+    with log.setup():
+        try:
+            run_channel = CHANNELS[cfg.agent.channel]
+            run_channel(cfg)
+        except Exception as e:
+            logger.exception(e)
+            sys.exit(-1)
 
 
 if __name__ == "__main__":

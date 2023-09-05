@@ -62,9 +62,9 @@ To launch the agent enter:
 
      .. code:: bash
 
-         python -m deeppavlov_agent.run -ch http_client -p 4242 -pl pipeline_conf.json -db db_conf.json -rl -d
+         python -m deeppavlov_agent.run_http
 
-Command parameters are:
+Command parameters are set via deepavlov_agent/settings.yaml:
 
     * -ch - output channel for agent. Could be either ``http_client`` or ``cmd_client``
     * -p - port for http_client, default value is 4242

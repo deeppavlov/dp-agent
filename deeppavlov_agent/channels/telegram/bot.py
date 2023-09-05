@@ -1,32 +1,28 @@
 import asyncio
 import logging
-from io import BytesIO
-from os import getenv
 from pathlib import Path
-from urllib.parse import urlparse
-from urllib.request import urlopen
-from uuid import uuid4
 
-import requests
+from aiogram.enums.content_type import ContentType
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
-from aiogram.types.message import ContentType
-
+from io import BytesIO
+from uuid import uuid4
+import requests
+from os import getenv
 from .utils import MessageResponder
+from urllib.parse import urlparse
 
-TG_TOKEN = "5870481666:AAGZjpfkCFJ4uk38VtF___gHy0pya8FevlA" # FIXME: hardcoded = bad
-
-config_dir = Path(__file__).resolve().parent / 'config'
+config_dir = Path(__file__).resolve().parent / "config"
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-FILE_SERVER_URL = getenv('FILE_SERVER_URL')
+FILE_SERVER_URL = getenv("FILE_SERVER_URL")
 server_url = urlparse(FILE_SERVER_URL)
 
 
@@ -161,27 +157,6 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(commands="mint", state="*", content_types=['text']) # minecraft-interface
-    async def mint_handler(message: types.Message):
-        text = f'trying to execute \"{message.text}\" command through ROS-mint'
-
-        message_attrs = {}
-
-        response_data = await agent.register_msg(
-            utterance=message.text or '',
-            user_external_id=str(message.from_user.id),
-            user_device_type="telegram",
-            date_time=message.date,
-            location="",
-            channel_type="telegram",
-            require_response=True,
-            message_attrs=message_attrs
-        )
-
-        response = response_data["dialog"].utterances[-1].text
-
-        await message.answer(response)
-
     @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
@@ -228,20 +203,23 @@ def run_tg(token, proxy, agent):
                 location="",
                 channel_type="telegram",
                 require_response=True,
-                message_attrs=message_attrs
+                message_attrs=message_attrs,
             )
             text = response_data["dialog"].utterances[-1].text
-            response_image = response_data["dialog"].utterances[-1].attributes.get("image")
+            response_image = (
+                response_data["dialog"].utterances[-1].attributes.get("image")
+            )
             utterance_id = response_data["dialog"].utterances[-1].utt_id
             reply_markup = responder.utterance_rating_inline_keyboard(utterance_id)
         else:
             text = responder.message("unexpected_message")
             response_image = None
             reply_markup = None
+
         if text:
             await message.answer(text, reply_markup=reply_markup)
         if response_image is not None:
-            # TODO: optimize with async and possibly by replacing object with link to tg server
+            # TODO: optimize with async and possible by replacing object with link to tg server
             try:
                 resp = requests.get(response_image)
                 resp.raise_for_status()
@@ -249,4 +227,5 @@ def run_tg(token, proxy, agent):
                 await message.answer_photo(image)
             except Exception as e:
                 logger.error(e)
+
     executor.start_polling(dp, skip_updates=True)

@@ -1,11 +1,16 @@
+import os
 import logging
+import logging.config
 from importlib import import_module
 from typing import Dict
 
 from .core.db import DataBase
 from .core.state_manager import StateManager, Dialog
 from .core.workflow_manager import WorkflowManager
-from .state_formatters.output_formatters import http_api_output_formatter, http_debug_output_formatter
+from .state_formatters.output_formatters import (
+    http_api_output_formatter,
+    http_debug_output_formatter,
+)
 
 
 # Default parameters
@@ -26,7 +31,7 @@ BASE_PARAMETERS = {
     "debug_output_formatter": http_debug_output_formatter,
     "port": 4242,
     "cors": False,
-    "telegram_token": "5870481666:AAGI4LxHqV7rH1frtCGVpPK_6nb6VrmYPgI",
+    "telegram_token": "",
     "telegram_proxy": "",
 }
 
@@ -63,7 +68,9 @@ class ExtendedStateManager(StateManager):
     ):
         dialog.utterances[-1].annotations[label] = payload
         if len(dialog.utterances) == 1:
-            dialog.human.attributes = {"disliked_skills": dialog.human.attributes.get("disliked_skills", [])}
+            dialog.human.attributes = {
+                "disliked_skills": dialog.human.attributes.get("disliked_skills", [])
+            }
 
 
 # Basic agent configuration parameters (some are currently unavailable)
@@ -80,7 +87,9 @@ OVERWRITE_TIMEOUT = setup_parameter("overwrite_timeout", user_settings)
 RESPONSE_LOGGER = setup_parameter("response_logger", user_settings)
 
 # HTTP app configuraion parameters
-TIME_LIMIT = setup_parameter("time_limit", user_settings)  # Without engaging the timeout by default
+TIME_LIMIT = setup_parameter(
+    "time_limit", user_settings
+)  # Without engaging the timeout by default
 CORS = setup_parameter("cors", user_settings)
 
 OUTPUT_FORMATTER = setup_parameter("output_formatter", user_settings)
@@ -92,3 +101,15 @@ PORT = setup_parameter("port", user_settings)
 # Telegram client configuration parameters
 TELEGRAM_TOKEN = setup_parameter("telegram_token", user_settings)
 TELEGRAM_PROXY = setup_parameter("telegram_proxy", user_settings)
+
+
+class LogDest:
+    FILE = "file"
+    CONSOLE = "console"
+
+
+LOG_DEST = os.environ.get("LOG_DEST", LogDest.FILE)
+LOG_FILE = os.environ.get("LOG_FILE", "dp_agent.log")
+LOG_FILE_SIZE = int(os.environ.get("LOG_FILE_SIZE", 10485760))  # 10mb
+LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", 5))
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG")
