@@ -21,7 +21,9 @@ def http_debug_output_formatter(payload: Dict):
         'attributes': payload['utterances'][-1].get('attributes', {})
     }
     if payload["utterances"][-2].get("attributes", {}).get("debug_output", False):
-        result["debug_output"]["hypotheses"] = payload['utterances'][-2]['hypotheses']
-        result["debug_output"]["annotations"] = payload['utterances'][-2]['annotations']
+        result["debug_output"] = {
+            "hypotheses": payload['utterances'][-2]['hypotheses'],
+            "annotations": payload['utterances'][-2]['annotations']
+        }
 
     return result
