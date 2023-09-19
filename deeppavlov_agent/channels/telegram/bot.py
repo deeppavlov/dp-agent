@@ -2,6 +2,7 @@ import asyncio
 import logging
 from pathlib import Path
 
+from aiogram.enums.content_type import ContentType
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -156,31 +157,49 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=["text", "photo"])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
             if message.photo and FILE_SERVER_URL:
                 try:
                     photo = await message.photo[-1].download(BytesIO())
-                    fname = f"{uuid4().hex}.jpg"
+                    fname = f'{uuid4().hex}.jpg'
                     # TODO: make with aiohttp. Maybe remove BytesIO intermediate step. Maybe mobe image logit to agent.
                     # TODO: move file server url definition to the run.py level
-                    resp = requests.post(
-                        FILE_SERVER_URL, files={"file": (fname, photo, "image/jpg")}
-                    )
+                    resp = requests.post(FILE_SERVER_URL, files={'file': (fname, photo, 'image/jpg')})
                     resp.raise_for_status()
-                    download_link = resp.json()["downloadLink"]
-                    download_link = (
-                        urlparse(download_link)
-                        ._replace(scheme=server_url.scheme, netloc=server_url.netloc)
-                        .geturl()
-                    )
-                    message_attrs["image"] = download_link
+                    download_link = resp.json()['downloadLink']
+                    download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                     netloc=server_url.netloc).geturl()
+                    message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
+            sound = message.voice or message.audio or message.video_note
+            if sound:
+                # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+                sound_message = await sound.get_file()
+                # TODO: add support for multiple audios
+                # It is guaranteed that the link will be valid for at least 1 hour. When the link expires,
+                # a new one can be requested by calling getFile. Maximum file size to download is 20 MB.
+                sound_dlink = await sound.get_url()
+                # f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
+                file = urlopen(sound_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={
+                    'file': (sound_message.file_path, file, "video/ogg" if message.video_note else "audio/ogg")})
+                logger.debug(f"File: {sound_message.file_path}")
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme,
+                                                                 netloc=server_url.netloc).geturl()
+                message_attrs['sound_path'] = download_link
+                message_attrs['sound_duration'] = sound.duration
+                message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
+                logger.debug(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
-                utterance=message.text or "",
+                utterance=message.text or '',
                 user_external_id=str(message.from_user.id),
                 user_device_type="telegram",
                 date_time=message.date,

@@ -8,11 +8,17 @@ from .channels.telegram.bot import run_tg
 from .setup_agent import setup_agent
 
 logger = getLogger(__name__)
-sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
+sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
 
 
 def run_telegram(cfg: DictConfig):
-    agent, session, workers = setup_agent(cfg.agent)
+    agent, session, workers = setup_agent(
+        cfg.agent.pipeline_config,
+        cfg.agent.db_config,
+        cfg.agent.overwrite_last_chance,
+        cfg.agent.overwrite_timeout,
+        cfg.agent.response_logger,
+    )
     try:
         run_tg(cfg.agent.telegram_token, cfg.agent.telegram_proxy, agent)
     except Exception as e:

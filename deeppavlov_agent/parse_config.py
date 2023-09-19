@@ -49,7 +49,20 @@ class PipelineConfigParser:
                     self.services_names[group].add(name)
                     self.services_names[name].add(name)
 
-                logger.debug(f"Create service: '{name}' config={node.config}")
+    def make_connector(self, name: str, data: Dict):
+        workers = []
+        if data['protocol'] == 'http':
+            connector = None
+            workers = []
+            if 'urllist' in data or 'num_workers' in data or data.get('batch_size', 1) > 1:
+                queue = asyncio.Queue()
+                batch_size = data.get('batch_size', 1)
+                urllist = data.get('urllist', [data['url']] * data.get('num_workers', 1))
+                connector = AioQueueConnector(queue)
+                for url in urllist:
+                    workers.append(QueueListenerBatchifyer(self.get_session(), url, queue, batch_size))
+            else:
+                connector = HTTPConnector(self.get_session(), data['url'], timeout=data.get("timeout", 0))
 
                 service = make_service(
                     name=name,
