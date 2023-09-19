@@ -18,9 +18,6 @@ from .config import ConnectorConfig
 logger = getLogger(__name__)
 sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
-logger = getLogger(__name__)
-sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
-
 
 @runtime_checkable
 class Connector(Protocol):

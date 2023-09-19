@@ -1,4 +1,3 @@
-import logging
 import uuid
 from hashlib import md5
 from collections import defaultdict

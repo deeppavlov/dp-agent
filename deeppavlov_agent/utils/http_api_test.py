@@ -24,8 +24,6 @@ structure of phrase file (-pf) simple text file. One phrase per line
 
 sentry_sdk.init(os.getenv("DP_AGENT_SENTRY_DSN"))  # type: ignore
 
-sentry_sdk.init(os.getenv('DP_AGENT_SENTRY_DSN'))
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--url", type=str)
 parser.add_argument(
