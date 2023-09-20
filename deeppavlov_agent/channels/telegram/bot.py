@@ -188,7 +188,7 @@ def run_tg(token, proxy, agent):
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={
                     'file': (sound_message.file_path, file, "video/ogg" if message.video_note else "audio/ogg")})
-                logger.debug(f"File: {sound_message.file_path}")
+                logger.info(f"File: {sound_message.file_path}")
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
                 dlink_tmp = resp.json()['downloadLink']
@@ -196,7 +196,7 @@ def run_tg(token, proxy, agent):
                 message_attrs['sound_path'] = download_link
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
-                logger.debug(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or message.caption or '',
                 user_external_id=str(message.from_user.id),
