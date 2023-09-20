@@ -4,7 +4,6 @@ import requests
 
 from pathlib import Path
 from aiogram import Bot, Dispatcher, types
-from aiogram.enums.content_type import ContentType
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -159,7 +158,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', ContentType.VIDEO_NOTE])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', 'video_note'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
