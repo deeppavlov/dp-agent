@@ -158,7 +158,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', 'video_note'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', 'video_note', 'video'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -176,14 +176,16 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
-            sound = message.voice or message.audio or message.video_note
+            sound = message.voice or message.audio
+            video = message.video_note or message.video
+            # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+            # TODO: add support for multiple audios and videos in one message
+            # It is guaranteed that the link will be valid for at least 1 hour. When the link expires,
+            # a new one can be requested by calling getFile. Maximum file size to download is 20 MB.
+            # TODO: find a way around 20MB file size limit?
             if sound:
-                # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
                 sound_message = await sound.get_file()
-                # TODO: add support for multiple audios in one message
-                # It is guaranteed that the link will be valid for at least 1 hour. When the link expires,
-                # a new one can be requested by calling getFile. Maximum file size to download is 20 MB.
-                sound_dlink = await sound.get_url()  # f"https://api.telegram.org/file/bot{TG_TOKEN}/{sound_message.file_path}"
+                sound_dlink = await sound.get_url()
                 file = urlopen(sound_dlink)
                 file = file.read()
                 resp = requests.post(FILE_SERVER_URL, files={
@@ -197,6 +199,21 @@ def run_tg(token, proxy, agent):
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
                 logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
+            if video:
+                video_message = await video.get_file()
+                video_dlink = await video.get_url()
+                file = urlopen(video_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={'file': (video_message.file_path, file, "video/ogg")})
+                logger.info(f"File: {video_message.file_path}")
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
+                message_attrs['video_path'] = download_link
+                message_attrs['video_duration'] = video.duration
+                message_attrs['video_type'] = 'video_attachment' if video == message.video else 'video_note'
+                logger.info(f"VIDEO_DLINK CHECK: {video_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or message.caption or '',
                 user_external_id=str(message.from_user.id),
