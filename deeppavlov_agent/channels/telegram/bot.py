@@ -1,7 +1,8 @@
 import asyncio
 import logging
-from pathlib import Path
+import requests
 
+from pathlib import Path
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -9,10 +10,11 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 from io import BytesIO
 from uuid import uuid4
-import requests
 from os import getenv
-from .utils import MessageResponder
 from urllib.parse import urlparse
+from urllib.request import urlopen
+
+from .utils import MessageResponder
 
 config_dir = Path(__file__).resolve().parent / 'config'
 
@@ -57,7 +59,7 @@ def run_tg(token, proxy, agent):
 
     @dp.message_handler(commands="complain", state="*")
     async def complain_handler(message: types.Message, state: FSMContext):
-        # TODO Add actual complaint logic
+        # TODO Add actual complain logic
         if await state.get_state() == DialogState.active.state:
             text = responder.message("complain_success")
         else:
@@ -156,7 +158,7 @@ def run_tg(token, proxy, agent):
             callback_query.from_user.id, message_text, reply_markup=reply_markup
         )
 
-    @dp.message_handler(state="*", content_types=['text', 'photo'])
+    @dp.message_handler(state="*", content_types=['text', 'photo', 'voice', 'audio', 'video_note', 'video'])
     async def handle_message(message: types.Message, state: FSMContext):
         if await state.get_state() == DialogState.active.state:
             message_attrs = {}
@@ -174,6 +176,44 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
+            sound = message.voice or message.audio
+            video = message.video_note or message.video
+            # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
+            # TODO: add support for multiple audios and videos in one message
+            # It is guaranteed that the link will be valid for at least 1 hour. When the link expires,
+            # a new one can be requested by calling getFile. Maximum file size to download is 20 MB.
+            # TODO: find a way around 20MB file size limit?
+            if sound:
+                sound_message = await sound.get_file()
+                sound_dlink = await sound.get_url()
+                file = urlopen(sound_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={
+                    'file': (sound_message.file_path, file, "video/ogg" if message.video_note else "audio/ogg")})
+                logger.info(f"File: {sound_message.file_path}")
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
+                message_attrs['sound_path'] = download_link
+                message_attrs['sound_duration'] = sound.duration
+                message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
+                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
+            if video:
+                video_message = await video.get_file()
+                video_dlink = await video.get_url()
+                file = urlopen(video_dlink)
+                file = file.read()
+                resp = requests.post(FILE_SERVER_URL, files={'file': (video_message.file_path, file, "video/ogg")})
+                logger.info(f"File: {video_message.file_path}")
+                resp.raise_for_status()
+                download_link = resp.json()['downloadLink']
+                dlink_tmp = resp.json()['downloadLink']
+                download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
+                message_attrs['video_path'] = download_link
+                message_attrs['video_duration'] = video.duration
+                message_attrs['video_type'] = 'video_attachment' if video == message.video else 'video_note'
+                logger.info(f"VIDEO_DLINK CHECK: {video_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or message.caption or '',
                 user_external_id=str(message.from_user.id),
