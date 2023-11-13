@@ -176,7 +176,7 @@ def run_tg(token, proxy, agent):
                     message_attrs['image'] = download_link
                 except Exception as e:
                     logger.error(e)
-            sound = message.voice or message.audio
+            sound = message.voice or message.audio or message.video_note
             video = message.video_note or message.video
             # FIXME: get_url is not secure — the url contains bot token, that if stolen may be used maliciously
             # TODO: add support for multiple audios and videos in one message
