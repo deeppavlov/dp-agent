@@ -193,12 +193,10 @@ def run_tg(token, proxy, agent):
                 logger.info(f"File: {sound_message.file_path}")
                 resp.raise_for_status()
                 download_link = resp.json()['downloadLink']
-                dlink_tmp = resp.json()['downloadLink']
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
                 message_attrs['sound_path'] = download_link
                 message_attrs['sound_duration'] = sound.duration
                 message_attrs['sound_type'] = 'voice_message' if sound == message.voice else 'audio_attachment'
-                logger.info(f"SOUND_DLINK CHECK: {sound_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             if video:
                 video_message = await video.get_file()
                 video_dlink = await video.get_url()
@@ -207,13 +205,11 @@ def run_tg(token, proxy, agent):
                 resp = requests.post(FILE_SERVER_URL, files={'file': (video_message.file_path, file, "video/ogg")})
                 logger.info(f"File: {video_message.file_path}")
                 resp.raise_for_status()
-                download_link = resp.json()['downloadLink']
-                dlink_tmp = resp.json()['downloadLink']
+                download_link = resp.json()['downloadLink'] s
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
                 message_attrs['video_path'] = download_link
                 message_attrs['video_duration'] = video.duration
                 message_attrs['video_type'] = 'video_attachment' if video == message.video else 'video_note'
-                logger.info(f"VIDEO_DLINK CHECK: {video_dlink}, tmp_dlink: {dlink_tmp}, download_link: {download_link}")
             response_data = await agent.register_msg(
                 utterance=message.text or message.caption or '',
                 user_external_id=str(message.from_user.id),
