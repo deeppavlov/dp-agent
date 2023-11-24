@@ -205,7 +205,7 @@ def run_tg(token, proxy, agent):
                 resp = requests.post(FILE_SERVER_URL, files={'file': (video_message.file_path, file, "video/ogg")})
                 logger.info(f"File: {video_message.file_path}")
                 resp.raise_for_status()
-                download_link = resp.json()['downloadLink'] s
+                download_link = resp.json()['downloadLink']
                 download_link = urlparse(download_link)._replace(scheme=server_url.scheme, netloc=server_url.netloc).geturl()
                 message_attrs['video_path'] = download_link
                 message_attrs['video_duration'] = video.duration
